@@ -1,6 +1,6 @@
 # BhayanakBot
-Administration bot for Discord servers.
 ![alt](https://i.imgur.com/CIAJAgg.jpg)
+Administration bot for Discord servers.
 
 # Relevant Links
 * [Trello](https://trello.com/b/BkBvlAL5/bhayanakbot) - Development activity status.
