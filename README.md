@@ -1,5 +1,6 @@
 # BhayanakBot
 Administration bot for Discord servers.
+
 ![alt](https://i.imgur.com/CIAJAgg.jpg)
 
 # Relevant Links
