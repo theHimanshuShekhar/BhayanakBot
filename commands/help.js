@@ -6,8 +6,8 @@ module.exports.run = async (bot, message, args) => {
         .setTitle("Commands")
         .setThumbnail(bot.user.displayAvatarURL)
         .addField("Prefix", ">>")
-        .addField(">>botinfo", "display the bot information")
-        .addField(">>serverinfo", "display the server information")
+        .addField(">>bot", "display the bot information")
+        .addField(">>server", "display the server information")
     message.channel.send(botembed);
 }
 

@@ -6,6 +6,7 @@ const bot = new Discord.Client({disableEveryone: true});
 bot.commands = new Discord.Collection;
 
 fs.readdir("./commands/", (err, files) => {
+    console.clear();
     if(err) console.log(err);
     let jsfile = files.filter(f => f.split(".").pop() === "js");
     if(jsfile.length <= 0) {
@@ -21,7 +22,7 @@ fs.readdir("./commands/", (err, files) => {
 
 bot.on("ready", async() => {
     console.log(`${bot.user.username} is online on ${bot.guilds.size} servers!`);
-    bot.user.setActivity("some hentai!", {type: "WATCHING"});
+    bot.user.setActivity(">>help", {type: "WATCHING"});
 });
 
 bot.on("message", async message => {
