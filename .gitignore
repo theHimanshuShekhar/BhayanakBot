@@ -16,5 +16,5 @@ typings/
 # Optional eslint cache
 .eslintcache
 
-# Discord developer token
-token.json
+# env
+.env

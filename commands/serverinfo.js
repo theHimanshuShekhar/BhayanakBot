@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 
 module.exports.run = async (bot, message, args) => {
-    var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     let createDate = message.guild.createdAt.toLocaleString("en-IN", options);
     let joinDate = message.member.joinedAt.toLocaleString("en-IN", options);
     let serverembed = new Discord.RichEmbed()

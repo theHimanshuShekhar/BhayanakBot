@@ -1,5 +1,4 @@
-const botconfig = require("./botconfig.json");
-const tokenConfig = require("./token.json");
+require('dotenv').config();
 const Discord = require("discord.js");
 const fs = require("fs");
 const bot = new Discord.Client({disableEveryone: true});
@@ -29,7 +28,7 @@ bot.on("message", async message => {
     if(message.author.bot) return;
     if(message.channel.type === "dm") return;
 
-    let prefix = botconfig.prefix;
+    let prefix = process.env.PREFIX;
     let messageArray = message.content.split(" ");
     let cmd = messageArray[0];
     let args = messageArray.slice(1);
@@ -37,4 +36,4 @@ bot.on("message", async message => {
     if(commandfile) commandfile.run(bot, message, args);
 });
 
-bot.login(tokenConfig.token);
+bot.login(process.env.TOKEN);
