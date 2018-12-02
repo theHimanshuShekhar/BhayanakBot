@@ -8,6 +8,8 @@ module.exports.run = async (bot, message, args) => {
         .addField("Prefix", ">>")
         .addField(">>bot", "display the bot information")
         .addField(">>server", "display the server information")
+        .addField(">>user [username]", "display the user's information")
+        .addField(">>bot", "display BhayanakBot's information")
     message.channel.send(botembed);
 }
 
