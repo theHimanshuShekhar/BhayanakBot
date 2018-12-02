@@ -48,7 +48,7 @@ var http = require('http');
 
 var server = http.createServer((request, response) => {
     response.write("<h1>Bhayanak Bot</h1>")
-    response.write("<h3>Github Repository</h3><a href='https://github.com/theHimanshuShekhar/BhayanakBot'>github.com/theHimanshuShekhar/BhayanakBot</a>")
+    response.write("<h3>Github Repository</h3><a href='https://github.com/theHimanshuShekhar/BhayanakBot'>github.com/theHimanshuShekhar/BhayanakBot</a></br>")
     response.write("<img src='https://i.imgur.com/CIAJAgg.jpg'>")
 });
 
