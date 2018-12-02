@@ -10,15 +10,16 @@ fs.readdir("./commands/", (err, files) => {
     console.clear();
     if (err) console.log(err);
     let jsfile = files.filter(f => f.split(".").pop() === "js");
-    if (jsfile.length <= 0) {
+    if (jsfile && jsfile.length <= 0) {
         console.log("Could not find commands.");
         return;
+    } else {
+        jsfile.forEach((file, index) => {
+            let props = require(`./commands/${file}`);
+            console.log(`${file} loaded.`);
+            bot.commands.set(props.help.name, props);
+        });
     }
-    jsfile.forEach((file, index) => {
-        let props = require(`./commands/${file}`);
-        console.log(`${file} loaded.`);
-        bot.commands.set(props.help.name, props);
-    });
 });
 
 bot.on("ready", async () => {
