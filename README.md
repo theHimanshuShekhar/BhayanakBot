@@ -1,5 +1,5 @@
 # BhayanakBot
-Administration bot for Discord servers.
+All purpose bot for Discord servers.
 
 ![alt](https://i.imgur.com/CIAJAgg.jpg)
 
