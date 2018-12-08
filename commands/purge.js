@@ -23,8 +23,7 @@ module.exports.run = async (bot, message, args) => {
                 message.channel.bulkDelete(messages).catch(error => console.log(error.stack));
             }
         });
-    }
-    elese {
+    } else {
         message.reply("You don't have sufficient permissions to use this command!");
     }
 }
