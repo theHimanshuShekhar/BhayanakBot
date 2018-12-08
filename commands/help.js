@@ -4,12 +4,14 @@ module.exports.run = async (bot, message, args) => {
     let botembed = new Discord.RichEmbed()
         .setColor("#6457A6")
         .setTitle("Commands")
-        .setThumbnail(bot.user.displayAvatarURL)
-        .addField("Prefix", ">>")
-        .addField(">>bot", "display the bot information")
-        .addField(">>server", "display the server information")
-        .addField(">>user [username]", "display the user's information")
         .addField(">>bot", "display BhayanakBot's information")
+        .addField(">>server", "display the server information")
+        .addField(">>user [user]", "display the user's information")
+        .addField(">>purge [?user] [amount]", "Purge messages in a text channel")
+        .setThumbnail(bot.user.displayAvatarURL)
+        .addBlankField()
+        .setFooter("? = optional parameters")
+
     message.channel.send(botembed);
 }
 
