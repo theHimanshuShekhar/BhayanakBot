@@ -24,6 +24,9 @@ module.exports.run = async (bot, message, args) => {
             }
         });
     }
+    elese {
+        message.reply("You don't have sufficient permissions to use this command!");
+    }
 }
 
 function checkAdmin(message) {
