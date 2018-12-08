@@ -53,3 +53,7 @@ var server = http.createServer((request, response) => {
 });
 
 server.listen(process.env.PORT || 8080);
+
+setInterval(function () {
+    http.get("http://bhayanak-bot.herokuapp.com");
+}, 600000);
