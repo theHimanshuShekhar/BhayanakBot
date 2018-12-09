@@ -14,7 +14,7 @@ module.exports.run = async (bot, message, args) => {
             }).then((messages) => {
                 if (user) {
                     const filterBy = user ? user.id : Client.user.id;
-                    messages = messages.filter(m => m.author.id === filterBy).array().slice(0, amount);
+                    messages = messages.filter(m => m.author.id === filterBy).array().slice(0, amount + 1);
                     message.channel.bulkDelete(messages).catch(error => console.log(error.stack));
                 }
             });
