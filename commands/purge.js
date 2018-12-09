@@ -8,21 +8,24 @@ module.exports.run = async (bot, message, args) => {
         if (!amount) return message.reply('Must specify an amount to delete!');
         if (!amount && !user) return message.reply('Must specify a user and amount, or just an amount, of messages to purge!');
         // Fetch 100 messages (will be filtered and lowered up to max amount requested)
-        message.channel.fetchMessages({
-            limit: 100,
-        }).then((messages) => {
-            if (user) {
-                const filterBy = user ? user.id : Client.user.id;
-                messages = messages.filter(m => m.author.id === filterBy).array().slice(0, amount);
-            }
-        });
-        message.channel.fetchMessages({
-            limit: amount + 1,
-        }).then((messages) => {
-            if (amount) {
-                message.channel.bulkDelete(messages).catch(error => console.log(error.stack));
-            }
-        });
+        if (user) {
+            message.channel.fetchMessages({
+                limit: 100,
+            }).then((messages) => {
+                if (user) {
+                    const filterBy = user ? user.id : Client.user.id;
+                    messages = messages.filter(m => m.author.id === filterBy).array().slice(0, amount);
+                }
+            });
+        } else {
+            message.channel.fetchMessages({
+                limit: amount + 1,
+            }).then((messages) => {
+                if (amount) {
+                    message.channel.bulkDelete(messages).catch(error => console.log(error.stack));
+                }
+            });
+        }
     } else {
         message.reply("You don't have sufficient permissions to use this command!");
     }
