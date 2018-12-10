@@ -12,6 +12,7 @@ module.exports.run = async (bot, message, args) => {
         .addField(">>woof", "for cute doggos!")
         .setThumbnail(bot.user.displayAvatarURL)
         .addBlankField()
+        .addField("Contribute to development of the bot", "https://github.com/theHimanshuShekhar/BhayanakBot")
         .setFooter("? = optional parameters")
 
     message.channel.send(botembed);
