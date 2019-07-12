@@ -10,8 +10,9 @@
   "author": "Gotiyababa",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^11.4.2",
+    "discord.js": "^11.5.1",
     "dotenv": "^6.2.0",
-    "node-fetch": "^2.3.0"
+    "node-fetch": "^2.6.0",
+    "steamapi": "^2.0.7"
   }
 }
