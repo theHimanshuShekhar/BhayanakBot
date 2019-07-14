@@ -47,7 +47,7 @@ module.exports.run = async (bot, message, args) => {
             //
             message.channel.send(botembed);
         });
-    }).catch(() => message.channel.send('No such user found.'));
+    }).catch(() => message.channel.send('Kuch bhi na dal bc.'));
 }
 
 module.exports.help = {
