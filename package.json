@@ -15,7 +15,8 @@
     "ffmpeg": "0.0.4",
     "node-fetch": "^2.6.0",
     "node-opus": "^0.3.2",
-    "steamapi": "^2.0.7"
+    "steamapi": "^2.0.7",
+    "ytdl-core": "^0.29.3"
   },
   "devDependencies": {
     "nodemon": "^1.19.1"
