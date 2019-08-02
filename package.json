@@ -4,8 +4,8 @@
   "description": "Custom bot for the BC Discord server",
   "main": "index.js",
   "scripts": {
-    "start": "$(npm bin)/run-s build:website start:website",
-    "start:website": "npm i && nodemon index.js",
+    "start": "./node_modules/.bin/run-s build:website start:website",
+    "start:website": "nodemon index.js",
     "build:website": "cd website &&  npm i && ng build --prod",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
