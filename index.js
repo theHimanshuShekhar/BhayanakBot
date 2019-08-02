@@ -43,17 +43,31 @@ bot.on("message", async message => {
 
 bot.login(process.env.TOKEN);
 
-// Webserver
-var http = require('http');
-
-var server = http.createServer((request, response) => {
-    response.write("<h1>Bhayanak Bot</h1>")
-    response.write("<h3>Github Repository</h3><a href='https://github.com/theHimanshuShekhar/BhayanakBot'>github.com/theHimanshuShekhar/BhayanakBot</a></br>")
-    response.write("<img src='https://i.imgur.com/CIAJAgg.jpg'>")
-});
-
-server.listen(process.env.PORT || 8080);
-
 setInterval(function () {
     http.get("http://bhayanak-bot.herokuapp.com");
 }, 600000);
+
+
+// Webserver
+"use strict";
+const express = require("express");
+const compression = require("compression");
+const app = express();
+app.use(compression());
+
+const _app_folder = 'website/dist/website';
+const _port = process.env.PORT || 8080;
+
+app.get('*.*', express.static(_app_folder, {
+    maxAge: '1y'
+}));
+
+app.all('*', function (req, res) {
+    res.status(200).sendFile(`/`, {
+        root: _app_folder
+    });
+});
+
+app.listen(_port, function () {
+    console.log("Node Express server for " + app.name + " listening on " + _port);
+});
