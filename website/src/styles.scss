@@ -1,1 +1,16 @@
 /* You can add global styles to this file, and also import other style files */
+
+$bg-light: #393f44;
+$bg-dark: #363a3f;
+
+html,
+body {
+  background-color: $bg-light;
+  height: 100vh;
+  overflow-x: hidden;
+  color: ivory;
+}
+
+.header {
+  background-color: $bg-dark;
+}
