@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "run-s build:website start:website",
-    "start:website": "nodemon index.js",
-    "build:website": "cd website && ng build --prod",
+    "start:website": "npm i && nodemon index.js",
+    "build:website": "cd website &&  npm i && ng build --prod",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Gotiyababa",
