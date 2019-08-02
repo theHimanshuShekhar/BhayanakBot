@@ -4,21 +4,22 @@
   "description": "Custom bot for the BC Discord server",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "npm run start:website",
+    "start:website": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Gotiyababa",
   "license": "ISC",
   "dependencies": {
+    "compression": "^1.7.4",
     "discord.js": "^11.5.1",
     "dotenv": "^6.2.0",
+    "express": "^4.17.1",
     "ffmpeg": "0.0.4",
     "node-fetch": "^2.6.0",
     "node-opus": "^0.3.2",
     "steamapi": "^2.0.7",
     "ytdl-core": "^0.29.3"
   },
-  "devDependencies": {
-    "nodemon": "^1.19.1"
-  }
+  "devDependencies": {}
 }
