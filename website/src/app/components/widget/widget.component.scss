@@ -1,0 +1,78 @@
+.widget {
+  max-height: 500px;
+  height: 500px;
+  //   overflow: hidden;
+}
+
+.card {
+  background-color: darkslateblue;
+  z-index: 1;
+}
+
+.channels-container,
+.members-container {
+  max-height: 500px;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+
+.channels-container::-webkit-scrollbar,
+.members-container::-webkit-scrollbar {
+  display: none;
+}
+
+.member-pill {
+  background-color: lightseagreen;
+  border-radius: 20px;
+  display: inline-block;
+  padding: 3px 5px;
+  margin: 5px;
+  -webkit-box-shadow: 1px 2px 5px 0px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 1px 2px 5px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 1px 2px 5px 0px rgba(0, 0, 0, 0.75);
+}
+
+.member-pill>h6 {
+  margin: 5px;
+  display: inline-block;
+}
+
+.member-pill>img {
+  display: inline-block;
+  border-radius: 100%;
+  height: 35px;
+  width: 35px;
+}
+
+.channel {
+  background-color: lightseagreen;
+  border-radius: 7px;
+  padding: 5px 10px;
+  margin: 5px;
+  -webkit-box-shadow: 1px 2px 5px 0px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 1px 2px 5px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 1px 2px 5px 0px rgba(0, 0, 0, 0.75);
+}
+
+.channel>.members>.member-pill {
+  background-color: darkslateblue;
+}
+
+.invite {
+  display: block;
+}
+
+.invite>a {
+  position: relative;
+  @extend .member-pill;
+  padding: 5px 100px;
+  border-radius: 150px;
+  font-size: 20px;
+  font-weight: bold !important;
+  z-index: 99;
+  margin-top: -50px;
+  margin-right: 10px;
+  -webkit-box-shadow: 3px 3px 5px 0px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 3px 3px 5px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 3px 3px 5px 0px rgba(0, 0, 0, 0.75);
+}

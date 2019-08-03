@@ -1,16 +1,11 @@
 .jumbotron {
   height: calc(100vh - 100px);
-  background-color: darkslateblue;
+  // background-color: darkslateblue;
+  background: none;
   border-radius: 0;
   margin: 0;
   //   background-image: url("../../../assets/gogo.jpg");
   //   background-size: cover;
   //   background-position-y: 20%;
   //   overflow: hidden;
-}
-
-.jumbotron::after {
-
-  filter: blur(8px);
-  -webkit-filter: blur(8px);
 }

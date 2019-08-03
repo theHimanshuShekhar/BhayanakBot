@@ -14,3 +14,13 @@ body {
 .header {
   background-color: $bg-dark;
 }
+
+.card {
+  background-color: $bg-light;
+  color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  -webkit-box-shadow: 3px 3px 5px 0px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 3px 3px 5px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 3px 3px 5px 0px rgba(0, 0, 0, 0.75);
+}
