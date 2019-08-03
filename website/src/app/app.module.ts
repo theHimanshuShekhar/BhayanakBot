@@ -13,7 +13,8 @@ import { WidgetComponent } from './components/widget/widget.component';
     AppComponent,
     HomeComponent,
     HeaderComponent,
-    WidgetComponent
+    WidgetComponent,
+    HeaderComponent
   ],
   imports: [
     BrowserModule,

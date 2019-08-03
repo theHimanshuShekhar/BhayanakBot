@@ -12,6 +12,7 @@ module.exports.run = async (bot, message, args) => {
         .addField("Description", "Server administration bot")
         .addField("Created on", createDate)
         .addField("Currently Online in", bot.guilds.size + snum)
+        .addField("Website", "https://bhayanak-bot.herokuapp.com")
         .setImage("https://i.imgur.com/ps8otef.jpg")
         .setFooter("\"Crime Master Gogo naam hai mera, aankhen nikal ke gotiyan khelta hun main\"");
     message.channel.send(botembed);
