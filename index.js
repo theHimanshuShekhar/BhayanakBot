@@ -43,6 +43,8 @@ bot.on("message", async message => {
 
 bot.login(process.env.TOKEN);
 
+const http = require('http');
+
 setInterval(function () {
     http.get("http://bhayanak-bot.herokuapp.com");
 }, 600000);
