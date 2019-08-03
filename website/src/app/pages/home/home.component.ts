@@ -7,12 +7,17 @@ import { HttpClient } from '@angular/common/http';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit {
+  widgetdata;
 
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
+    this.getData();
+  }
+
+  getData() {
     this.http.get('https://discordapp.com/api/guilds/199168135935295488/widget.json').subscribe(widget => {
-      console.log(widget);
+      this.widgetdata = widget;
     });
   }
 
