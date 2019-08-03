@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run start:website",
     "start:website": "node index.js",
+    "build": "cd website && ng build --prod --aot",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Gotiyababa",
