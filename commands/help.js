@@ -11,6 +11,7 @@ module.exports.run = async (bot, message, args) => {
         .addField(">>purge [?user] [amount]", "purge messages in a text channel")
         .addField(">>meow", "for cute kitties!")
         .addField(">>woof", "for cute doggos!")
+        .addField(">>au", "mute/unmute for among us games.")
         .setThumbnail(bot.user.displayAvatarURL)
         .addBlankField()
         .addField("Contribute to development of the bot", "https://github.com/theHimanshuShekhar/BhayanakBot")
