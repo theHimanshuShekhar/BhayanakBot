@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 
 module.exports.run = async (bot, message, args) => {
-    if (checkAdmin(message)) {
+    if (message.member.hasPermission(["KICK_MEMBERS", "BAN_MEMBERS"])) {
         const user = message.mentions.users.first();
         // Parse Amount
         const amount = !!parseInt(message.content.split(' ')[1]) ? parseInt(message.content.split(' ')[1]) : parseInt(message.content.split(' ')[2])
@@ -29,15 +29,6 @@ module.exports.run = async (bot, message, args) => {
         }
     } else {
         message.reply("You don't have sufficient permissions to use this command!");
-    }
-}
-
-function checkAdmin(message) {
-    const adminRole = message.guild.roles.get("304966156488278017");
-    if (message.member.roles.has(adminRole.id)) {
-        return true;
-    } else {
-        return false;
     }
 }
 
