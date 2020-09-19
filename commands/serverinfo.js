@@ -1,6 +1,6 @@
 const Discord = require("discord.js");
 
-module.exports.run = async (bot, message, args) => {
+module.exports.run = (bot, message, args) => {
     let options = {
         weekday: 'long',
         year: 'numeric',
