@@ -14,11 +14,15 @@ fs.readdir("./commands/", (err, files) => {
         console.log("Could not find commands.");
         return;
     } else {
+        cmds = "";
         jsfile.forEach((file, index) => {
             let props = require(`./commands/${file}`);
-            console.log(`${file} loaded.`);
+            // console.log(`${file} loaded.`);
+            cmds = cmds + `${file.split(".")[0]} `;
             bot.commands.set(props.help.name, props);
         });
+        console.log("Commands Loaded:");
+        console.log(cmds);
     }
 });
 
