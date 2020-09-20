@@ -18,3 +18,7 @@ typings/
 
 # env
 .env
+
+# Python
+*.pyc
+__pycache__
