@@ -30,5 +30,5 @@ delay_voting = 5  # adjust time delay for when voting is ended to when the round
 debug_mode = False  # Shows parsed output coming from image to text algorithm
 
 # Add these by creating webhook from the Discord server and default channel to manage
-webhookURL = "https://discordapp.com/api/webhooks/756786629611618374/U7oG-1CFi6AHxuWyQ6SzyAKRX7hRmLk_ZDmbIbQsFmJkNupgR48GOi_-o4DoG5G3OaYo"
-channelID = "757106563877175366"
+webhookURL = "add your webhook url here"
+channelID = "add you voice channel id here"
