@@ -22,7 +22,7 @@ y_extend_crop = 50  # pixels
 monitor_number = 1
 
 delay_start = 0  # adjust time delay from when you get imposter/crewmate till round start. 1 = one second more delay, -0.5 = 0.5 seconds less time
-delay_voting = 0  # adjust time delay for when voting is ended to when the round starts
+delay_voting = 5  # adjust time delay for when voting is ended to when the round starts
 
 # time_delay is added or taken away from the delay set between when the screen
 # shows imposter, crewmate, or vote ended to when the round starts
