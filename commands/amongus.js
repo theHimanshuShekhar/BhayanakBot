@@ -17,7 +17,7 @@ module.exports.run = async (bot, message, args) => {
         msg = "";
         names = []
         reply = []
-        voiceChannel.members.map((member) => {
+        voiceChannel.members.map(async (member) => {
             member.setMute(operation === 'mute');
             names.push(member.nickname ? member.nickname : member.displayName);
         });
