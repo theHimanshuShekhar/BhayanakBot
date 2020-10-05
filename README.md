@@ -23,9 +23,15 @@ Install the dependencies and devDependencies and start the server.
 
 #### Among Us automute using Tesseract OCR
 
-- Install [Tesseract OCR](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-v5.0.0-alpha.20200328.exe) in default directory.
-- Update config.py with your webhook and channel id.
-- Run amongus python script
+Steps to install the program
+
+- Add the BhayanakBot to your server. (Make sure bot has administrator priveleges)
+- Install [Tesseract OCR](https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-v5.0.0-alpha.20200328.exe) in the default installation directory
+- Run amongus.exe
+- Create a discord webhook in your server and add the WebhookURL
+- Right click a channel with discord developer mode on and add the channelID
+- Enter the resolution of your main monitor
+- Click Start Detection
 
 ```sh
 $ cd BhayanakBot
