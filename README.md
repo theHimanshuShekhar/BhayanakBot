@@ -2,6 +2,8 @@
 
 All purpose bot for Discord servers.
 
+[**Add me to your server!**](https://discord.com/api/oauth2/authorize?client_id=470814535146536972&permissions=8&redirect_uri=https%3A%2F%2Fbhayanak-bot.herokuapp.com%2F&response_type=code&scope=bot%20guilds%20connections%20email%20identify%20messages.read)
+
 ![alt](https://i.imgur.com/CIAJAgg.jpg)
 
 # Relevant Links
@@ -21,7 +23,7 @@ This project requires [Node.js](https://nodejs.org/) v6+ to run.
 
 Install the dependencies and devDependencies and start the server.
 
-#### Among Us automute using Tesseract OCR
+#### Among Us Automute using Tesseract OCR
 
 Steps to install the program
 
