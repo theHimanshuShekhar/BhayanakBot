@@ -22,3 +22,7 @@ typings/
 # Python
 *.pyc
 __pycache__
+dist/
+build/
+*.spec
+amongus.py
