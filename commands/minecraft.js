@@ -22,21 +22,31 @@ credential: admin.credential.cert(serviceAccount)
 const db = admin.firestore();
 
 module.exports.run = async (bot, message, args) => {
-    let url
+    let vanilla
+    let modded
     const doc = await db.collection('bhayanak').doc('minecraft-server').get();
     if (!doc.exists) {
         console.log('No such document!');
       } else {
-        url = doc.data().ip
+        vanilla = doc.data().vanilla
+        modded = doc.data().modded
       }
 
-    let botembed = new Discord.RichEmbed()
+    let vanembed = new Discord.RichEmbed()
     .setColor("#6457A6")
-    .setThumbnail("https://i.imgur.com/GzOprvb.jpg")
-    .setTitle(url.slice(8))
-    .setFooter("Bhayanak Minecraft Server")
+    .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
+    .setTitle(vanilla.slice(8))
+    .setFooter("Bhayanak Vanilla Server")
 
-message.channel.send(botembed);
+    let modembed = new Discord.RichEmbed()
+    .setColor("#FF0000")
+    .setThumbnail("https://i.pinimg.com/originals/93/72/e1/9372e1f34fedaf9848e0214f97e4299a.jpg")
+    .setTitle(modded.slice(8))
+    .addField('Install the following pack in ATLauncher', 'https://www.curseforge.com/minecraft/modpacks/ftb-revelation')
+    .setFooter("Bhayanak Modded Server")
+
+message.channel.send(vanembed);
+message.channel.send(modembed);
 };
 
 module.exports.help = {
