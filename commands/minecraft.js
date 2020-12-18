@@ -44,6 +44,7 @@ module.exports.run = async (bot, message, args) => {
     .setTitle(modded.slice(8))
     .addField('Download Cracked FTB Launcher', 'https://mc-launcher.com/files/unc/FeedTheBeast.exe')
     .addField('Install the FTB Revelations pack','for Minecraft 1.12.2')
+    .addField('Install Proximity Ingame Voice Chat Mod','https://www.curseforge.com/minecraft/mc-mods/glibys-voice-chat-reloaded/download/3096282')
     .setFooter("Bhayanak Modded Server")
 
 message.channel.send(vanembed);
