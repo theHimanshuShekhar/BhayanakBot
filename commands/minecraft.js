@@ -42,7 +42,8 @@ module.exports.run = async (bot, message, args) => {
     .setColor("#FF0000")
     .setThumbnail("https://i.pinimg.com/originals/93/72/e1/9372e1f34fedaf9848e0214f97e4299a.jpg")
     .setTitle(modded.slice(8))
-    .addField('Install the following pack in ATLauncher', 'https://www.curseforge.com/minecraft/modpacks/ftb-revelation')
+    .addField('Download Cracked FTB Launcherr', 'https://mc-launcher.com/files/unc/FeedTheBeast.exe')
+    .addField('Install the FTB Revelations pack for 1.12.2')
     .setFooter("Bhayanak Modded Server")
 
 message.channel.send(vanembed);
