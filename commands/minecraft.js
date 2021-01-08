@@ -32,11 +32,11 @@ module.exports.run = async (bot, message, args) => {
         modded = doc.data().modded
       }
 
-    let vanembed = new Discord.RichEmbed()
-    .setColor("#6457A6")
-    .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
-    .setTitle(vanilla.slice(8))
-    .setFooter("Bhayanak Vanilla Server")
+//     let vanembed = new Discord.RichEmbed()
+//     .setColor("#6457A6")
+//     .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
+//     .setTitle(vanilla.slice(8))
+//     .setFooter("Bhayanak Vanilla Server")
 
     let modembed = new Discord.RichEmbed()
     .setColor("#FF0000")
@@ -47,7 +47,7 @@ module.exports.run = async (bot, message, args) => {
     .addField('Install Proximity Ingame Voice Chat Mod','https://www.curseforge.com/minecraft/mc-mods/glibys-voice-chat-reloaded/download/3096282')
     .setFooter("Bhayanak Modded Server")
 
-message.channel.send(vanembed);
+// message.channel.send(vanembed);
 message.channel.send(modembed);
 };
 
