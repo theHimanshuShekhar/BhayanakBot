@@ -32,23 +32,23 @@ module.exports.run = async (bot, message, args) => {
         modded = doc.data().modded
       }
 
-//     let vanembed = new Discord.RichEmbed()
-//     .setColor("#6457A6")
-//     .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
-//     .setTitle(vanilla.slice(8))
-//     .setFooter("Bhayanak Vanilla Server")
+    let vanembed = new Discord.RichEmbed()
+    .setColor("#6457A6")
+    .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
+    .setTitle(vanilla.slice(8))
+    .setFooter("Bhayanak Vanilla Server")
 
-    let modembed = new Discord.RichEmbed()
-    .setColor("#FF0000")
-    .setThumbnail("https://i.pinimg.com/originals/93/72/e1/9372e1f34fedaf9848e0214f97e4299a.jpg")
-    .setTitle(modded.slice(8))
-    .addField('Download Cracked FTB Launcher', 'https://mc-launcher.com/files/unc/FeedTheBeast.exe')
-    .addField('Install the FTB Revelations pack','for Minecraft 1.12.2')
-    .addField('Install Proximity Ingame Voice Chat Mod','https://www.curseforge.com/minecraft/mc-mods/glibys-voice-chat-reloaded/download/3096282')
-    .setFooter("Bhayanak Modded Server")
+//     let modembed = new Discord.RichEmbed()
+//     .setColor("#FF0000")
+//     .setThumbnail("https://i.pinimg.com/originals/93/72/e1/9372e1f34fedaf9848e0214f97e4299a.jpg")
+//     .setTitle(modded.slice(8))
+//     .addField('Download Cracked FTB Launcher', 'https://mc-launcher.com/files/unc/FeedTheBeast.exe')
+//     .addField('Install the FTB Revelations pack','for Minecraft 1.12.2')
+//     .addField('Install Proximity Ingame Voice Chat Mod','https://www.curseforge.com/minecraft/mc-mods/glibys-voice-chat-reloaded/download/3096282')
+//     .setFooter("Bhayanak Modded Server")
 
-// message.channel.send(vanembed);
-message.channel.send(modembed);
+message.channel.send(vanembed);
+// message.channel.send(modembed);
 };
 
 module.exports.help = {
