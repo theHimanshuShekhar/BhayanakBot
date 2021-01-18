@@ -36,16 +36,11 @@ module.exports.run = async (bot, message, args) => {
     .setColor("#6457A6")
     .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
     .setTitle(vanilla.slice(8))
+    .addField('Dynmap', modded.slice(8))
     .setFooter("Bhayanak Vanilla Server")
 
-    let modembed = new Discord.RichEmbed()
-    .setColor("#FF0000")
-//     .setThumbnail("https://i.pinimg.com/originals/93/72/e1/9372e1f34fedaf9848e0214f97e4299a.jpg")
-    .setTitle(modded.slice(8))
-    .addField('Dynmap', 'Browser based world map viewer')
 
 message.channel.send(vanembed);
-// message.channel.send(modembed);
 };
 
 module.exports.help = {
