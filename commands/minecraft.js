@@ -36,11 +36,17 @@ module.exports.run = async (bot, message, args) => {
     .setColor("#6457A6")
     .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
     .setTitle(vanilla.slice(8))
-    .addField('Dynmap', modded.slice(8))
     .setFooter("Bhayanak Vanilla Server")
 
+    let modembed = new Discord.RichEmbed()
+    .setColor("#6457A6")
+    .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
+    .setTitle(modded.slice(8))
+    .addField('Pixelmon', modded.slice(8))
+    .setFooter("Bhayanak Pixelmon Server")
 
 message.channel.send(vanembed);
+message.channel.send(modembed);
 };
 
 module.exports.help = {
