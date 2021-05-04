@@ -1,6 +1,0 @@
-pytesseract
-Pillow
-Requests
-mss
-opencv-python
-discord-webhook
