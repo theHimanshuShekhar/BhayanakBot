@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 
 module.exports.run = async (bot, message, args) => {
-  let botembed = new Discord.RichEmbed()
+  let botembed = new Discord.MessageEmbed()
     .setColor("#6457A6")
     .setTitle("Commands")
     .addField(">>bot", "display BhayanakBot's information")
@@ -13,11 +13,11 @@ module.exports.run = async (bot, message, args) => {
     .addField(">>woof", "for cute doggos!")
     .addField(">>au [mute/unmute]", "mute/unmute for among us games.")
     .setThumbnail(bot.user.displayAvatarURL)
-    .addBlankField()
     .addField(
       "Contribute to development of the bot",
       "https://github.com/theHimanshuShekhar/BhayanakBot"
     )
+    .setTimestamp()
     .setFooter("? = optional parameters");
 
   message.channel.send(botembed);

@@ -7,10 +7,11 @@ module.exports.run = async (bot, message, args) => {
       return response.json();
     })
     .then(function (data) {
-      let botembed = new Discord.RichEmbed()
+      let botembed = new Discord.MessageEmbed()
         .setColor("#6457A6")
         .setImage(data.file)
-        .setFooter("Meow!");
+        .setFooter("Meow!")
+        .setTimestamp();
       message.channel.send(botembed);
     });
 };

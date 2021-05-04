@@ -10,20 +10,24 @@ module.exports.run = async (bot, message, args) => {
     minute: "2-digit",
   };
   let createDate = bot.user.createdAt.toLocaleString("en-IN", options);
-  let snum = bot.guilds.size > 1 ? " servers" : " server";
-  let botembed = new Discord.RichEmbed()
+  let botembed = new Discord.MessageEmbed()
+    .setURL(
+      "https://discord.com/oauth2/authorize?client_id=470814535146536972&permissions=0&redirect_uri=https%3A%2F%2Fbhayanak-bot.herokuapp.com%2F&response_type=code&scope=email%20guilds%20bot%20activities.read%20identify%20connections"
+    )
     .setColor("#6457A6")
-    .setTitle("Bot Information")
+    .setTitle("Click here to add me to your server!")
     .setThumbnail(bot.user.displayAvatarURL)
     .addField("Name", bot.user.username)
     .addField("Description", "Server administration bot")
     .addField("Created on", createDate)
-    .addField("Currently Online in", bot.guilds.size + snum)
+    .addField(
+      "Currently Online in",
+      `${Array.from(bot.guilds.cache).length} servers`
+    )
+    .setTimestamp()
     .addField("Website", "https://bhayanak-bot.herokuapp.com")
     .setImage("https://i.imgur.com/ps8otef.jpg")
-    .setFooter(
-      '"Crime Master Gogo naam hai mera, aankhen nikal ke gotiyan khelta hun main"'
-    );
+    .setFooter("requested by " + message.author.username);
   message.channel.send(botembed);
 };
 

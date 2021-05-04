@@ -24,7 +24,7 @@ module.exports.run = async (bot, message, args) => {
         let games = await steam.getUserOwnedGames(id);
         let recent = await steam.getUserRecentGames(id);
 
-        let botembed = new Discord.RichEmbed()
+        let botembed = new Discord.MessageEmbed()
           .setColor("#6457A6")
           .setTitle(summary.nickname + " " + summary.url)
           .setURL(summary.url)
@@ -35,6 +35,7 @@ module.exports.run = async (bot, message, args) => {
               " at " +
               new Date().toLocaleString()
           )
+          .setTimestamp()
           .addField("State", personastates[summary.personaState], true)
           .addField("steamID", summary.steamID, true)
           .addField("Friends", friends.length, true)
@@ -61,8 +62,7 @@ module.exports.run = async (bot, message, args) => {
           );
         let date = new Date();
         date.setTime(summary.lastLogOff);
-        console.log(date);
-        botembed;
+        botembed.setFooter("requested by " + message.author.username);
         //     .addField('Last Seen', new Date().setSeconds(summary.lastLogOff))
         //     .addField('created', new Date().setSeconds(summary.created))
         //
