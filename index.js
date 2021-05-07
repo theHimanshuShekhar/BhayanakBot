@@ -2,6 +2,7 @@ require("dotenv").config();
 const Discord = require("discord.js");
 const fs = require("fs");
 
+// Initialize firebase admin with credentials
 var admin = require("firebase-admin");
 
 const serviceAccount = {
@@ -22,14 +23,18 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
+// Initialize firestore database object
 const db = admin.firestore();
 
+// Create bot client
 const bot = new Discord.Client({
   disableEveryone: true,
 });
 
+// Initalize bot command collection into command module
 bot.commands = new Discord.Collection();
 
+// Load commands from commands dir into command module
 fs.readdir("./commands/", (err, files) => {
   console.clear();
   if (err) console.log(err);
@@ -49,6 +54,7 @@ fs.readdir("./commands/", (err, files) => {
   }
 });
 
+// Listener for when bot is connected to Discord API
 bot.on("ready", () => {
   console.log(
     `${bot.user.username} is online on ${
@@ -60,6 +66,7 @@ bot.on("ready", () => {
   });
 });
 
+// Listener for when a message is sent
 bot.on("message", async (message) => {
   // if (message.author.bot) return;
   if (message.channel.type === "dm") return;
@@ -72,6 +79,8 @@ bot.on("message", async (message) => {
   if (commandfile) commandfile.run(bot, message, args, db);
 });
 
+// Listener for when message is sent
+// Used by logger and autoresponder
 bot.on("message", async (message) => {
   db.collection("users")
     .doc(message.author.id)
@@ -88,6 +97,9 @@ bot.on("message", async (message) => {
         );
 
         let random = Math.floor(Math.random() * categories.length);
+
+        const percentageChance = (percentage) =>
+          Math.random() * 100 < percentage;
 
         if (percentageChance(categories[random].chance)) {
           db.collection("responder")
@@ -107,6 +119,5 @@ bot.on("message", async (message) => {
     });
 });
 
-const percentageChance = (percentage) => Math.random() * 100 < percentage;
-
+// Authenticate and login to Discord API using token
 bot.login(process.env.TOKEN);
