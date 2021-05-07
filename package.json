@@ -1,15 +1,12 @@
 {
   "name": "bhayanakbot",
-  "version": "0.0.1",
-  "description": "Custom bot for the BC Discord server",
+  "version": "0.0.2",
+  "description": "Custom Discord bot for the Bhayanak server",
   "main": "index.js",
   "scripts": {
-    "start": "npm run start:website",
-    "start:website": "nodemon index.js",
-    "buildsite": "cd website && ng build --prod --aot",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon index.js"
   },
-  "author": "Gotiyababa",
+  "author": "theHimanshuShekhar",
   "license": "ISC",
   "dependencies": {
     "bufferutil": "^4.0.3",

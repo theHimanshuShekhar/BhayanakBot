@@ -110,36 +110,3 @@ bot.on("message", async (message) => {
 const percentageChance = (percentage) => Math.random() * 100 < percentage;
 
 bot.login(process.env.TOKEN);
-
-const http = require("http");
-
-setInterval(function () {
-  http.get("http://bhayanak-bot.herokuapp.com");
-}, 600000);
-
-// Webserver
-("use strict");
-const express = require("express");
-const compression = require("compression");
-const app = express();
-app.use(compression());
-
-const _app_folder = "website/dist/website";
-const _port = process.env.PORT || 8080;
-
-app.get(
-  "*.*",
-  express.static(_app_folder, {
-    maxAge: "1y",
-  })
-);
-
-app.all("*", function (req, res) {
-  res.status(200).sendFile(`/`, {
-    root: _app_folder,
-  });
-});
-
-app.listen(_port, function () {
-  console.log("Node Express server for " + app.name + " listening on " + _port);
-});
