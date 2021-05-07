@@ -1,30 +1,20 @@
 require("dotenv").config();
 const Discord = require("discord.js");
 const fs = require("fs");
+import responder from "./utilities/responder";
+import logger from "./utilities/logger";
 
-// Initialize firebase admin with credentials
-var admin = require("firebase-admin");
-
-const serviceAccount = {
-  type: "service_account",
-  project_id: "bhayanakbot",
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-  client_email: "firebase-adminsdk-xbmk9@bhayanakbot.iam.gserviceaccount.com",
-  client_id: "110232804916755363996",
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url:
-    "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xbmk9%40bhayanakbot.iam.gserviceaccount.com",
-};
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-// Initialize firestore database object
-const db = admin.firestore();
+// Establish mongoose connection with mongodb
+const mongoose = require("mongoose");
+mongoose
+  .connect("mongodb://database:27017", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+  })
+  .then(() => console.log("MongoDB connection successful"));
+var db = mongoose.connection;
+db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
 // Create bot client
 const bot = new Discord.Client({
@@ -36,7 +26,6 @@ bot.commands = new Discord.Collection();
 
 // Load commands from commands dir into command module
 fs.readdir("./commands/", (err, files) => {
-  console.clear();
   if (err) console.log(err);
   let jsfile = files.filter((f) => f.split(".").pop() === "js");
   if (jsfile && jsfile.length <= 0) {
@@ -82,41 +71,8 @@ bot.on("message", async (message) => {
 // Listener for when message is sent
 // Used by logger and autoresponder
 bot.on("message", async (message) => {
-  db.collection("users")
-    .doc(message.author.id)
-    .collection("categories")
-    .get()
-    .then((categorySnapshots) => {
-      if (!categorySnapshots.empty) {
-        categories = [];
-        categorySnapshots.forEach((categorySnapshot) =>
-          categories.push({
-            category: categorySnapshot.id,
-            chance: categorySnapshot.data().chance,
-          })
-        );
-
-        let random = Math.floor(Math.random() * categories.length);
-
-        const percentageChance = (percentage) =>
-          Math.random() * 100 < percentage;
-
-        if (percentageChance(categories[random].chance)) {
-          db.collection("responder")
-            .doc(categories[random].category)
-            .collection("links")
-            .get()
-            .then((categorySnapshots) => {
-              let links = [];
-              categorySnapshots.forEach((categorySnapshot) => {
-                links.push(categorySnapshot.data().url);
-              });
-              random = Math.floor(Math.random() * links.length);
-              message.reply(links[random]);
-            });
-        }
-      }
-    });
+  responder(db, message);
+  logger(db, message);
 });
 
 // Authenticate and login to Discord API using token

@@ -1,0 +1,18 @@
+version: "3.9"
+services:
+  bhayanakbot:
+    container_name: bot
+    restart: unless-stopped
+    build: .
+    depends_on:
+      - database
+    links:
+      - database
+  database:
+    restart: unless-stopped
+    image: mongo
+    container_name: db
+    ports:
+      - 27018:27017
+    volumes:
+      - ./mongodb:/data/db
