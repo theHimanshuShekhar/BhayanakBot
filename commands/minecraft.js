@@ -18,8 +18,8 @@ module.exports.run = async (bot, message, args, db) => {
       .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
       .setTitle(vanilla.slice(8))
       .setTimestamp()
-      .addField("Required java16 for 1.17 (scroll down)", "https://tinyurl.com/java16jre")
-      .setFooter(doc.data().name);
+      .addField("Required java17 for 1.18", "https://tinyurl.com/zulu17")
+      .setFooter("Bhayanak Vanilla Minecraft");
 
     message.channel.send(vanembed);
   }
