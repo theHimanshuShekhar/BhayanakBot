@@ -10,8 +10,8 @@ module.exports.run = async (bot, message, args) => {
       let botembed = new Discord.MessageEmbed()
         .setColor("#6457A6")
         .setImage(data.file)
-        .setFooter("Meow!")
-        .setTimestamp();
+        .setTimestamp()
+        .setFooter("requested by " + message.author.username);
       message.channel.send(botembed);
     });
 };

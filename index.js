@@ -1,37 +1,15 @@
 require("dotenv").config();
+const utils = require("./utilities/utils.js");
 const Discord = require("discord.js");
 const fs = require("fs");
 
-// Initialize firebase admin with credentials
-var admin = require("firebase-admin");
-
-const serviceAccount = {
-  type: "service_account",
-  project_id: "bhayanakbot",
-  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-  client_email: "firebase-adminsdk-xbmk9@bhayanakbot.iam.gserviceaccount.com",
-  client_id: "110232804916755363996",
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url:
-    "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xbmk9%40bhayanakbot.iam.gserviceaccount.com",
-};
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-// Initialize firestore database object
-const db = admin.firestore();
-
-// Create bot client
+const prefix = process.env.PREFIX;
 const bot = new Discord.Client({
   disableEveryone: true,
+  shards: "auto",
 });
 
-// Initalize bot command collection into command module
+// Create command array and load all the commands
 bot.commands = new Discord.Collection();
 
 // Load commands from commands dir into command module
@@ -43,81 +21,39 @@ fs.readdir("./commands/", (err, files) => {
     console.log("Could not find commands.");
     return;
   } else {
-    cmds = "";
     jsfile.forEach((file, index) => {
       let props = require(`./commands/${file}`);
-      cmds = cmds + `${file.split(".")[0]} `;
       bot.commands.set(props.help.name, props);
     });
     console.log("Commands Loaded:");
-    console.log(cmds);
+    console.log(jsfile.map((file) => `${file.split(".")[0]}`).join(" "));
   }
 });
 
-// Listener for when bot is connected to Discord API
+// Connect bot client to Discord
+bot.login(process.env.TOKEN);
+
+// Functions when bot is connected to Discord
 bot.on("ready", () => {
+  bot.user.setActivity(process.env.PREFIX, {
+    type: "LISTENING",
+  });
   console.log(
     `${bot.user.username} is online on ${
       Array.from(bot.guilds.cache).length
     } servers!`
   );
-  bot.user.setActivity(">>", {
-    type: "LISTENING",
-  });
+  console.log(bot.guilds.cache.map((g) => g.name).join("\n"));
 });
 
-// Listener for when a message is sent
+// Parse incoming messages and call respective command module
 bot.on("message", async (message) => {
-  // if (message.author.bot) return;
+  if (message.author.bot) return;
   if (message.channel.type === "dm") return;
-
-  let prefix = process.env.PREFIX;
+  if (!message.content.startsWith(prefix)) return;
   let messageArray = message.content.split(" ");
   let cmd = messageArray[0];
   let args = messageArray.slice(1);
   let commandfile = bot.commands.get(cmd.slice(prefix.length));
-  if (commandfile) commandfile.run(bot, message, args, db);
+  if (commandfile) commandfile.run(bot, message, args);
 });
-
-// Listener for when message is sent
-// Used by logger and autoresponder
-bot.on("message", async (message) => {
-  db.collection("users")
-    .doc(message.author.id)
-    .collection("categories")
-    .get()
-    .then((categorySnapshots) => {
-      if (!categorySnapshots.empty) {
-        categories = [];
-        categorySnapshots.forEach((categorySnapshot) =>
-          categories.push({
-            category: categorySnapshot.id,
-            chance: categorySnapshot.data().chance,
-          })
-        );
-
-        let random = Math.floor(Math.random() * categories.length);
-
-        const percentageChance = (percentage) =>
-          Math.random() * 100 < percentage;
-
-        if (percentageChance(categories[random].chance)) {
-          db.collection("responder")
-            .doc(categories[random].category)
-            .collection("links")
-            .get()
-            .then((categorySnapshots) => {
-              let links = [];
-              categorySnapshots.forEach((categorySnapshot) => {
-                links.push(categorySnapshot.data().url);
-              });
-              random = Math.floor(Math.random() * links.length);
-              message.reply(links[random]);
-            });
-        }
-      }
-    });
-});
-
-// Authenticate and login to Discord API using token
-bot.login(process.env.TOKEN);
