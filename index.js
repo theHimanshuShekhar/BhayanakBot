@@ -55,13 +55,16 @@ bot.on("ready", () => {
       Array.from(bot.guilds.cache).length
     } servers!`
   );
-  bot.user.setActivity(">>", {
+
+  bot.user.setActivity(process.env.PREFIX, {
     type: "LISTENING",
   });
+
+  console.log(bot.guilds.cache.map((g) => g.name).join("\n"));
 });
 
 bot.on("message", async (message) => {
-  // if (message.author.bot) return;
+  if (message.author.bot) return;
   if (message.channel.type === "dm") return;
 
   let prefix = process.env.PREFIX;
@@ -70,41 +73,6 @@ bot.on("message", async (message) => {
   let args = messageArray.slice(1);
   let commandfile = bot.commands.get(cmd.slice(prefix.length));
   if (commandfile) commandfile.run(bot, message, args, db);
-});
-
-bot.on("message", async (message) => {
-  db.collection("users")
-    .doc(message.author.id)
-    .collection("categories")
-    .get()
-    .then((categorySnapshots) => {
-      if (!categorySnapshots.empty) {
-        categories = [];
-        categorySnapshots.forEach((categorySnapshot) =>
-          categories.push({
-            category: categorySnapshot.id,
-            chance: categorySnapshot.data().chance,
-          })
-        );
-
-        let random = Math.floor(Math.random() * categories.length);
-
-        if (percentageChance(categories[random].chance)) {
-          db.collection("responder")
-            .doc(categories[random].category)
-            .collection("links")
-            .get()
-            .then((categorySnapshots) => {
-              let links = [];
-              categorySnapshots.forEach((categorySnapshot) => {
-                links.push(categorySnapshot.data().url);
-              });
-              random = Math.floor(Math.random() * links.length);
-              message.reply(links[random]);
-            });
-        }
-      }
-    });
 });
 
 const percentageChance = (percentage) => Math.random() * 100 < percentage;
