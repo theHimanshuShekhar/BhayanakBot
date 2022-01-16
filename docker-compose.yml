@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  bot:
+    tty: true # Enables debugging capabilities when attached to this container.
+    image: docker.io/bitnami/node:17
+    command: sh -c 'npm install && npm start'
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+    links:
+      - "db:redis"
+  redis:
+    image: redis:5.0.5-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - ./data:/data

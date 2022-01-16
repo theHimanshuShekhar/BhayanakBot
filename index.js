@@ -12,6 +12,7 @@ const bot = new Discord.Client({
 // Create command array and load all the commands
 bot.commands = new Discord.Collection();
 
+// Load commands from commands dir into command module
 fs.readdir("./commands/", (err, files) => {
   console.clear();
   if (err) console.log(err);
