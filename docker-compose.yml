@@ -3,7 +3,7 @@ version: '3'
 services:
   bot:
     tty: true
-    image: docker.io/bitnami/node:17
+    image: docker.io/bitnami/node:17-debian-10
     command: sh -c 'npm install && npm start'
     restart: always
     ports:
