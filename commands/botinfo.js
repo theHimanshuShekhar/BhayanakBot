@@ -24,9 +24,8 @@ module.exports.run = async (bot, message, args) => {
       "Currently Online in",
       `${Array.from(bot.guilds.cache).length} servers`
     )
-    .setTimestamp()
-    .addField("Website", "https://bhayanak-bot.herokuapp.com")
     .setImage("https://i.imgur.com/ps8otef.jpg")
+    .setTimestamp()
     .setFooter("requested by " + message.author.username);
   message.channel.send(botembed);
 };
