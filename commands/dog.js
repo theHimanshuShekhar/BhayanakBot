@@ -11,7 +11,7 @@ module.exports.run = async (bot, message, args) => {
         .setColor("#6457A6")
         .setImage(data.url)
         .setTimestamp()
-        .setFooter("Woof!");
+        .setFooter("requested by " + message.author.username);
       message.channel.send(botembed);
     });
 };
