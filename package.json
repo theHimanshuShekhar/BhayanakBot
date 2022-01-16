@@ -4,20 +4,15 @@
   "description": "Custom bot for the BC Discord server",
   "main": "index.js",
   "scripts": {
-    "start": "npm run start:website",
-    "start:website": "node index.js",
-    "buildsite": "cd website && ng build --prod --aot",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "author": "Gotiyababa",
-  "license": "ISC",
+  "license": "GPLV2",
   "dependencies": {
     "bufferutil": "^4.0.3",
     "compression": "^1.7.4",
     "discord.js": "^12.5.3",
     "dotenv": "^6.2.0",
-    "express": "^4.17.1",
-    "firebase-admin": "^9.7.0",
     "node-fetch": "^2.6.1",
     "steamapi": "^2.1.3",
     "utf-8-validate": "^5.0.5",
