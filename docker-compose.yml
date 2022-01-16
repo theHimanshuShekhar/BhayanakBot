@@ -5,6 +5,7 @@ services:
     tty: true
     image: docker.io/bitnami/node:17
     command: sh -c 'npm install && npm start'
+    restart: always
     ports:
       - 3000:3000
     volumes:
@@ -13,6 +14,7 @@ services:
       - "redis:redis"
   redis:
     image: docker.io/redislabs/rejson
+    restart: always
     ports:
       - 6379:6379
     volumes:
