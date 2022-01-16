@@ -2,9 +2,7 @@ require("dotenv").config();
 const utils = require("./lib/utils.js");
 const Discord = require("discord.js");
 const fs = require("fs");
-
-// const db = require("./lib/redis.js");
-// db.connect();
+const redis = require("./lib/redis.js");
 
 const prefix = process.env.PREFIX;
 const bot = new Discord.Client({
@@ -59,7 +57,8 @@ bot.on("message", async (message) => {
   let args = messageArray.slice(1);
   let commandfile = bot.commands.get(cmd.slice(prefix.length));
   try {
-    if (commandfile) commandfile.run(bot, message, args);
+    const db = await redis.connect();
+    if (commandfile) commandfile.run(bot, message, args, db);
   } catch (e) {
     console.error(e);
   }

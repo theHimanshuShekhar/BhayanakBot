@@ -4,7 +4,7 @@
   "description": "Custom Discord bot for the Bhayanak server",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "./node_modules/nodemon/bin/nodemon.js index.js"
   },
   "author": "Gotiyababa",
   "license": "GPLV2",
@@ -20,6 +20,6 @@
     "zlib-sync": "^0.1.7"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.15"
   }
 }
