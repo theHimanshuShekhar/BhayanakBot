@@ -26,3 +26,5 @@ dist/
 build/
 *.spec
 amongus.py
+
+data/
