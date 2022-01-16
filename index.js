@@ -3,6 +3,7 @@ const utils = require("./lib/utils.js");
 const Discord = require("discord.js");
 const fs = require("fs");
 const redis = require("./lib/redis.js");
+const logger = require("./lib/logger.js");
 
 const prefix = process.env.PREFIX;
 const bot = new Discord.Client({
@@ -50,16 +51,16 @@ bot.on("ready", () => {
 // Parse incoming messages and call respective command module
 bot.on("message", async (message) => {
   if (message.author.bot) return;
+
+  // Log message if user
+  logger.logMessage(message);
+
   if (message.channel.type === "dm") return;
   if (!message.content.startsWith(prefix)) return;
   let messageArray = message.content.split(" ");
   let cmd = messageArray[0];
   let args = messageArray.slice(1);
   let commandfile = bot.commands.get(cmd.slice(prefix.length));
-  try {
-    const db = await redis.connect();
-    if (commandfile) commandfile.run(bot, message, args, db);
-  } catch (e) {
-    console.error(e);
-  }
+  const db = await redis.connect();
+  if (commandfile) commandfile.run(bot, message, args, db);
 });
