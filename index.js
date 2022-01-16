@@ -1,7 +1,10 @@
 require("dotenv").config();
-const utils = require("./utilities/utils.js");
+const utils = require("./lib/utils.js");
+const db = require("./lib/redis.js");
 const Discord = require("discord.js");
 const fs = require("fs");
+
+db.connect();
 
 const prefix = process.env.PREFIX;
 const bot = new Discord.Client({
