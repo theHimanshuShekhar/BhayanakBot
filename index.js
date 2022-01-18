@@ -4,6 +4,10 @@ const Discord = require("discord.js");
 const fs = require("fs");
 const redis = require("./lib/redis.js");
 const logger = require("./lib/logger.js");
+const ngrok = require("./lib/ngrok.js");
+
+// Start ngrok for minecraft server
+ngrok.ngrok_runner();
 
 const prefix = process.env.PREFIX;
 const bot = new Discord.Client({

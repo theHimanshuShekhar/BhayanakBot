@@ -13,6 +13,7 @@
     "compression": "^1.7.4",
     "discord.js": "^12.5.3",
     "dotenv": "^6.2.0",
+    "ngrok": "^4.3.0",
     "node-fetch": "^2.6.1",
     "redis-om": "^0.1.7",
     "steamapi": "^2.1.3",

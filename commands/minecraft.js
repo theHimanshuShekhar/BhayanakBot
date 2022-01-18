@@ -1,28 +1,54 @@
 const Discord = require("discord.js");
+let { Client, Entity, Schema, Repository } = require("redis-om");
+
+// Create Redis client
+const client = new Client();
+
+async function connect() {
+  if (!client.isOpen()) {
+    try {
+      await client.open(process.env.REDIS_URL);
+    } catch (e) {
+      console.log("Failed to connect to Redis");
+      console.error(e);
+    }
+  }
+}
+
+class MCServer extends Entity {}
+let MCServerSchema = new Schema(
+  MCServer,
+  {
+    name: { type: "string" },
+    url: { type: "string" },
+    description: { type: "string" },
+    addinf: { type: "array" },
+  },
+  {
+    dataStructure: "JSON",
+  }
+);
 
 module.exports.run = async (bot, message, args, db) => {
-  let vanilla;
-  let doc = null;
+  await connect();
+  let serverRepository = new Repository(MCServerSchema, client);
   try {
-    doc = await db.collection("minecraft").doc("vanilla").get();
-  } catch (err) {
-    console.error(err);
+    await serverRepository.createIndex();
+  } catch (e) {
+    console.log("Index already exists");
   }
+  let servers = await serverRepository.search().returnAll();
 
-  if (!doc) {
-    console.log("No such document!");
-  } else {
-    vanilla = doc.data().ip;
-    let vanembed = new Discord.MessageEmbed()
+  servers.forEach((server) => {
+    let embed = new Discord.MessageEmbed()
       .setColor("#6457A6")
       .setThumbnail("https://pbs.twimg.com/media/DHLaTWSUwAAfzqX.jpg")
-      .setTitle(vanilla.slice(8))
+      .setTitle(server.url)
+      .setDescription(server.description)
       .setTimestamp()
-      // .addField("Required java17 for 1.18", "https://tinyurl.com/zulu17")
-      .setFooter("Bhayanak Vanilla Minecraft");
-
-    message.channel.send(vanembed);
-  }
+      .setFooter(server.name);
+    message.channel.send(embed);
+  });
 };
 
 module.exports.help = {
