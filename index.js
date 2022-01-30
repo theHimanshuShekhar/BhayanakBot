@@ -4,6 +4,7 @@ const Discord = require("discord.js");
 const fs = require("fs");
 const redis = require("./lib/redis.js");
 const logger = require("./lib/logger.js");
+const randomGames = require("./lib/random.js");
 
 const prefix = process.env.PREFIX;
 const bot = new Discord.Client({
@@ -54,6 +55,9 @@ bot.on("message", async (message) => {
 
   // Log message if user
   logger.logMessage(message);
+
+  // Random Games
+  randomGames.randomGames(message);
 
   if (message.channel.type === "dm") return;
   if (!message.content.startsWith(prefix)) return;
