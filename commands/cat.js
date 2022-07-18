@@ -18,4 +18,6 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: "meow",
+  syntax: ">>meow",
+  description: "display a random cat image",
 };

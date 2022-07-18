@@ -52,4 +52,6 @@ function getRoles(roles) {
 
 module.exports.help = {
   name: "user",
+  syntax: ">>user [user]",
+  description: "display user information",
 };

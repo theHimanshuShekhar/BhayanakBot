@@ -24,4 +24,6 @@ module.exports.run = async (bot, message, args, db) => {
 
 module.exports.help = {
   name: "mc",
+  syntax: ">>mc",
+  description: "display the minecraft server IP",
 };

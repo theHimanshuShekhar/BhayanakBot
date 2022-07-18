@@ -35,4 +35,6 @@ module.exports.run = (bot, message, args) => {
 
 module.exports.help = {
   name: "server",
+  syntax: ">>server",
+  description: "display the server information",
 };

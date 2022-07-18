@@ -46,4 +46,6 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: "purge",
+  syntax: ">>purge [?user] [amount]",
+  description: "purge messages in a text channel",
 };

@@ -1,28 +1,42 @@
 const Discord = require("discord.js");
+const fs = require("fs");
 
 module.exports.run = async (bot, message, args) => {
   let botembed = new Discord.MessageEmbed()
     .setColor("#6457A6")
     .setTitle("Commands")
-    .addField(">>bot", "display BhayanakBot's information")
-    .addField(">>server", "display the server information")
-    .addField(">>user [user]", "display the user's information")
-    .addField(">>news [topic]", "display news articles based on query")
-    .addField(">>purge [?user] [amount]", "purge messages in a text channel")
-    .addField(">>meow", "for cute kitties!")
-    .addField(">>woof", "for cute doggos!")
-    .addField(">>au [mute/unmute]", "mute/unmute for among us games.")
     .setThumbnail(bot.user.displayAvatarURL)
+    .setTimestamp()
+    .setFooter("? = optional parameters");
+
+  let commands = await getCommands();
+  commands.forEach((command) => {
+    if (command.syntax && command.description)
+      botembed.addField(command.syntax, command.description, true);
+  });
+
+  botembed
+    .addField("\u200b", "\u200b")
     .addField(
       "Contribute to development of the bot",
       "https://github.com/theHimanshuShekhar/BhayanakBot"
-    )
-    .setTimestamp()
-    .setFooter("? = optional parameters");
+    );
 
   message.channel.send(botembed);
 };
 
 module.exports.help = {
   name: "help",
+};
+
+getCommands = async () => {
+  commands = [];
+  const files = fs.readdirSync("./commands/");
+  let commandfiles = files.filter((f) => f.split(".").pop() === "js");
+  commandfiles.forEach((commandfile) => {
+    let command = require(`./${commandfile}`);
+    commands.push(command.help);
+  });
+
+  return commands;
 };

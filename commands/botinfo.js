@@ -32,4 +32,6 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: "bot",
+  syntax: ">>bot",
+  description: "display BhayanakBot's information",
 };
