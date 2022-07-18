@@ -16,6 +16,7 @@ module.exports.run = async (bot, message, args) => {
         .setColor("#6457A6")
         .setTitle(nickname + ", " + data.joke);
       message.channel.send(botembed);
+      message.delete();
     });
 };
 

@@ -14,7 +14,7 @@ module.exports.run = async (bot, message, args) => {
 };
 
 module.exports.help = {
-  name: "animequote",
-  syntax: "animequote",
+  name: "animechan",
+  syntax: "animechan",
   description: "display a random anime quote",
 };
