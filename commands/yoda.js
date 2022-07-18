@@ -24,15 +24,13 @@ module.exports.run = async (bot, message, args) => {
       let botembed = new Discord.MessageEmbed()
         .setColor("#6457A6")
         .setTitle(data.contents.translated)
-        .setDescription("- Yoda")
-        .setTimestamp()
-        .setFooter("requested by " + message.author.username);
+        .setFooter("- Yoda");
       message.channel.send(botembed);
     });
 };
 
 module.exports.help = {
   name: "yoda",
-  syntax: ">>yoda",
+  syntax: ">>yoda [text]",
   description: "convert your message to yoda speak",
 };
