@@ -26,11 +26,13 @@ module.exports.run = async (bot, message, args) => {
         .setTimestamp()
         .setFooter("requested by " + message.author.username);
 
-      movie.Ratings.forEach((rating) => {
-        botembed.addField(rating.Source, rating.Value, true);
-      });
+      if (movie)
+        movie.Ratings.forEach((rating) => {
+          botembed.addField(rating.Source, rating.Value, true);
+        });
       message.channel.send(botembed);
-    });
+    })
+    .catch((err) => console.log(err));
 };
 
 module.exports.help = {
