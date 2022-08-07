@@ -1,5 +1,3 @@
-//
-
 const Discord = require("discord.js");
 const fetch = require("node-fetch");
 
@@ -17,6 +15,9 @@ module.exports.run = async (bot, message, args) => {
         .setTitle(nickname + ", " + data.joke);
       message.channel.send(botembed);
       message.delete();
+    })
+    .catch((err) => {
+      console.log(err);
     });
 };
 
