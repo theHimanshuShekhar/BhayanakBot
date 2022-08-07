@@ -23,6 +23,6 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: "yomomma",
-  syntax: "yomomma [user]",
+  syntax: ">>yomomma [user]",
   description: "send yomomma joke to user",
 };

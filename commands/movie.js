@@ -35,6 +35,6 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: "movie",
-  syntax: "movie [search term]",
+  syntax: ">>movie [search term]",
   description: "Search for a movie",
 };
