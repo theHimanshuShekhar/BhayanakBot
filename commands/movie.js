@@ -26,7 +26,7 @@ module.exports.run = async (bot, message, args) => {
         .setTimestamp()
         .setFooter("requested by " + message.author.username);
 
-      if (movie)
+      if (movie && movie.Ratings)
         movie.Ratings.forEach((rating) => {
           botembed.addField(rating.Source, rating.Value, true);
         });
