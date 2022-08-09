@@ -26,7 +26,9 @@ module.exports.run = async (bot, message, args) => {
         .setTimestamp()
         .setFooter("requested by " + message.author.username);
 
-      if (movie.Poster) botembed.setImage(movie.Poster);
+      if (movie.Poster !== "N/A") {
+        botembed.setImage(movie.Poster);
+      }
       if (movie.Ratings)
         movie.Ratings.forEach((rating) => {
           botembed.addField(rating.Source, rating.Value, true);
