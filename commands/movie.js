@@ -11,10 +11,10 @@ module.exports.run = async (bot, message, args) => {
   )
     .then((response) => response.json())
     .then((movie) => {
+      if (!movie) return;
       let botembed = new Discord.MessageEmbed()
         .setColor("#6457A6")
         .setTitle(movie.Title)
-        .setImage(movie.Poster)
         .setDescription(movie.Plot)
         .addField("Runtime", movie.Runtime, true)
         .addField("Director", movie.Director, true)
@@ -26,7 +26,8 @@ module.exports.run = async (bot, message, args) => {
         .setTimestamp()
         .setFooter("requested by " + message.author.username);
 
-      if (movie && movie.Ratings)
+      if (movie.Poster) botembed.setImage(movie.Poster);
+      if (movie.Ratings)
         movie.Ratings.forEach((rating) => {
           botembed.addField(rating.Source, rating.Value, true);
         });
