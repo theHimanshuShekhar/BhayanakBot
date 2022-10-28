@@ -10,12 +10,3 @@ services:
       - 3000:3000
     volumes:
       - .:/app
-    links:
-      - "redis:redis"
-  redis:
-    image: docker.io/redislabs/rejson
-    restart: always
-    ports:
-      - 6379:6379
-    volumes:
-      - ./data:/data

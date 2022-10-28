@@ -1,9 +1,8 @@
+
+const fs = require("fs");
 require("dotenv").config();
 const utils = require("./lib/utils.js");
 const Discord = require("discord.js");
-const fs = require("fs");
-const redis = require("./lib/redis.js");
-const logger = require("./lib/logger.js");
 const randomGames = require("./lib/random.js");
 
 const prefix = process.env.PREFIX;
@@ -51,16 +50,16 @@ bot.on("ready", () => {
 
 // Parse incoming messages and call respective command module
 bot.on("message", async (message) => {
-  if (message.author.bot) return;
-
-  // Log message if user
-  logger.logMessage(message);
-
   // Random Games
   randomGames.randomGames(message);
 
+  // Return if message author is a bot, message is in a DM or message doesnot start with botprefix
+  if (message.author.bot) return;
   if (message.channel.type === "dm") return;
   if (!message.content.startsWith(prefix)) return;
+
+
+  // Proceed with command processing
   let messageArray = message.content.split(" ");
   let cmd = messageArray[0];
   let args = messageArray.slice(1);
