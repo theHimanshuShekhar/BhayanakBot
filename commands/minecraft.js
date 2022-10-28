@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const fs = require("fs");
 
-module.exports.run = async (bot, message, args, db) => {
+module.exports.run = async (bot, message, args) => {
   try {
     let server;
     const data = fs.readFileSync("serverDetails.json");
