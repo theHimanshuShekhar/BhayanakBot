@@ -2,16 +2,15 @@ import { PermissionFlagsBits, EmbedBuilder } from "discord.js";
 import { Command } from "../types";
 
 const command: Command = {
-  name: "animechan",
+  name: "woof",
   execute: (message, args) => {
-    fetch("https://animechan.vercel.app/api/random")
+    fetch("https://random.dog/woof.json?filter=mp4,webm")
       .then((response) => response.json())
       .then((data) => {
-        if (data.quote) {
+        if (data) {
           const botembed = new EmbedBuilder()
             .setColor("#6457A6")
-            .setAuthor({ name: data.character + ", " + data.anime })
-            .setDescription(data.quote)
+            .setImage(data.url)
             .setTimestamp()
             .setFooter({ text: "requested by " + message.author.username });
 
@@ -20,7 +19,7 @@ const command: Command = {
       });
   },
   cooldown: 10,
-  aliases: ["animequote"],
+  aliases: ["dog", "inu"],
   permissions: ["Administrator", PermissionFlagsBits.SendMessages],
 };
 
