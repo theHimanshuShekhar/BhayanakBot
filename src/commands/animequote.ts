@@ -18,8 +18,8 @@ const command: Command = {
       });
   },
   cooldown: 10,
-  aliases: ["sayhello"],
-  permissions: ["Administrator", PermissionFlagsBits.ManageEmojisAndStickers], // to test
+  aliases: ["animequote"],
+  permissions: ["Administrator", PermissionFlagsBits.SendMessages],
 };
 
 export default command;
