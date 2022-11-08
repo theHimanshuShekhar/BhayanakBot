@@ -1,25 +1,29 @@
-<h1 style="text-align:center;">Discord.js v14 Bot Template</h1>
+<h1 style="text-align:center;"> BhayanakBot</h1>
 
-## Features
+All purpose bot for Discord servers.
 
-* 🟦 Typescript
-* 🔥 Slash commands
-* ✉️ Message commands
-* 🕛 Cooldowns
-* 🏴 Detailed Permissions
-* 💪 Event & Command handlers
-* 🍃 MongoDB Support
+[**Add me to your server!**](https://discord.com/api/oauth2/authorize?client_id=470814535146536972&permissions=8&scope=bot%20applications.commands)
 
-## Installation
+![alt](https://i.imgur.com/CIAJAgg.jpg)
 
-Clone the repository then create a file named `.env` and fill it out accordingly
+# Relevant Links
 
-```js
-TOKEN=YOURTOKENHERE
-CLIENT_ID=BOTS CLIENT ID
-PREFIX=!
-MONGO_URI=YOUR MONGO CONNECTION STRING
-MONGO_DATABASE_NAME=YOUR DATABASE NAME
+- [Bhayanak](https://discord.gg/879CFrn) - Discord server.
+
+### This bot was created using the following open source projects:
+
+- [VSCode](https://code.visualstudio.com/) - awesome text editor.
+- [node.js](https://nodejs.org/) - JavaScript runtime built on Chrome's V8 JavaScript engine.
+- [discord.js](https://discord.js.org/) - discord.js is a powerful node.js module that allows you to interact with the Discord API.
+
+### Installation
+
+This project requires [Node.js](https://nodejs.org/) v6+ to run.
+
+Install the dependencies and devDependencies and start the server.
+
+```sh
+$ cd BhayanakBot
+$ npm install
+$ npm start
 ```
-
-Build the project using the typescript module and start the bot using the `npm start` command
