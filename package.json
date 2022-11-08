@@ -4,7 +4,7 @@
   "description": "Custom Discord bot for the Bhayanak server",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node --experimental-fetch build/index.js"
+    "start": "tsc && node build/index.js"
   },
   "keywords": [],
   "author": "Gotiyababa",
