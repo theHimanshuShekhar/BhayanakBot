@@ -1,20 +1,15 @@
-version: "3"
+version: '3'
 
 services:
   bot:
+    container_name: bhayanakbot
     tty: true
-    image: docker.io/bitnami/node:18-debian-11
+    image: bitnami/node:latest
     command: sh -c 'npm install && npm start'
-    restart: always
+    # restart: always
+    env_file:
+      - .env
     ports:
       - 3000:3000
     volumes:
       - .:/app
-  # mongo:
-  #   tty: true
-  #   image: docker.io/bitnami/mongodb:latest
-  #   restart: always
-  #   # volumes:
-  #   #   - mongodb_data:/bitnami/mongodb
-  #   ports:
-  #     - 27017:27017
