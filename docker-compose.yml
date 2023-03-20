@@ -2,10 +2,13 @@ version: '3'
 
 services:
   bot:
+    container_name: bhayanakbot
     tty: true
-    image: docker.io/bitnami/node:17-debian-10
+    image: bitnami/node:latest
     command: sh -c 'npm install && npm start'
-    restart: always
+    # restart: always
+    env_file:
+      - .env
     ports:
       - 3000:3000
     volumes:

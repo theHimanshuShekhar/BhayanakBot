@@ -1,33 +1,4 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-
-# Dependency directories
-node_modules/
-.vs/
-
-# TypeScript v1 declaration files
-typings/
-
-# Optional npm cache directory
-.npm
-.vscode
-
-# Optional eslint cache
-.eslintcache
-
-# env
+node_modules
+build
 .env
-
-# Python
-*.pyc
-__pycache__
-dist/
-build/
-*.spec
-amongus.py
-
-data/
-
-serverDetails.json
+.vscode

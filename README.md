@@ -1,8 +1,8 @@
-# BhayanakBot
+<h1 style="text-align:center;"> BhayanakBot</h1>
 
 All purpose bot for Discord servers.
 
-[**Add me to your server!**](https://discord.com/api/oauth2/authorize?client_id=470814535146536972&permissions=8&redirect_uri=https%3A%2F%2Fbhayanak-bot.herokuapp.com%2F&response_type=code&scope=bot%20guilds%20connections%20email%20identify%20messages.read)
+[**Add me to your server!**](https://discord.com/api/oauth2/authorize?client_id=470814535146536972&permissions=8&scope=bot%20applications.commands)
 
 ![alt](https://i.imgur.com/CIAJAgg.jpg)
 
@@ -24,13 +24,6 @@ Install the dependencies and devDependencies and start the server.
 
 ```sh
 $ cd BhayanakBot
-$ npm install -d
-$ node index.js
-```
-
-For production environments.
-
-```sh
-$ npm install --production
-$ NODE_ENV=production node index.js
+$ npm install
+$ npm start
 ```
