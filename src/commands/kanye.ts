@@ -1,27 +1,29 @@
-import { PermissionFlagsBits, EmbedBuilder } from "discord.js";
-import { Command } from "../types";
+import { ApplyOptions } from '@sapphire/decorators';
+import { Command } from '@sapphire/framework';
+import { EmbedBuilder } from 'discord.js';
 
-const command: Command = {
-  name: "kanye",
-  execute: (message, args) => {
-    fetch("https://api.kanye.rest/")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data) {
-          const botembed = new EmbedBuilder()
-            .setColor("#6457A6")
-            .setAuthor({ name: "Kanye West" })
-            .setDescription(data.quote)
-            .setTimestamp()
-            .setFooter({ text: "requested by " + message.author.username });
+@ApplyOptions<Command.Options>({
+	name: 'kanye',
+	aliases: ['ye', 'yeezus'],
+	description: 'random kanye quote'
+})
+export class UserCommand extends Command {
+	public override registerApplicationCommands(registry: Command.Registry) {
+		registry.registerChatInputCommand((builder) =>
+			builder //
+				.setName(this.name)
+				.setDescription(this.description)
+		);
+	}
 
-          message.channel.send({ embeds: [botembed] });
-        }
-      });
-  },
-  cooldown: 10,
-  aliases: ["yee", "yeezus"],
-  permissions: ["Administrator", PermissionFlagsBits.SendMessages],
-};
-
-export default command;
+	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		fetch('https://api.kanye.rest/')
+			.then((response) => response.json())
+			.then((data) => {
+				if (data) {
+					const botembed = new EmbedBuilder().setColor('#6457A6').setAuthor({ name: data.quote }).setDescription('-Kanye West');
+					interaction.reply({ embeds: [botembed] });
+				}
+			});
+	}
+}

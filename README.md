@@ -1,29 +1,30 @@
-<h1 style="text-align:center;"> BhayanakBot</h1>
+# TypeScript Sapphire Bot example
 
-All purpose bot for Discord servers.
+This is a basic setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript
 
-[**Add me to your server!**](https://discord.com/api/oauth2/authorize?client_id=470814535146536972&permissions=8&scope=bot%20applications.commands)
+## How to use it?
 
-![alt](https://i.imgur.com/CIAJAgg.jpg)
-
-# Relevant Links
-
-- [Bhayanak](https://discord.gg/879CFrn) - Discord server.
-
-### This bot was created using the following open source projects:
-
-- [VSCode](https://code.visualstudio.com/) - awesome text editor.
-- [node.js](https://nodejs.org/) - JavaScript runtime built on Chrome's V8 JavaScript engine.
-- [discord.js](https://discord.js.org/) - discord.js is a powerful node.js module that allows you to interact with the Discord API.
-
-### Installation
-
-This project requires [Node.js](https://nodejs.org/) v6+ to run.
-
-Install the dependencies and devDependencies and start the server.
+### Prerequisite
 
 ```sh
-$ cd BhayanakBot
-$ npm install
-$ npm start
+npm install
 ```
+
+### Development
+
+This example can be run with `tsc-watch` to watch the files and automatically restart your bot.
+
+```sh
+npm run watch:start
+```
+
+### Production
+
+You can also run the bot with `npm dev`, this will first build your code and then run `node ./dist/index.js`. But this is not the recommended way to run a bot in production.
+
+## License
+
+Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Community and its contributors.
+
+[sapphire]: https://github.com/sapphiredev/framework
+[unlicense]: https://github.com/sapphiredev/examples/blob/main/LICENSE.md
