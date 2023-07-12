@@ -1,22 +1,37 @@
-import { Client, GatewayIntentBits, Collection } from "discord.js";
-const { Guilds, MessageContent, GuildMessages, GuildMembers } =
-  GatewayIntentBits;
-const client = new Client({
-  intents: [Guilds, MessageContent, GuildMessages, GuildMembers],
+import './lib/setup';
+import { LogLevel, SapphireClient } from '@sapphire/framework';
+import { ActivityType, GatewayIntentBits } from 'discord.js';
+
+const client = new SapphireClient({
+	defaultPrefix: '[[',
+	caseInsensitiveCommands: true,
+	logger: {
+		level: LogLevel.Debug
+	},
+	intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildMessages, GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent],
+	loadMessageCommandListeners: true,
+	presence: {
+		status: 'online',
+		activities: [
+			{
+				name: 'hentai',
+				url: 'mc.bhayanak.net',
+				type: ActivityType.Watching
+			}
+		]
+	}
 });
-import { Command, SlashCommand } from "./types";
-import { config } from "dotenv";
-import { readdirSync } from "fs";
-import { join } from "path";
-config();
 
-client.slashCommands = new Collection<string, SlashCommand>();
-client.commands = new Collection<string, Command>();
-client.cooldowns = new Collection<string, number>();
+const main = async () => {
+	try {
+		client.logger.info('Logging in');
+		await client.login();
+		client.logger.info('Logged in');
+	} catch (error) {
+		client.logger.fatal(error);
+		client.destroy();
+		process.exit(1);
+	}
+};
 
-const handlersDir = join(__dirname, "./handlers");
-readdirSync(handlersDir).forEach((handler) => {
-  require(`${handlersDir}/${handler}`)(client);
-});
-
-client.login(process.env.TOKEN);
+main();

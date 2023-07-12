@@ -1,16 +1,16 @@
 import { ApplyOptions } from '@sapphire/decorators';
+import { FetchResultTypes, fetch } from '@sapphire/fetch';
 import { Command } from '@sapphire/framework';
 import { EmbedBuilder } from 'discord.js';
 
-interface catResponse {
-	url: string;
+interface trumpQuoteResponse {
+	message: string;
 }
 
 @ApplyOptions<Command.Options>({
-	name: 'meow',
-	description: 'for cat lovers',
-	aliases: ['cat', 'neko'],
-	cooldownDelay: 10
+	name: 'trump',
+	aliases: ['donald', 'orange baboon'],
+	description: 'random trump quote'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
@@ -22,13 +22,9 @@ export class UserCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		fetch('https://api.thecatapi.com/v1/images/search')
-			.then((response) => response.json())
-			.then((data: catResponse[]) => {
-				if (data.length > 0) {
-					const botembed = new EmbedBuilder().setColor('#6457A6').setImage(data[0].url);
-					interaction.reply({ embeds: [botembed] });
-				}
-			});
+		fetch<trumpQuoteResponse>('https://api.whatdoestrumpthink.com/api/v1/quotes/random/', FetchResultTypes.JSON).then((data) => {
+			const botembed = new EmbedBuilder().setColor('#6457A6').setAuthor({ name: data.message }).setDescription('-Donald Trump');
+			interaction.reply({ embeds: [botembed] });
+		});
 	}
 }

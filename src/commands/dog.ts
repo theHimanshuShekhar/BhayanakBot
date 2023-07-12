@@ -1,26 +1,33 @@
-import { PermissionFlagsBits, EmbedBuilder } from "discord.js";
-import { Command } from "../types";
+import { ApplyOptions } from '@sapphire/decorators';
+import { Command } from '@sapphire/framework';
+import { EmbedBuilder } from 'discord.js';
+import { fetch, FetchResultTypes } from '@sapphire/fetch';
 
-const command: Command = {
-  name: "woof",
-  execute: (message, args) => {
-    fetch("https://random.dog/woof.json?filter=mp4,webm")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data) {
-          const botembed = new EmbedBuilder()
-            .setColor("#6457A6")
-            .setImage(data.url)
-            .setTimestamp()
-            .setFooter({ text: "requested by " + message.author.username });
+interface randomDogResponse {
+	url: string;
+}
 
-          message.channel.send({ embeds: [botembed] });
-        }
-      });
-  },
-  cooldown: 10,
-  aliases: ["dog", "inu"],
-  permissions: ["Administrator", PermissionFlagsBits.SendMessages],
-};
+@ApplyOptions<Command.Options>({
+	name: 'woof',
+	description: 'for dog lovers',
+	aliases: ['dog', 'inu'],
+	cooldownDelay: 10
+})
+export class UserCommand extends Command {
+	public override registerApplicationCommands(registry: Command.Registry) {
+		registry.registerChatInputCommand((builder) =>
+			builder //
+				.setName(this.name)
+				.setDescription(this.description)
+		);
+	}
 
-export default command;
+	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		fetch<randomDogResponse>('https://random.dog/woof.json?filter=mp4,webm', FetchResultTypes.JSON).then((data) => {
+			if (data) {
+				const botembed = new EmbedBuilder().setColor('#6457A6').setImage(data.url);
+				interaction.reply({ embeds: [botembed] });
+			}
+		});
+	}
+}
