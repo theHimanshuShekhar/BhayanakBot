@@ -57,10 +57,7 @@ export class UserCommand extends Command {
 				}
 			);
 
-		let botCommandsEmbed = new EmbedBuilder()
-			.setTitle(`Total Commands- ${commandList.length}`)
-			.setColor('#6457A6')
-			.addFields({ name: 'Total Commands', value: commandList.length + ' commands' });
+		let botCommandsEmbed = new EmbedBuilder().setColor('#6457A6').addFields({ name: 'Total Commands', value: commandList.length + ' commands' });
 		commandList.forEach((command) => botCommandsEmbed.addFields({ name: command.name, value: command.description, inline: true }));
 
 		return interaction.reply({ embeds: [botInfoEmbed, botCommandsEmbed] });
