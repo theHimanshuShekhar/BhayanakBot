@@ -6,7 +6,7 @@ services:
     tty: true
     image: bitnami/node:latest
     command: sh -c 'pnpm install && pnpm dev'
-    # restart: always
+    restart: always
     env_file:
       - .env
     ports:
