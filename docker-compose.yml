@@ -5,7 +5,7 @@ services:
     container_name: bhayanakbot
     tty: true
     image: bitnami/node:latest
-    command: sh -c 'npm install -g pnpm && pnpm install && pnpm dev'
+    command: sh -c 'npm install && npm run dev'
     restart: always
     env_file:
       - .env
