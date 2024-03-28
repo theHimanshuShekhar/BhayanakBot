@@ -1,15 +1,13 @@
-version: '3'
-
 services:
   bot:
     container_name: bhayanakbot
     tty: true
-    image: bitnami/node:latest
-    command: sh -c 'git pull && npm install && npm run dev'
+    image: imbios/bun-node:latest
+    command: sh -c 'git pull && bun install && bun run dev'
     restart: always
     env_file:
       - .env
     ports:
-      - 3000:3000
+      - 3999:3999
     volumes:
       - .:/app
