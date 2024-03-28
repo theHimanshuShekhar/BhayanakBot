@@ -6,7 +6,7 @@ services:
     command: sh -c 'git pull && bun install && bun run dev'
     restart: always
     env_file:
-      - .env
+      - ./src/.env
     ports:
       - 3999:3999
     volumes:
