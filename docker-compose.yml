@@ -3,7 +3,7 @@ services:
     container_name: bhayanakbot
     tty: true
     image: imbios/bun-node:latest
-    command: sh -c 'git pull && bun install && bun run dev'
+    command: sh -c 'bun install && bun run dev'
     restart: always
     env_file:
       - ./src/.env
