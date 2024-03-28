@@ -2,7 +2,9 @@ services:
   bot:
     container_name: bhayanakbot
     tty: true
-    image: imbios/bun-node:latest
+    build:
+      context: .
+      dockerfile: dockerfile
     command: sh -c 'bun install && bun run dev'
     restart: always
     env_file:
