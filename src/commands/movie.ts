@@ -5,7 +5,7 @@ import { EmbedBuilder } from 'discord.js';
 @ApplyOptions<Command.Options>({
 	name: 'imdb',
 	aliases: ['show', 'movie'],
-	description: 'Search for details about a movie or tv show from imdb'
+	description: 'search for details about a movie or tv show from imdb'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {

@@ -5,7 +5,7 @@ import { EmbedBuilder } from 'discord.js';
 @ApplyOptions<Command.Options>({
 	name: 'server',
 	aliases: ['serverinfo'],
-	description: 'Responds with information about the server'
+	description: 'responds with information about the server'
 })
 export class UserCommand extends Command {
 	public override registerApplicationCommands(registry: Command.Registry) {
