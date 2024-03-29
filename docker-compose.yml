@@ -2,10 +2,7 @@ services:
   bot:
     container_name: bhayanakbot
     tty: true
-    build:
-      context: .
-      dockerfile: dockerfile
-    command: sh -c 'bun install && bun run dev'
+    image: ghcr.io/thehimanshushekhar/bhayanakbot:latest
     restart: always
     env_file:
       - ./src/.env
