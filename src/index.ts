@@ -1,14 +1,29 @@
 import './lib/setup';
+
 import { LogLevel, SapphireClient } from '@sapphire/framework';
-import { ActivityType, GatewayIntentBits } from 'discord.js';
+import { ActivityType, GatewayIntentBits, Partials } from 'discord.js';
 
 const client = new SapphireClient({
-	defaultPrefix: '[[',
+	defaultPrefix: '>',
+	regexPrefix: /^(hey +)?bot[,! ]/i,
 	caseInsensitiveCommands: true,
 	logger: {
 		level: LogLevel.Debug
 	},
-	intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildMessages, GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent],
+	shards: 'auto',
+	intents: [
+		GatewayIntentBits.DirectMessageReactions,
+		GatewayIntentBits.DirectMessages,
+		GatewayIntentBits.GuildModeration,
+		GatewayIntentBits.GuildEmojisAndStickers,
+		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildVoiceStates,
+		GatewayIntentBits.MessageContent
+	],
+	partials: [Partials.Channel],
 	loadMessageCommandListeners: true,
 	presence: {
 		status: 'online',
@@ -26,12 +41,12 @@ const main = async () => {
 	try {
 		client.logger.info('Logging in');
 		await client.login();
-		client.logger.info('Logged in');
+		client.logger.info('logged in');
 	} catch (error) {
 		client.logger.fatal(error);
-		client.destroy();
+		await client.destroy();
 		process.exit(1);
 	}
 };
 
-main();
+void main();
