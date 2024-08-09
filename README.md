@@ -1,6 +1,6 @@
 # BhayanakBot
 
-All purpose bot for Discord servers.
+A Casual custom discord bot developed for the Bhayanak Server.
 
 [**Add me to your server!**](https://discord.com/api/oauth2/authorize?client_id=470814535146536972&permissions=8&redirect_uri=https%3A%2F%2Fbhayanak-bot.herokuapp.com%2F&response_type=code&scope=bot%20guilds%20connections%20email%20identify%20messages.read)
 
