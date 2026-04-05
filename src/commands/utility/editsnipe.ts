@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 
 export class EditSnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -17,7 +17,7 @@ export class EditSnipeCommand extends Command {
 		const cached = client.editSnipeCache.get(interaction.channelId);
 
 		if (!cached) {
-			return interaction.reply({ content: "No recently edited messages found.", ephemeral: true });
+			return interaction.reply({ content: "No recently edited messages found.", flags: MessageFlags.Ephemeral });
 		}
 
 		const embed = new EmbedBuilder()

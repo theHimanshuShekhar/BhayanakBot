@@ -1,5 +1,6 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
 import type { ButtonInteraction } from "discord.js";
+import { MessageFlags } from "discord.js";
 import { addEntry, getGiveawayByMessage } from "../db/queries/giveaways.js";
 
 export class GiveawayEntryButtonHandler extends InteractionHandler {
@@ -15,12 +16,12 @@ export class GiveawayEntryButtonHandler extends InteractionHandler {
 	public override async run(interaction: ButtonInteraction) {
 		const giveaway = await getGiveawayByMessage(interaction.message.id);
 		if (!giveaway || giveaway.ended) {
-			return interaction.reply({ content: "This giveaway has already ended.", ephemeral: true });
+			return interaction.reply({ content: "This giveaway has already ended.", flags: MessageFlags.Ephemeral });
 		}
 
 		const updated = await addEntry(interaction.message.id, interaction.user.id);
 		if (!updated) {
-			return interaction.reply({ content: "Could not enter the giveaway.", ephemeral: true });
+			return interaction.reply({ content: "Could not enter the giveaway.", flags: MessageFlags.Ephemeral });
 		}
 
 		const entries = updated.entries as string[];
@@ -28,7 +29,7 @@ export class GiveawayEntryButtonHandler extends InteractionHandler {
 
 		return interaction.reply({
 			content: `You've entered the giveaway for **${updated.prize}**! 🎉 (${entryCount} ${entryCount === 1 ? "entry" : "entries"})`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }

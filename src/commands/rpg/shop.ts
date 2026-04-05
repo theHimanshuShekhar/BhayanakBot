@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder , MessageFlags } from "discord.js";
 import { getOrCreateProfile, tryDebitCoins, updateCoins, addItem, removeItem } from "../../db/queries/rpg.js";
 import { ITEMS, getBuyableItems, getItem } from "../../lib/rpg/catalogs/items.js";
 
@@ -95,7 +95,7 @@ export class ShopCommand extends Command {
 		}
 
 		if (sub === "buy") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const itemId = interaction.options.getString("item", true);
 			const item = getItem(itemId);
 			if (!item || item.price === 0) {
@@ -126,7 +126,7 @@ export class ShopCommand extends Command {
 		}
 
 		if (sub === "sell") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const itemId = interaction.options.getString("item", true);
 			const quantity = interaction.options.getInteger("quantity") ?? 1;
 

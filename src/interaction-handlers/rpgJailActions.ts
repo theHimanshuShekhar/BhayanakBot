@@ -1,5 +1,5 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type ButtonInteraction, EmbedBuilder } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type ButtonInteraction, EmbedBuilder , MessageFlags } from "discord.js";
 import {
 	getOrCreateProfile,
 	tryDebitCoins,
@@ -53,7 +53,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 							.setColor(0xed4245)
 							.setDescription(`❌ You need **${bailCost.toLocaleString()} coins** to bail out, but you only have **${fresh.coins.toLocaleString()}**.`),
 					],
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
@@ -78,7 +78,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 						.setColor(0x57f287)
 						.setDescription("✅ Bail paid — you're free to go."),
 				],
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -92,13 +92,13 @@ export class RpgJailActionsHandler extends InteractionHandler {
 							.setColor(0xed4245)
 							.setDescription("❌ You already attempted to escape this sentence."),
 					],
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
 
 			if (!profile.jailUntil) {
-				await interaction.reply({ content: "You're not in jail.", ephemeral: true });
+				await interaction.reply({ content: "You're not in jail.", flags: MessageFlags.Ephemeral });
 				return;
 			}
 
@@ -131,7 +131,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 							.setColor(0x57f287)
 							.setDescription("✅ You escaped! Lay low for a while."),
 					],
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 			} else {
 				const newUntil = new Date(jailUntil.getTime() + remainingMs);
@@ -157,7 +157,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 							.setColor(0xed4245)
 							.setDescription("❌ Escape failed — sentence doubled. Bail is still an option."),
 					],
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 			}
 		}

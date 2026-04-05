@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from "discord.js";
+import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder , MessageFlags } from "discord.js";
 import { createRoleMenu, deleteRoleMenu, addRoleMenuOption, getRoleMenu } from "../../db/queries/roles.js";
 
 export class RoleMenuCommand extends Subcommand {
@@ -65,7 +65,7 @@ export class RoleMenuCommand extends Subcommand {
 		const maxValues = interaction.options.getInteger("max-values") ?? 1;
 
 		if (!("send" in channel)) {
-			return interaction.reply({ content: "That channel is not a text channel.", ephemeral: true });
+			return interaction.reply({ content: "That channel is not a text channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		const select = new StringSelectMenuBuilder()
@@ -92,7 +92,7 @@ export class RoleMenuCommand extends Subcommand {
 
 		return interaction.reply({
 			content: `Role menu created! Message ID: \`${msg.id}\`. Use \`/rolemenu add-option\` to add roles to it.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 
@@ -100,7 +100,7 @@ export class RoleMenuCommand extends Subcommand {
 		const messageId = interaction.options.getString("message-id", true);
 		const menu = await getRoleMenu(messageId);
 		if (!menu) {
-			return interaction.reply({ content: "No role menu found with that message ID.", ephemeral: true });
+			return interaction.reply({ content: "No role menu found with that message ID.", flags: MessageFlags.Ephemeral });
 		}
 
 		const channel = interaction.guild!.channels.cache.get(menu.channelId);
@@ -110,7 +110,7 @@ export class RoleMenuCommand extends Subcommand {
 		}
 
 		await deleteRoleMenu(messageId);
-		return interaction.reply({ content: "Role menu deleted.", ephemeral: true });
+		return interaction.reply({ content: "Role menu deleted.", flags: MessageFlags.Ephemeral });
 	}
 
 	public async runAddOption(interaction: Subcommand.ChatInputCommandInteraction) {
@@ -122,7 +122,7 @@ export class RoleMenuCommand extends Subcommand {
 
 		const menu = await getRoleMenu(messageId);
 		if (!menu) {
-			return interaction.reply({ content: "No role menu found with that message ID.", ephemeral: true });
+			return interaction.reply({ content: "No role menu found with that message ID.", flags: MessageFlags.Ephemeral });
 		}
 
 		await addRoleMenuOption({ menuId: menu.id, roleId: role.id, label, description, emoji });
@@ -156,6 +156,6 @@ export class RoleMenuCommand extends Subcommand {
 			}
 		}
 
-		return interaction.reply({ content: `Added **${label}** (<@&${role.id}>) to the role menu.`, ephemeral: true });
+		return interaction.reply({ content: `Added **${label}** (<@&${role.id}>) to the role menu.`, flags: MessageFlags.Ephemeral });
 	}
 }

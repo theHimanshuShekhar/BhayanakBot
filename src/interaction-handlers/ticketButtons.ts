@@ -8,6 +8,7 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	TextChannel,
+	MessageFlags,
 } from "discord.js";
 import { getTicketByChannel, createTicket, claimTicket, closeTicket, getUserOpenTickets } from "../db/queries/tickets.js";
 import { getOrCreateSettings } from "../db/queries/guildSettings.js";
@@ -43,11 +44,11 @@ export class TicketButtonsHandler extends InteractionHandler {
 		if (openTickets.length > 0) {
 			return interaction.reply({
 				content: `You already have an open ticket: <#${openTickets[0].channelId}>`,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const channelName = `ticket-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, "");
 
@@ -102,7 +103,7 @@ export class TicketButtonsHandler extends InteractionHandler {
 	private async handleClose(interaction: ButtonInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "No open ticket found in this channel.", ephemeral: true });
+			return interaction.reply({ content: "No open ticket found in this channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		await interaction.deferReply();
@@ -141,11 +142,11 @@ export class TicketButtonsHandler extends InteractionHandler {
 	private async handleClaim(interaction: ButtonInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "No open ticket found in this channel.", ephemeral: true });
+			return interaction.reply({ content: "No open ticket found in this channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		if (ticket.claimedBy) {
-			return interaction.reply({ content: `Already claimed by <@${ticket.claimedBy}>.`, ephemeral: true });
+			return interaction.reply({ content: `Already claimed by <@${ticket.claimedBy}>.`, flags: MessageFlags.Ephemeral });
 		}
 
 		await claimTicket(interaction.channelId, interaction.user.id);

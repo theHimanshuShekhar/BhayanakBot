@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel , MessageFlags } from "discord.js";
 import ms from "ms";
 import { createGiveaway, getGiveawayByMessage, endGiveaway } from "../../db/queries/giveaways.js";
 
@@ -59,7 +59,7 @@ export class GiveawayCommand extends Subcommand {
 
 		const duration = ms(durationStr as any) as unknown as number;
 		if (!duration || duration <= 0) {
-			return interaction.reply({ content: "Invalid duration. Use e.g. `10m`, `1h`, `1d`.", ephemeral: true });
+			return interaction.reply({ content: "Invalid duration. Use e.g. `10m`, `1h`, `1d`.", flags: MessageFlags.Ephemeral });
 		}
 
 		const endsAt = new Date(Date.now() + duration);
@@ -79,7 +79,7 @@ export class GiveawayCommand extends Subcommand {
 				.setEmoji("🎉"),
 		);
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const msg = await (interaction.channel as TextChannel).send({ embeds: [embed], components: [row] });
 
 		await createGiveaway({
@@ -100,10 +100,10 @@ export class GiveawayCommand extends Subcommand {
 		const giveaway = await getGiveawayByMessage(messageId);
 
 		if (!giveaway) {
-			return interaction.reply({ content: "Giveaway not found.", ephemeral: true });
+			return interaction.reply({ content: "Giveaway not found.", flags: MessageFlags.Ephemeral });
 		}
 		if (giveaway.ended) {
-			return interaction.reply({ content: "This giveaway has already ended.", ephemeral: true });
+			return interaction.reply({ content: "This giveaway has already ended.", flags: MessageFlags.Ephemeral });
 		}
 
 		await this.resolveGiveaway(interaction, giveaway);
@@ -114,12 +114,12 @@ export class GiveawayCommand extends Subcommand {
 		const giveaway = await getGiveawayByMessage(messageId);
 
 		if (!giveaway || !giveaway.ended) {
-			return interaction.reply({ content: "Giveaway not found or hasn't ended yet.", ephemeral: true });
+			return interaction.reply({ content: "Giveaway not found or hasn't ended yet.", flags: MessageFlags.Ephemeral });
 		}
 
 		const entries = giveaway.entries as string[];
 		if (entries.length === 0) {
-			return interaction.reply({ content: "No entries to reroll.", ephemeral: true });
+			return interaction.reply({ content: "No entries to reroll.", flags: MessageFlags.Ephemeral });
 		}
 
 		const winners = this.pickWinners(entries, giveaway.winnerCount);
@@ -168,7 +168,7 @@ export class GiveawayCommand extends Subcommand {
 		if (interaction) {
 			return interaction.reply({
 				content: `Giveaway ended! Winner${winners.length > 1 ? "s" : ""}: ${winners.map((w) => `<@${w}>`).join(", ") || "None"}`,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 	}

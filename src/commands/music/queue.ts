@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
 
 export class QueueCommand extends Command {
@@ -21,7 +21,7 @@ export class QueueCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue?.currentTrack) {
-			return interaction.reply({ content: "Nothing is playing.", ephemeral: true });
+			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
 
 		const page = interaction.options.getInteger("page") ?? 1;

@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, PermissionFlagsBits, TextChannel } from "discord.js";
+import { type ChatInputCommandInteraction, PermissionFlagsBits, TextChannel , MessageFlags } from "discord.js";
 
 export class PurgeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -20,7 +20,7 @@ export class PurgeCommand extends Command {
 	}
 
 	public async chatInputRun(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const amount = interaction.options.getInteger("amount", true);
 		const targetUser = interaction.options.getUser("user");
 		const channel = interaction.channel as TextChannel;

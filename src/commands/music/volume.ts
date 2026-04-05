@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
 import { useQueue } from "discord-player";
 
@@ -20,7 +21,7 @@ export class VolumeCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue?.isPlaying()) {
-			return interaction.reply({ content: "Nothing is playing.", ephemeral: true });
+			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
 
 		const level = interaction.options.getInteger("level", true);

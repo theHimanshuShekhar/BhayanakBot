@@ -27,7 +27,7 @@ export class ProfileCommand extends Command {
 		const ownedPets = await getOwnedPets(target.id);
 
 		const statBar = (value: number) => {
-			const filled = Math.round((value / 100) * 10);
+			const filled = Math.min(10, Math.max(0, Math.round((value / 100) * 10)));
 			return `\`${"█".repeat(filled)}${"░".repeat(10 - filled)}\` ${value}/100`;
 		};
 
@@ -41,7 +41,7 @@ export class ProfileCommand extends Command {
 		const xpForCurrentLevel = Math.pow(profile.level / 0.05, 2);
 		const progress = profile.xp - xpForCurrentLevel;
 		const needed = xpForNextLevel - xpForCurrentLevel;
-		const barFilled = Math.round((progress / needed) * 15);
+		const barFilled = Math.min(15, Math.max(0, Math.round((progress / needed) * 15)));
 		const xpBar = `\`${"█".repeat(barFilled)}${"░".repeat(15 - barFilled)}\` ${Math.round(progress)}/${Math.round(needed)}`;
 
 		const petDisplay =

@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import ms from "ms";
 import { db } from "../../lib/database.js";
 import { reminders } from "../../db/schema.js";
@@ -51,7 +51,7 @@ export class RemindCommand extends Subcommand {
 
 		const duration = ms(timeStr as any) as unknown as number;
 		if (!duration || duration <= 0) {
-			return interaction.reply({ content: "Invalid time format. Use e.g. `10m`, `2h`, `1d`.", ephemeral: true });
+			return interaction.reply({ content: "Invalid time format. Use e.g. `10m`, `2h`, `1d`.", flags: MessageFlags.Ephemeral });
 		}
 
 		const remindAt = new Date(Date.now() + duration);
@@ -68,7 +68,7 @@ export class RemindCommand extends Subcommand {
 
 		return interaction.reply({
 			content: `Reminder set! I'll remind you <t:${Math.floor(remindAt.getTime() / 1000)}:R> (ID: \`${reminder.id}\`)`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 
@@ -78,7 +78,7 @@ export class RemindCommand extends Subcommand {
 		});
 
 		if (userReminders.length === 0) {
-			return interaction.reply({ content: "You have no active reminders.", ephemeral: true });
+			return interaction.reply({ content: "You have no active reminders.", flags: MessageFlags.Ephemeral });
 		}
 
 		const lines = userReminders.map(
@@ -90,7 +90,7 @@ export class RemindCommand extends Subcommand {
 			.setDescription(lines.join("\n"))
 			.setColor(0x5865f2);
 
-		return interaction.reply({ embeds: [embed], ephemeral: true });
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}
 
 	public async runCancel(interaction: Subcommand.ChatInputCommandInteraction) {
@@ -101,10 +101,10 @@ export class RemindCommand extends Subcommand {
 		});
 
 		if (!reminder) {
-			return interaction.reply({ content: "Reminder not found or not yours.", ephemeral: true });
+			return interaction.reply({ content: "Reminder not found or not yours.", flags: MessageFlags.Ephemeral });
 		}
 
 		await markReminderSent(id);
-		return interaction.reply({ content: `Cancelled reminder \`${id}\`.`, ephemeral: true });
+		return interaction.reply({ content: `Cancelled reminder \`${id}\`.`, flags: MessageFlags.Ephemeral });
 	}
 }

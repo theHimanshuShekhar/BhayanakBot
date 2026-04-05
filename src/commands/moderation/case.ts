@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder , MessageFlags } from "discord.js";
 import { getCase, updateCaseReason } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
@@ -42,7 +42,7 @@ export class CaseCommand extends Subcommand {
 	}
 
 	public async chatInputView(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const number = interaction.options.getInteger("number", true);
 		const modCase = await getCase(interaction.guildId!, number);
 
@@ -64,7 +64,7 @@ export class CaseCommand extends Subcommand {
 	}
 
 	public async chatInputEdit(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const number = interaction.options.getInteger("number", true);
 		const reason = interaction.options.getString("reason", true);
 

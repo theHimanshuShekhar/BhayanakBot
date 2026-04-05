@@ -1,6 +1,6 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
 import type { ButtonInteraction } from "discord.js";
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
 import { eq } from "drizzle-orm";
 import { db } from "../lib/database.js";
 import { polls } from "../db/schema.js";
@@ -19,25 +19,25 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 	public override async run(interaction: ButtonInteraction) {
 		const optionIndex = parseInt(interaction.customId.split(":")[1], 10);
 		if (isNaN(optionIndex) || optionIndex < 0) {
-			return interaction.reply({ content: "Invalid poll option.", ephemeral: true });
+			return interaction.reply({ content: "Invalid poll option.", flags: MessageFlags.Ephemeral });
 		}
 
 		const poll = await db.query.polls.findFirst({ where: eq(polls.messageId, interaction.message.id) });
 		if (!poll) {
-			return interaction.reply({ content: "Poll not found.", ephemeral: true });
+			return interaction.reply({ content: "Poll not found.", flags: MessageFlags.Ephemeral });
 		}
 		if (poll.closed) {
-			return interaction.reply({ content: "This poll has already ended.", ephemeral: true });
+			return interaction.reply({ content: "This poll has already ended.", flags: MessageFlags.Ephemeral });
 		}
 
 		const optionData = poll.options as Array<{ label: string; votes: string[] }>;
 		if (optionIndex >= optionData.length) {
-			return interaction.reply({ content: "Invalid poll option.", ephemeral: true });
+			return interaction.reply({ content: "Invalid poll option.", flags: MessageFlags.Ephemeral });
 		}
 
 		const updatedPoll = await vote(poll.messageId, optionIndex, interaction.user.id);
 		if (!updatedPoll) {
-			return interaction.reply({ content: "Failed to record vote.", ephemeral: true });
+			return interaction.reply({ content: "Failed to record vote.", flags: MessageFlags.Ephemeral });
 		}
 
 		const updatedOptionData = updatedPoll.options as Array<{ label: string; votes: string[] }>;
@@ -65,6 +65,6 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
 
 		await interaction.update({ embeds: [embed], components: [row] });
-		return interaction.followUp({ content: `Voted for **${updatedOptionData[optionIndex]?.label}**!`, ephemeral: true });
+		return interaction.followUp({ content: `Voted for **${updatedOptionData[optionIndex]?.label}**!`, flags: MessageFlags.Ephemeral });
 	}
 }

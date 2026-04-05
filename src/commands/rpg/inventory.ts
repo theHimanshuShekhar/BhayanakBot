@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import {
 	getOrCreateProfile,
 	getInventory,
@@ -48,7 +48,7 @@ export class InventoryCommand extends Command {
 		const sub = interaction.options.getSubcommand(true);
 
 		if (sub === "view") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const items = await getInventory(interaction.user.id);
 
 			if (items.length === 0) {
@@ -74,7 +74,7 @@ export class InventoryCommand extends Command {
 		}
 
 		if (sub === "use") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const itemId = interaction.options.getString("item", true);
 			const item = getItem(itemId);
 
@@ -144,7 +144,7 @@ export class InventoryCommand extends Command {
 		}
 
 		if (sub === "equip") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const itemId = interaction.options.getString("item", true);
 			const item = getItem(itemId);
 

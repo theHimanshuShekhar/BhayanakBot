@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { getLevelRewards, addLevelReward, removeLevelReward } from "../../db/queries/users.js";
 
 export class RewardsCommand extends Subcommand {
@@ -44,7 +44,7 @@ export class RewardsCommand extends Subcommand {
 	public async runList(interaction: Subcommand.ChatInputCommandInteraction) {
 		const rewards = await getLevelRewards(interaction.guildId!);
 		if (rewards.length === 0) {
-			return interaction.reply({ content: "No level rewards configured.", ephemeral: true });
+			return interaction.reply({ content: "No level rewards configured.", flags: MessageFlags.Ephemeral });
 		}
 
 		const sorted = [...rewards].sort((a, b) => a.level - b.level);
@@ -61,7 +61,7 @@ export class RewardsCommand extends Subcommand {
 	public async runAdd(interaction: Subcommand.ChatInputCommandInteraction) {
 		const member = interaction.guild!.members.cache.get(interaction.user.id);
 		if (!member?.permissions.has("Administrator")) {
-			return interaction.reply({ content: "You need Administrator permission.", ephemeral: true });
+			return interaction.reply({ content: "You need Administrator permission.", flags: MessageFlags.Ephemeral });
 		}
 
 		const level = interaction.options.getInteger("level", true);
@@ -74,7 +74,7 @@ export class RewardsCommand extends Subcommand {
 	public async runRemove(interaction: Subcommand.ChatInputCommandInteraction) {
 		const member = interaction.guild!.members.cache.get(interaction.user.id);
 		if (!member?.permissions.has("Administrator")) {
-			return interaction.reply({ content: "You need Administrator permission.", ephemeral: true });
+			return interaction.reply({ content: "You need Administrator permission.", flags: MessageFlags.Ephemeral });
 		}
 
 		const level = interaction.options.getInteger("level", true);

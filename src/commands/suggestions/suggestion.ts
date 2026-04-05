@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { getSuggestion, updateSuggestionStatus } from "../../db/queries/suggestions.js";
 
 export class SuggestionCommand extends Subcommand {
@@ -46,7 +46,7 @@ export class SuggestionCommand extends Subcommand {
 
 		const suggestion = await getSuggestion(id, interaction.guildId!);
 		if (!suggestion) {
-			return interaction.reply({ content: `Suggestion #${id} not found.`, ephemeral: true });
+			return interaction.reply({ content: `Suggestion #${id} not found.`, flags: MessageFlags.Ephemeral });
 		}
 
 		await updateSuggestionStatus(id, "approved", response);
@@ -68,7 +68,7 @@ export class SuggestionCommand extends Subcommand {
 			}
 		}
 
-		return interaction.reply({ content: `Approved suggestion #${id}.`, ephemeral: true });
+		return interaction.reply({ content: `Approved suggestion #${id}.`, flags: MessageFlags.Ephemeral });
 	}
 
 	public async runDeny(interaction: Subcommand.ChatInputCommandInteraction) {
@@ -77,7 +77,7 @@ export class SuggestionCommand extends Subcommand {
 
 		const suggestion = await getSuggestion(id, interaction.guildId!);
 		if (!suggestion) {
-			return interaction.reply({ content: `Suggestion #${id} not found.`, ephemeral: true });
+			return interaction.reply({ content: `Suggestion #${id} not found.`, flags: MessageFlags.Ephemeral });
 		}
 
 		await updateSuggestionStatus(id, "denied", reason);
@@ -98,6 +98,6 @@ export class SuggestionCommand extends Subcommand {
 			}
 		}
 
-		return interaction.reply({ content: `Denied suggestion #${id}.`, ephemeral: true });
+		return interaction.reply({ content: `Denied suggestion #${id}.`, flags: MessageFlags.Ephemeral });
 	}
 }

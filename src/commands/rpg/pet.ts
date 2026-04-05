@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { getOrCreateProfile, getOwnedPets, addPet, renamePet, tryDebitCoins } from "../../db/queries/rpg.js";
 import { getBuyablePets, getPet } from "../../lib/rpg/catalogs/pets.js";
 
@@ -56,7 +56,7 @@ export class PetCommand extends Command {
 		const sub = interaction.options.getSubcommand(true);
 
 		if (sub === "view") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const pets = await getOwnedPets(interaction.user.id);
 
 			if (pets.length === 0) {
@@ -88,7 +88,7 @@ export class PetCommand extends Command {
 		}
 
 		if (sub === "adopt") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const petId = interaction.options.getString("pet", true);
 			const pet = getPet(petId);
 
@@ -124,7 +124,7 @@ export class PetCommand extends Command {
 		}
 
 		if (sub === "rename") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const petId = interaction.options.getString("pet", true);
 			const newName = interaction.options.getString("name", true).slice(0, 32);
 			const pet = getPet(petId);
