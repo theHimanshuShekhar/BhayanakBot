@@ -4,7 +4,7 @@ import {
 	getOrCreateProfile,
 	getTrainingCooldownDate,
 	setTrainingCooldown,
-	updateCoins,
+	tryDebitCoins,
 	updateStat,
 	type StatKey,
 } from "../../db/queries/rpg.js";
@@ -78,7 +78,8 @@ export class TrainCommand extends Command {
 
 		if (pay) {
 			const cost = Math.floor(currentValue * 15);
-			if (profile.coins < cost) {
+			const remaining = await tryDebitCoins(interaction.user.id, cost);
+			if (remaining === null) {
 				return interaction.editReply({
 					embeds: [
 						new EmbedBuilder()
@@ -89,7 +90,6 @@ export class TrainCommand extends Command {
 					],
 				});
 			}
-			await updateCoins(interaction.user.id, -cost);
 			await updateStat(interaction.user.id, stat, newValue);
 
 			return interaction.editReply({

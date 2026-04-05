@@ -6,6 +6,7 @@ import {
 	addProperty,
 	updateLastCollectedAt,
 	updateCoins,
+	tryDebitCoins,
 } from "../../db/queries/rpg.js";
 import { getBuyableProperties, getProperty } from "../../lib/rpg/catalogs/properties.js";
 
@@ -92,7 +93,6 @@ export class PropertyCommand extends Command {
 				return interaction.editReply({ content: "Unknown property." });
 			}
 
-			const { profile } = await getOrCreateProfile(interaction.user.id);
 			const owned = await getOwnedProperties(interaction.user.id);
 
 			if (owned.some((op) => op.propertyId === propertyId)) {
@@ -105,7 +105,9 @@ export class PropertyCommand extends Command {
 				});
 			}
 
-			if (profile.coins < prop.price) {
+			const remaining = await tryDebitCoins(interaction.user.id, prop.price);
+			if (remaining === null) {
+				const { profile } = await getOrCreateProfile(interaction.user.id);
 				return interaction.editReply({
 					embeds: [
 						new EmbedBuilder()
@@ -117,7 +119,6 @@ export class PropertyCommand extends Command {
 				});
 			}
 
-			await updateCoins(interaction.user.id, -prop.price);
 			await addProperty(interaction.user.id, propertyId);
 
 			const details: string[] = [];

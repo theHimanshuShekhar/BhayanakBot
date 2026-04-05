@@ -2,6 +2,7 @@ import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type ButtonInteraction, EmbedBuilder } from "discord.js";
 import {
 	getOrCreateProfile,
+	tryDebitCoins,
 	clearJail,
 	setCooldown,
 	getCooldown,
@@ -43,12 +44,14 @@ export class RpgJailActionsHandler extends InteractionHandler {
 		if (action === "bail") {
 			const bailCost = profile.jailBailCost ?? 0;
 
-			if (profile.coins < bailCost) {
+			const remaining = await tryDebitCoins(userId, bailCost);
+			if (remaining === null) {
+				const { profile: fresh } = await getOrCreateProfile(userId);
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
 							.setColor(0xed4245)
-							.setDescription(`❌ You need **${bailCost.toLocaleString()} coins** to bail out, but you only have **${profile.coins.toLocaleString()}**.`),
+							.setDescription(`❌ You need **${bailCost.toLocaleString()} coins** to bail out, but you only have **${fresh.coins.toLocaleString()}**.`),
 					],
 					ephemeral: true,
 				});
@@ -57,7 +60,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 
 			await db
 				.update(rpgProfiles)
-				.set({ coins: profile.coins - bailCost, jailUntil: null, jailBailCost: 0 })
+				.set({ jailUntil: null, jailBailCost: 0 })
 				.where(eq(rpgProfiles.userId, userId));
 
 			await interaction.update({
