@@ -1,0 +1,86 @@
+services:
+  migrate:
+    build:
+      context: .
+      target: base
+    command: pnpm db:migrate
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/bhayanakbot
+      NODE_ENV: production
+    networks:
+      - botnet
+
+  bot:
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # These override any values in .env so service hostnames are always correct
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/bhayanakbot
+      VALKEY_URL: redis://valkey:6379
+      OLLAMA_URL: http://ollama:11434
+      NODE_ENV: production
+    networks:
+      - botnet
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bhayanakbot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bhayanakbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - botnet
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command: valkey-server --appendonly yes
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - botnet
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollamadata:/root/.ollama
+    networks:
+      - botnet
+
+networks:
+  botnet:
+    driver: bridge
+
+volumes:
+  pgdata:
+  valkeydata:
+  ollamadata:
