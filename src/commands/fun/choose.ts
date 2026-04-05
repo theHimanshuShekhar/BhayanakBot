@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
 
 export class ChooseCommand extends Command {
@@ -24,7 +25,7 @@ export class ChooseCommand extends Command {
 			.filter(Boolean);
 
 		if (options.length < 2) {
-			return interaction.reply({ content: "Please provide at least 2 options.", ephemeral: true });
+			return interaction.reply({ content: "Please provide at least 2 options.", flags: MessageFlags.Ephemeral });
 		}
 
 		const chosen = options[Math.floor(Math.random() * options.length)];

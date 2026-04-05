@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder, GuildMember } from "discord.js";
+import { EmbedBuilder, GuildMember, MessageFlags } from "discord.js";
 import { useMainPlayer, QueryType } from "discord-player";
 
 /** Matches YouTube single-video URLs (not playlists) */
@@ -28,7 +28,7 @@ export class PlayCommand extends Command {
 		const voiceChannel = member.voice.channel;
 
 		if (!voiceChannel) {
-			return interaction.reply({ content: "You need to be in a voice channel to play music.", ephemeral: true });
+			return interaction.reply({ content: "You need to be in a voice channel to play music.", flags: MessageFlags.Ephemeral });
 		}
 
 		const query = interaction.options.getString("query", true);

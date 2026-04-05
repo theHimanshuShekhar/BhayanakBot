@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { addAutoResponse, removeAutoResponse, getGuildAutoResponses } from "../../db/queries/autoResponses.js";
 
 export class AutoRespondCommand extends Subcommand {
@@ -56,7 +56,7 @@ export class AutoRespondCommand extends Subcommand {
 		await addAutoResponse({ guildId: interaction.guildId!, trigger, response, matchType });
 		return interaction.reply({
 			content: `Auto-response added: \`${trigger}\` → \`${response}\` (match: ${matchType})`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 
@@ -66,7 +66,7 @@ export class AutoRespondCommand extends Subcommand {
 
 		return interaction.reply({
 			content: removed ? `Removed auto-response for \`${trigger}\`.` : `No auto-response found for \`${trigger}\`.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 
@@ -74,7 +74,7 @@ export class AutoRespondCommand extends Subcommand {
 		const responses = await getGuildAutoResponses(interaction.guildId!);
 
 		if (responses.length === 0) {
-			return interaction.reply({ content: "No auto-responses configured.", ephemeral: true });
+			return interaction.reply({ content: "No auto-responses configured.", flags: MessageFlags.Ephemeral });
 		}
 
 		const lines = responses.map((r) => `**[${r.matchType}]** \`${r.trigger}\` → ${r.response.slice(0, 60)}`);
@@ -84,6 +84,6 @@ export class AutoRespondCommand extends Subcommand {
 			.setDescription(lines.join("\n"))
 			.setColor(0x5865f2);
 
-		return interaction.reply({ embeds: [embed], ephemeral: true });
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}
 }

@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { useQueue } from "discord-player";
 
@@ -32,7 +33,7 @@ export class MusicControlsCommand extends Subcommand {
 	public async runPause(interaction: Subcommand.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue?.isPlaying()) {
-			return interaction.reply({ content: "Nothing is playing.", ephemeral: true });
+			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
 		queue.node.pause();
 		return interaction.reply({ content: "Paused." });
@@ -41,7 +42,7 @@ export class MusicControlsCommand extends Subcommand {
 	public async runResume(interaction: Subcommand.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue) {
-			return interaction.reply({ content: "Nothing in the queue.", ephemeral: true });
+			return interaction.reply({ content: "Nothing in the queue.", flags: MessageFlags.Ephemeral });
 		}
 		queue.node.resume();
 		return interaction.reply({ content: "Resumed." });
@@ -50,7 +51,7 @@ export class MusicControlsCommand extends Subcommand {
 	public async runSkip(interaction: Subcommand.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue?.currentTrack) {
-			return interaction.reply({ content: "Nothing is playing.", ephemeral: true });
+			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
 		const skipped = queue.currentTrack.title;
 		queue.node.skip();
@@ -60,7 +61,7 @@ export class MusicControlsCommand extends Subcommand {
 	public async runStop(interaction: Subcommand.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue) {
-			return interaction.reply({ content: "Nothing in the queue.", ephemeral: true });
+			return interaction.reply({ content: "Nothing in the queue.", flags: MessageFlags.Ephemeral });
 		}
 		queue.delete();
 		return interaction.reply({ content: "Stopped music and cleared the queue." });

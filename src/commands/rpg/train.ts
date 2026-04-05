@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import {
 	getOrCreateProfile,
 	getTrainingCooldownDate,
@@ -53,7 +53,7 @@ export class TrainCommand extends Command {
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const stat = interaction.options.getString("stat", true) as StatKey;
 		const pay = interaction.options.getBoolean("pay") ?? false;

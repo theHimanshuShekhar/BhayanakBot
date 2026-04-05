@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { addReactionRole, removeReactionRole } from "../../db/queries/roles.js";
 
@@ -69,7 +70,7 @@ export class ReactionRolesCommand extends Subcommand {
 
 		return interaction.reply({
 			content: `Added reaction role: react with ${emoji} on message \`${messageId}\` to get <@&${role.id}>.`,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 
@@ -78,6 +79,6 @@ export class ReactionRolesCommand extends Subcommand {
 		const emoji = interaction.options.getString("emoji", true);
 
 		await removeReactionRole(messageId, emoji);
-		return interaction.reply({ content: `Removed reaction role for ${emoji} on message \`${messageId}\`.`, ephemeral: true });
+		return interaction.reply({ content: `Removed reaction role for ${emoji} on message \`${messageId}\`.`, flags: MessageFlags.Ephemeral });
 	}
 }

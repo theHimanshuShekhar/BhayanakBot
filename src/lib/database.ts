@@ -7,5 +7,9 @@ const pool = new Pool({
 	max: 10,
 });
 
+pool.on("error", (err) => {
+	console.error("[pg pool] Unexpected error on idle client:", err);
+});
+
 export const db = drizzle(pool, { schema });
 export type Database = typeof db;

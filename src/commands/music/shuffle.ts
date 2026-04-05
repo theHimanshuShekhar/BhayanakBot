@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
 import { useQueue } from "discord-player";
 
@@ -15,7 +16,7 @@ export class ShuffleCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue || queue.tracks.size === 0) {
-			return interaction.reply({ content: "The queue is empty.", ephemeral: true });
+			return interaction.reply({ content: "The queue is empty.", flags: MessageFlags.Ephemeral });
 		}
 
 		queue.tracks.shuffle();

@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import {
 	getOrCreateProfile,
 	getOwnedProperties,
@@ -48,7 +48,7 @@ export class PropertyCommand extends Command {
 		const sub = interaction.options.getSubcommand(true);
 
 		if (sub === "view") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const owned = await getOwnedProperties(interaction.user.id);
 
 			if (owned.length === 0) {
@@ -85,7 +85,7 @@ export class PropertyCommand extends Command {
 		}
 
 		if (sub === "buy") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const propertyId = interaction.options.getString("property", true);
 			const prop = getProperty(propertyId);
 
@@ -139,7 +139,7 @@ export class PropertyCommand extends Command {
 		}
 
 		if (sub === "collect") {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 			const owned = await getOwnedProperties(interaction.user.id);
 			const earners = owned.filter((op) => {
 				const prop = getProperty(op.propertyId);

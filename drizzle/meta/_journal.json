@@ -15,6 +15,13 @@
       "when": 1775357183761,
       "tag": "0001_curly_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775421276171,
+      "tag": "0002_melodic_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

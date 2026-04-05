@@ -1,5 +1,6 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
 import type { StringSelectMenuInteraction } from "discord.js";
+import { MessageFlags } from "discord.js";
 import { getRoleMenuOptions, getRoleMenu } from "../db/queries/roles.js";
 
 export class RoleMenuSelectHandler extends InteractionHandler {
@@ -18,7 +19,7 @@ export class RoleMenuSelectHandler extends InteractionHandler {
 			await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
 
 		if (!member) {
-			return interaction.reply({ content: "Could not find your member data.", ephemeral: true });
+			return interaction.reply({ content: "Could not find your member data.", flags: MessageFlags.Ephemeral });
 		}
 
 		const options = await getRoleMenuOptions(menuId);
@@ -44,7 +45,7 @@ export class RoleMenuSelectHandler extends InteractionHandler {
 
 		return interaction.reply({
 			content: parts.length > 0 ? parts.join("\n") : "No changes made.",
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	}
 }

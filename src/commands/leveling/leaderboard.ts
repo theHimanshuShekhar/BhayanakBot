@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { getLeaderboard } from "../../db/queries/users.js";
 
 export class LeaderboardCommand extends Command {
@@ -28,7 +28,7 @@ export class LeaderboardCommand extends Command {
 		const entries = allUsers.slice(start, start + pageSize);
 
 		if (entries.length === 0) {
-			return interaction.reply({ content: "No users found on this page.", ephemeral: true });
+			return interaction.reply({ content: "No users found on this page.", flags: MessageFlags.Ephemeral });
 		}
 
 		const medals = ["🥇", "🥈", "🥉"];

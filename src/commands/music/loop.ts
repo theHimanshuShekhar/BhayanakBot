@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
 import { useQueue, QueueRepeatMode } from "discord-player";
 
@@ -40,7 +41,7 @@ export class LoopCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue?.isPlaying()) {
-			return interaction.reply({ content: "Nothing is playing.", ephemeral: true });
+			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
 
 		const mode = interaction.options.getString("mode", true);

@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder , MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
 
 export class NowPlayingCommand extends Command {
@@ -16,7 +16,7 @@ export class NowPlayingCommand extends Command {
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const queue = useQueue(interaction.guildId!);
 		if (!queue?.currentTrack) {
-			return interaction.reply({ content: "Nothing is currently playing.", ephemeral: true });
+			return interaction.reply({ content: "Nothing is currently playing.", flags: MessageFlags.Ephemeral });
 		}
 
 		const track = queue.currentTrack;

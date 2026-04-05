@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder , MessageFlags } from "discord.js";
 import { getUserCases } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
@@ -21,7 +21,7 @@ export class HistoryCommand extends Command {
 	}
 
 	public async chatInputRun(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const target = interaction.options.getUser("user", true);
 		const cases = await getUserCases(interaction.guildId!, target.id);
 

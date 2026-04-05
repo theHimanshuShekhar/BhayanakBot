@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel , MessageFlags } from "discord.js";
 
 export class TicketPanelCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -31,7 +31,7 @@ export class TicketPanelCommand extends Command {
 			"Click the button below to open a support ticket. A staff member will assist you shortly.";
 
 		if (!("send" in channel)) {
-			return interaction.reply({ content: "That channel is not a text channel.", ephemeral: true });
+			return interaction.reply({ content: "That channel is not a text channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		const embed = new EmbedBuilder()
@@ -49,6 +49,6 @@ export class TicketPanelCommand extends Command {
 		);
 
 		await (channel as TextChannel).send({ embeds: [embed], components: [row] });
-		return interaction.reply({ content: `Ticket panel posted in ${channel}.`, ephemeral: true });
+		return interaction.reply({ content: `Ticket panel posted in ${channel}.`, flags: MessageFlags.Ephemeral });
 	}
 }

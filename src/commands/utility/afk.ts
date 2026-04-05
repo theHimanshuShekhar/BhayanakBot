@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { setAfk, clearAfk } from "../../db/queries/afk.js";
 
@@ -40,6 +41,6 @@ export class AfkCommand extends Subcommand {
 
 	public async runClear(interaction: Subcommand.ChatInputCommandInteraction) {
 		await clearAfk(interaction.user.id, interaction.guildId!);
-		return interaction.reply({ content: "Your AFK status has been cleared.", ephemeral: true });
+		return interaction.reply({ content: "Your AFK status has been cleared.", flags: MessageFlags.Ephemeral });
 	}
 }

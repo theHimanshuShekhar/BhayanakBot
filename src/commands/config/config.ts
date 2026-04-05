@@ -4,6 +4,7 @@ import {
 	ChannelType,
 	EmbedBuilder,
 	type ChatInputCommandInteraction,
+	MessageFlags,
 } from "discord.js";
 import { getOrCreateSettings, updateSettings } from "../../db/queries/guildSettings.js";
 
@@ -119,7 +120,7 @@ export class ConfigCommand extends Subcommand {
 	}
 
 	public async chatInputView(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const settings = await getOrCreateSettings(interaction.guildId!);
 
 		const embed = new EmbedBuilder()
@@ -178,7 +179,7 @@ export class ConfigCommand extends Subcommand {
 	}
 
 	public async chatInputSet(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const setting = interaction.options.getString("setting", true) as keyof typeof settingMap;
 		const channel = interaction.options.getChannel("channel");
 		const role = interaction.options.getRole("role");
@@ -208,7 +209,7 @@ export class ConfigCommand extends Subcommand {
 	// biome-ignore lint/correctness/noUnusedVariables: used for type safety
 
 	public async chatInputAutoMod(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const setting = interaction.options.getString("setting", true);
 		const value = interaction.options.getString("value");
 		const number = interaction.options.getInteger("number");
@@ -229,7 +230,7 @@ export class ConfigCommand extends Subcommand {
 	}
 
 	public async chatInputAntiRaid(interaction: ChatInputCommandInteraction) {
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const setting = interaction.options.getString("setting", true);
 		const number = interaction.options.getInteger("number");
 

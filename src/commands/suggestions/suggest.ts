@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder, TextChannel } from "discord.js";
+import { EmbedBuilder, TextChannel , MessageFlags } from "discord.js";
 import { createSuggestion } from "../../db/queries/suggestions.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 
@@ -24,17 +24,17 @@ export class SuggestCommand extends Command {
 		const settings = await getOrCreateSettings(interaction.guildId!);
 
 		if (!settings.logChannelId) {
-			return interaction.reply({ content: "Suggestions channel is not configured. Ask an admin to set it up.", ephemeral: true });
+			return interaction.reply({ content: "Suggestions channel is not configured. Ask an admin to set it up.", flags: MessageFlags.Ephemeral });
 		}
 
 		// For suggestions we reuse logChannelId as a fallback; ideally you'd add a `suggestionsChannelId`
 		// but we'll use the log channel since that's what's available in the schema
 		const suggChannel = interaction.guild!.channels.cache.get(settings.logChannelId);
 		if (!suggChannel || !("send" in suggChannel)) {
-			return interaction.reply({ content: "Suggestions channel not found.", ephemeral: true });
+			return interaction.reply({ content: "Suggestions channel not found.", flags: MessageFlags.Ephemeral });
 		}
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const embed = new EmbedBuilder()
 			.setTitle("💡 New Suggestion")

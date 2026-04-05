@@ -8,6 +8,7 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	TextChannel,
+	MessageFlags,
 } from "discord.js";
 import {
 	createTicket,
@@ -75,11 +76,11 @@ export class TicketCommand extends Subcommand {
 		if (openTickets.length > 0) {
 			return interaction.reply({
 				content: `You already have an open ticket: <#${openTickets[0].channelId}>`,
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const channelName = `ticket-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, "");
 
@@ -135,7 +136,7 @@ export class TicketCommand extends Subcommand {
 	public async runClose(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", ephemeral: true });
+			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		await interaction.deferReply();
@@ -175,11 +176,11 @@ export class TicketCommand extends Subcommand {
 	public async runClaim(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", ephemeral: true });
+			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		if (ticket.claimedBy) {
-			return interaction.reply({ content: `This ticket is already claimed by <@${ticket.claimedBy}>.`, ephemeral: true });
+			return interaction.reply({ content: `This ticket is already claimed by <@${ticket.claimedBy}>.`, flags: MessageFlags.Ephemeral });
 		}
 
 		await claimTicket(interaction.channelId, interaction.user.id);
@@ -189,7 +190,7 @@ export class TicketCommand extends Subcommand {
 	public async runAdd(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", ephemeral: true });
+			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		const target = interaction.options.getUser("user", true);
@@ -205,12 +206,12 @@ export class TicketCommand extends Subcommand {
 	public async runRemove(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", ephemeral: true });
+			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
 		}
 
 		const target = interaction.options.getUser("user", true);
 		if (target.id === ticket.userId) {
-			return interaction.reply({ content: "Cannot remove the ticket owner.", ephemeral: true });
+			return interaction.reply({ content: "Cannot remove the ticket owner.", flags: MessageFlags.Ephemeral });
 		}
 
 		await (interaction.channel as TextChannel).permissionOverwrites.delete(target.id);
@@ -220,10 +221,10 @@ export class TicketCommand extends Subcommand {
 	public async runTranscript(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket) {
-			return interaction.reply({ content: "This command must be run inside a ticket channel.", ephemeral: true });
+			return interaction.reply({ content: "This command must be run inside a ticket channel.", flags: MessageFlags.Ephemeral });
 		}
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			const { createTranscript } = await import("discord-html-transcripts");
