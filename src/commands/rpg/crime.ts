@@ -11,6 +11,7 @@ import {
 	clearCooldown,
 	addXpToProfile,
 	updateCoins,
+	tryDebitCoins,
 	type StatKey,
 } from "../../db/queries/rpg.js";
 import { rollOutcome, randomPay } from "../../lib/rpg/helpers/outcome.js";
@@ -147,10 +148,17 @@ export class CrimeCommand extends Command {
 			let dropText = "";
 
 			if (jobId === "rob_player" && target) {
-				const { profile: victimProfile } = await getOrCreateProfile(target.id);
-				pay = Math.min(randomPay(job.payRange[0], job.payRange[1]), victimProfile.coins);
-				await updateCoins(target.id, -pay);
-				await updateCoins(interaction.user.id, pay);
+				const maxPay = randomPay(job.payRange[0], job.payRange[1]);
+				const debited = await tryDebitCoins(target.id, maxPay);
+				if (debited !== null) {
+					pay = maxPay;
+				} else {
+					// victim has less than maxPay — steal whatever they have
+					const { profile: victimProfile } = await getOrCreateProfile(target.id);
+					pay = victimProfile.coins;
+					if (pay > 0) await tryDebitCoins(target.id, pay);
+				}
+				if (pay > 0) await updateCoins(interaction.user.id, pay);
 			} else {
 				pay = randomPay(job.payRange[0], job.payRange[1]);
 				const { droppedItems } = await applyJobRewards(interaction.user.id, pay, job.dropTable);

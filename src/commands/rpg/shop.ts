@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
-import { getOrCreateProfile, updateCoins, addItem, removeItem } from "../../db/queries/rpg.js";
+import { getOrCreateProfile, tryDebitCoins, updateCoins, addItem, removeItem } from "../../db/queries/rpg.js";
 import { ITEMS, getBuyableItems, getItem } from "../../lib/rpg/catalogs/items.js";
 
 const ITEMS_PER_PAGE = 5;
@@ -102,8 +102,9 @@ export class ShopCommand extends Command {
 				return interaction.editReply({ content: "That item isn't available in the shop." });
 			}
 
-			const { profile } = await getOrCreateProfile(interaction.user.id);
-			if (profile.coins < item.price) {
+			const remaining = await tryDebitCoins(interaction.user.id, item.price);
+			if (remaining === null) {
+				const { profile } = await getOrCreateProfile(interaction.user.id);
 				return interaction.editReply({
 					embeds: [
 						new EmbedBuilder()
@@ -113,7 +114,6 @@ export class ShopCommand extends Command {
 				});
 			}
 
-			await updateCoins(interaction.user.id, -item.price);
 			await addItem(interaction.user.id, itemId);
 
 			return interaction.editReply({

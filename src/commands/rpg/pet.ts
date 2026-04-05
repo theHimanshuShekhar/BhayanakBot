@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
-import { getOrCreateProfile, getOwnedPets, addPet, renamePet, updateCoins } from "../../db/queries/rpg.js";
+import { getOrCreateProfile, getOwnedPets, addPet, renamePet, tryDebitCoins } from "../../db/queries/rpg.js";
 import { getBuyablePets, getPet } from "../../lib/rpg/catalogs/pets.js";
 
 const RARITY_COLOR: Record<string, number> = {
@@ -96,9 +96,9 @@ export class PetCommand extends Command {
 				return interaction.editReply({ content: "That pet isn't available for adoption." });
 			}
 
-			const { profile } = await getOrCreateProfile(interaction.user.id);
-
-			if (profile.coins < pet.price) {
+			const remaining = await tryDebitCoins(interaction.user.id, pet.price);
+			if (remaining === null) {
+				const { profile } = await getOrCreateProfile(interaction.user.id);
 				return interaction.editReply({
 					embeds: [
 						new EmbedBuilder()
@@ -110,7 +110,6 @@ export class PetCommand extends Command {
 				});
 			}
 
-			await updateCoins(interaction.user.id, -pet.price);
 			await addPet(interaction.user.id, petId);
 
 			return interaction.editReply({
