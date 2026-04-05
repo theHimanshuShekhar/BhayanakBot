@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { GuildMember } from "discord.js";
+import { EmbedBuilder, GuildMember } from "discord.js";
 import { useMainPlayer } from "discord-player";
 
 export class PlayCommand extends Command {
@@ -32,7 +32,7 @@ export class PlayCommand extends Command {
 		await interaction.deferReply();
 
 		try {
-			const { track } = await player.play(voiceChannel, query, {
+			const { track, searchResult } = await player.play(voiceChannel, query, {
 				nodeOptions: {
 					metadata: {
 						channel: interaction.channel,
@@ -47,6 +47,29 @@ export class PlayCommand extends Command {
 				},
 				requestedBy: interaction.user,
 			});
+
+			if (searchResult.hasPlaylist() && searchResult.playlist) {
+				const playlist = searchResult.playlist;
+				const tracks = searchResult.tracks;
+				const isSpotify = query.includes("open.spotify.com");
+				const color = isSpotify ? 0x1db954 : 0xff0000;
+
+				const trackList = tracks
+					.slice(0, 5)
+					.map((t, i) => `${i + 1}. **${t.title}** — ${t.author}`)
+					.join("\n");
+
+				const embed = new EmbedBuilder()
+					.setColor(color)
+					.setTitle(playlist.title)
+					.setURL(playlist.url || null)
+					.setDescription(trackList)
+					.setFooter({
+						text: `Queued by ${interaction.user.username} · ${tracks.length} tracks`,
+					});
+
+				return interaction.editReply({ embeds: [embed] });
+			}
 
 			return interaction.editReply({ content: `Queued: **${track.title}** by **${track.author}**` });
 		} catch (error) {
