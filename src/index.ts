@@ -5,12 +5,17 @@ import "@sapphire/plugin-scheduled-tasks/register";
 
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { DefaultExtractors } from "@discord-player/extractor";
+import { YoutubeiExtractor, Log as YTLog } from "discord-player-youtubei";
 
 const client = new BhayanakClient();
 
 async function main() {
 	try {
 		await client.player.extractors.loadMulti(DefaultExtractors);
+		await client.player.extractors.register(YoutubeiExtractor, {
+			authentication: process.env.YOUTUBE_OAUTH_CREDENTIALS,
+		});
+		YTLog.setLevel(YTLog.Level.NONE);
 		await client.login(process.env.DISCORD_TOKEN);
 
 		// Schedule recurring polling tasks via @sapphire/plugin-scheduled-tasks
@@ -24,12 +29,17 @@ async function main() {
 
 		// Schedule interval runs (every 30 seconds)
 		const tasks = ["expireMutes", "expireTempBans", "sendReminders", "endGiveaways", "endPolls"] as const;
+		const taskRunning: Partial<Record<(typeof tasks)[number], boolean>> = {};
 		for (const taskName of tasks) {
 			setInterval(async () => {
+				if (taskRunning[taskName]) return;
+				taskRunning[taskName] = true;
 				try {
 					await client.stores.get("scheduled-tasks").get(taskName)?.run(null as never);
 				} catch (err) {
 					client.logger.error(`[ScheduledTask:${taskName}] Error:`, err);
+				} finally {
+					taskRunning[taskName] = false;
 				}
 			}, 30_000);
 		}
