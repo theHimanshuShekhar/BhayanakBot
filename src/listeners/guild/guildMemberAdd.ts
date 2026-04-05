@@ -20,7 +20,12 @@ export class GuildMemberAddListener extends Listener {
 
 			const joins = client.recentJoins.get(member.guild.id) ?? [];
 			const recentJoins = [...joins.filter((t) => now - t < window), now];
-			client.recentJoins.set(member.guild.id, recentJoins);
+			// Only retain if there are live entries; drop the key once the window expires
+			if (recentJoins.length > 0) {
+				client.recentJoins.set(member.guild.id, recentJoins);
+			} else {
+				client.recentJoins.delete(member.guild.id);
+			}
 
 			if (recentJoins.length >= threshold) {
 				// Kick the member as part of raid protection
