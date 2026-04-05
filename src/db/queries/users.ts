@@ -15,13 +15,18 @@ export async function getOrCreateUser(userId: string, guildId: string): Promise<
 
 export async function addXp(userId: string, guildId: string, amount: number): Promise<{ user: User; leveledUp: boolean; newLevel: number }> {
 	const user = await getOrCreateUser(userId, guildId);
+
+	if (amount === 0) {
+		return { user, leveledUp: false, newLevel: user.level };
+	}
+
 	const newXp = user.xp + amount;
 	const newLevel = Math.floor(0.1 * Math.sqrt(newXp));
 	const leveledUp = newLevel > user.level;
 
 	const [updated] = await db
 		.update(users)
-		.set({ xp: newXp, level: newLevel, totalMessages: user.totalMessages + 1, lastMessageAt: new Date() })
+		.set({ xp: newXp, level: newLevel, totalMessages: sql`${users.totalMessages} + 1`, lastMessageAt: new Date() })
 		.where(and(eq(users.userId, userId), eq(users.guildId, guildId)))
 		.returning();
 
