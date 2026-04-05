@@ -18,6 +18,9 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 
 	public override async run(interaction: ButtonInteraction) {
 		const optionIndex = parseInt(interaction.customId.split(":")[1], 10);
+		if (isNaN(optionIndex) || optionIndex < 0) {
+			return interaction.reply({ content: "Invalid poll option.", ephemeral: true });
+		}
 
 		const poll = await db.query.polls.findFirst({ where: eq(polls.messageId, interaction.message.id) });
 		if (!poll) {
@@ -27,26 +30,31 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 			return interaction.reply({ content: "This poll has already ended.", ephemeral: true });
 		}
 
+		const optionData = poll.options as Array<{ label: string; votes: string[] }>;
+		if (optionIndex >= optionData.length) {
+			return interaction.reply({ content: "Invalid poll option.", ephemeral: true });
+		}
+
 		const updatedPoll = await vote(poll.messageId, optionIndex, interaction.user.id);
 		if (!updatedPoll) {
 			return interaction.reply({ content: "Failed to record vote.", ephemeral: true });
 		}
 
-		const optionData = updatedPoll.options as Array<{ label: string; votes: string[] }>;
+		const updatedOptionData = updatedPoll.options as Array<{ label: string; votes: string[] }>;
 		const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
-		const totalVotes = optionData.reduce((sum, o) => sum + o.votes.length, 0);
+		const totalVotes = updatedOptionData.reduce((sum, o) => sum + o.votes.length, 0);
 
 		const embed = new EmbedBuilder()
 			.setTitle("📊 " + updatedPoll.question)
 			.setDescription(
-				optionData
+				updatedOptionData
 					.map((o, i) => `${emojis[i]} ${o.label} — **${o.votes.length}** vote${o.votes.length !== 1 ? "s" : ""}`)
 					.join("\n"),
 			)
 			.setColor(0x5865f2)
 			.setFooter({ text: `${totalVotes} total vote${totalVotes !== 1 ? "s" : ""}${updatedPoll.expiresAt ? ` · Ends ${updatedPoll.expiresAt.toUTCString()}` : ""}` });
 
-		const buttons = optionData.map((o, i) =>
+		const buttons = updatedOptionData.map((o, i) =>
 			new ButtonBuilder()
 				.setCustomId(`poll_vote:${i}`)
 				.setLabel(o.label.slice(0, 80))
@@ -57,6 +65,6 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
 
 		await interaction.update({ embeds: [embed], components: [row] });
-		return interaction.followUp({ content: `Voted for **${optionData[optionIndex]?.label}**!`, ephemeral: true });
+		return interaction.followUp({ content: `Voted for **${updatedOptionData[optionIndex]?.label}**!`, ephemeral: true });
 	}
 }

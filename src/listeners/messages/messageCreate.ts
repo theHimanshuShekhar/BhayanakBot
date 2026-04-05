@@ -1,5 +1,5 @@
 import { Listener } from "@sapphire/framework";
-import { type Message, EmbedBuilder, TextChannel } from "discord.js";
+import { type Message, EmbedBuilder, PermissionFlagsBits, TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { addXp } from "../../db/queries/users.js";
 import { createCase } from "../../db/queries/modCases.js";
@@ -40,7 +40,7 @@ export class MessageCreateListener extends Listener {
 		}
 
 		// --- Auto-mod ---
-		if (settings.autoModEnabled && !message.member?.permissions.has(BigInt(8))) {
+		if (settings.autoModEnabled && !message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
 			const now = Date.now();
 			const key = `${message.guild.id}:${message.author.id}`;
 
