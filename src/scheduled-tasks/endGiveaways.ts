@@ -2,6 +2,15 @@ import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, TextChannel } from "discord.js";
 import { getActiveExpiredGiveaways, endGiveaway } from "../db/queries/giveaways.js";
 
+function shuffled<T>(arr: T[]): T[] {
+	const a = [...arr];
+	for (let i = a.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[a[i], a[j]] = [a[j], a[i]];
+	}
+	return a;
+}
+
 export class EndGiveawaysTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
 		super(context, { ...options, name: "endGiveaways" });
@@ -14,7 +23,7 @@ export class EndGiveawaysTask extends ScheduledTask {
 			try {
 				const entries = giveaway.entries as string[];
 				const winnerCount = Math.min(giveaway.winnerCount, entries.length);
-				const winners = [...entries].sort(() => Math.random() - 0.5).slice(0, winnerCount);
+				const winners = shuffled(entries).slice(0, winnerCount);
 
 				await endGiveaway(giveaway.messageId, winners);
 
