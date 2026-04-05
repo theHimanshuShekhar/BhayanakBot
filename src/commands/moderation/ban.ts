@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionFlagsBits } from "discord.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { logToChannel } from "./warn.js";
 import ms from "ms";
@@ -33,9 +33,22 @@ export class BanCommand extends Command {
 		let expiresAt: Date | null = null;
 
 		if (durationStr) {
-			duration = ms(durationStr as any) as unknown as number;
+			duration = ms(durationStr as Parameters<typeof ms>[0]) ?? null;
 			if (!duration) return interaction.editReply("❌ Invalid duration format. Use e.g. `7d`, `24h`, `30m`.");
 			expiresAt = new Date(Date.now() + duration);
+		}
+
+		const targetMember = await interaction.guild!.members.fetch(targetUser.id).catch(() => null);
+		if (targetMember) {
+			const myHighest = interaction.guild!.members.me!.roles.highest.position;
+			const modHighest = (interaction.member as GuildMember).roles.highest.position;
+			const targetHighest = targetMember.roles.highest.position;
+			if (targetHighest >= myHighest) {
+				return interaction.editReply("❌ I cannot ban a member with an equal or higher role than me.");
+			}
+			if (targetHighest >= modHighest) {
+				return interaction.editReply("❌ You cannot ban a member with an equal or higher role than you.");
+			}
 		}
 
 		try {
