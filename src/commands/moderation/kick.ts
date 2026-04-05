@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionFlagsBits } from "discord.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { logToChannel } from "./warn.js";
 
@@ -26,6 +26,16 @@ export class KickCommand extends Command {
 		const reason = interaction.options.getString("reason") ?? "No reason provided";
 
 		if (!target) return interaction.editReply("❌ Member not found in this server.");
+
+		const myHighest = interaction.guild!.members.me!.roles.highest.position;
+		const modHighest = (interaction.member as GuildMember).roles.highest.position;
+		const targetHighest = target.roles.highest.position;
+		if (targetHighest >= myHighest) {
+			return interaction.editReply("❌ I cannot kick a member with an equal or higher role than me.");
+		}
+		if (targetHighest >= modHighest) {
+			return interaction.editReply("❌ You cannot kick a member with an equal or higher role than you.");
+		}
 
 		try {
 			await target.send(`You have been **kicked** from **${interaction.guild!.name}**. Reason: ${reason}`).catch(() => null);

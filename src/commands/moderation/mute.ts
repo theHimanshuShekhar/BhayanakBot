@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionFlagsBits } from "discord.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { logToChannel } from "./warn.js";
@@ -31,8 +31,18 @@ export class MuteCommand extends Command {
 
 		if (!target) return interaction.editReply("❌ Member not found.");
 
-		const duration = ms(durationStr as any) as unknown as number;
+		const duration = ms(durationStr as Parameters<typeof ms>[0]);
 		if (!duration) return interaction.editReply("❌ Invalid duration. Use e.g. `10m`, `1h`, `1d`.");
+
+		const myHighest = interaction.guild!.members.me!.roles.highest.position;
+		const modHighest = (interaction.member as GuildMember).roles.highest.position;
+		const targetHighest = target.roles.highest.position;
+		if (targetHighest >= myHighest) {
+			return interaction.editReply("❌ I cannot mute a member with an equal or higher role than me.");
+		}
+		if (targetHighest >= modHighest) {
+			return interaction.editReply("❌ You cannot mute a member with an equal or higher role than you.");
+		}
 
 		const settings = await getOrCreateSettings(interaction.guildId!);
 		if (!settings.mutedRoleId) return interaction.editReply("❌ No muted role configured. Use `/config set muted-role` first.");
