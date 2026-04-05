@@ -1,6 +1,11 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder, GuildMember } from "discord.js";
-import { useMainPlayer } from "discord-player";
+import { useMainPlayer, QueryType } from "discord-player";
+
+/** Matches YouTube single-video URLs (not playlists) */
+function isYouTubeVideoUrl(query: string): boolean {
+	return /(youtube\.com\/watch\?v=|youtu\.be\/)/.test(query);
+}
 
 export class PlayCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -28,11 +33,28 @@ export class PlayCommand extends Command {
 
 		const query = interaction.options.getString("query", true);
 		const player = useMainPlayer();
+		const isYTVideo = isYouTubeVideoUrl(query);
 
 		await interaction.deferReply();
 
 		try {
-			const { track, searchResult } = await player.play(voiceChannel, query, {
+			let finalQuery = query;
+
+			// For YouTube single-video URLs, pre-search to get title/author and re-query
+			// via YOUTUBE_SEARCH to avoid discord-player falling back to SoundCloud.
+			if (isYTVideo) {
+				const ytResult = await player.search(query, { requestedBy: interaction.user });
+				if (!ytResult.hasTracks()) {
+					return interaction.editReply({
+						content: "Could not retrieve YouTube video info. Try searching by song name instead.",
+					});
+				}
+				const ytTrack = ytResult.tracks[0];
+				finalQuery = `${ytTrack.title} ${ytTrack.author}`;
+			}
+
+			const { track, searchResult } = await player.play(voiceChannel, finalQuery, {
+				searchEngine: isYTVideo ? QueryType.YOUTUBE_SEARCH : undefined,
 				nodeOptions: {
 					metadata: {
 						channel: interaction.channel,
