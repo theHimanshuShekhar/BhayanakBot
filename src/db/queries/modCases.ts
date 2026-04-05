@@ -5,17 +5,14 @@ import { modCases } from "../schema.js";
 export type ModCase = typeof modCases.$inferSelect;
 export type ModCaseInsert = typeof modCases.$inferInsert;
 
-async function getNextCaseNumber(guildId: string): Promise<number> {
-	const result = await db
-		.select({ max: sql<number>`COALESCE(MAX(case_number), 0)` })
-		.from(modCases)
-		.where(eq(modCases.guildId, guildId));
-	return (result[0]?.max ?? 0) + 1;
-}
-
 export async function createCase(data: Omit<ModCaseInsert, "caseNumber" | "id">): Promise<ModCase> {
-	const caseNumber = await getNextCaseNumber(data.guildId);
-	const [created] = await db.insert(modCases).values({ ...data, caseNumber }).returning();
+	const [created] = await db
+		.insert(modCases)
+		.values({
+			...data,
+			caseNumber: sql`COALESCE((SELECT MAX(case_number) FROM mod_cases WHERE guild_id = ${data.guildId}), 0) + 1`,
+		})
+		.returning();
 	return created;
 }
 
