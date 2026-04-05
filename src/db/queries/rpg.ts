@@ -46,6 +46,19 @@ export async function updateCoins(userId: string, delta: number): Promise<void> 
 		.where(eq(rpgProfiles.userId, userId));
 }
 
+/**
+ * Atomically deduct `amount` coins from a user.
+ * Returns the new coin balance, or null if the user had insufficient funds.
+ */
+export async function tryDebitCoins(userId: string, amount: number): Promise<number | null> {
+	const [row] = await db
+		.update(rpgProfiles)
+		.set({ coins: sql`${rpgProfiles.coins} - ${amount}` })
+		.where(and(eq(rpgProfiles.userId, userId), sql`${rpgProfiles.coins} >= ${amount}`))
+		.returning({ coins: rpgProfiles.coins });
+	return row?.coins ?? null;
+}
+
 // --- Stats & Training ---
 
 export async function updateStat(userId: string, stat: StatKey, newValue: number): Promise<void> {
@@ -194,15 +207,14 @@ export async function addXpToProfile(
 ): Promise<{ newXp: number; newLevel: number; leveledUp: boolean }> {
 	const [row] = await db
 		.update(rpgProfiles)
-		.set({ xp: sql`${rpgProfiles.xp} + ${amount}` })
+		.set({
+			xp: sql`${rpgProfiles.xp} + ${amount}`,
+			level: sql`FLOOR(0.05 * SQRT(${rpgProfiles.xp} + ${amount}))::int`,
+		})
 		.where(eq(rpgProfiles.userId, userId))
 		.returning({ xp: rpgProfiles.xp, level: rpgProfiles.level });
 	if (!row) throw new Error(`RPG profile not found for userId: ${userId}`);
-	// Inline formula to avoid circular import with rewards.ts (which also imports from this file)
-	const newLevel = Math.floor(0.05 * Math.sqrt(row.xp));
-	const leveledUp = newLevel > row.level;
-	if (leveledUp) {
-		await db.update(rpgProfiles).set({ level: newLevel }).where(eq(rpgProfiles.userId, userId));
-	}
-	return { newXp: row.xp, newLevel, leveledUp };
+	const oldLevel = Math.floor(0.05 * Math.sqrt(row.xp - amount));
+	const leveledUp = row.level > oldLevel;
+	return { newXp: row.xp, newLevel: row.level, leveledUp };
 }
