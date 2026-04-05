@@ -1,7 +1,7 @@
 # base: full deps + source, used for building and running migrations
 FROM node:22-alpine AS base
 
-RUN apk add --no-cache ffmpeg python3 make g++
+RUN apk add --no-cache ffmpeg python3 make g++ gcompat
 RUN npm install -g pnpm
 
 WORKDIR /app
@@ -18,7 +18,7 @@ RUN pnpm build
 # production: lean runtime image with only prod deps + compiled output
 FROM node:22-alpine AS production
 
-RUN apk add --no-cache ffmpeg python3
+RUN apk add --no-cache ffmpeg python3 gcompat
 RUN npm install -g pnpm
 
 WORKDIR /app
