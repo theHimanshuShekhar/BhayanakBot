@@ -5,7 +5,7 @@ import "@sapphire/plugin-scheduled-tasks/register";
 
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { DefaultExtractors } from "@discord-player/extractor";
-import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
+import { YoutubeiExtractor, Log as YTLog } from "discord-player-youtubei";
 import { registerPlayerEvents } from "./lib/music/events.js";
 
 const client = new BhayanakClient();
@@ -13,8 +13,8 @@ const client = new BhayanakClient();
 async function main() {
 	try {
 		await client.player.extractors.loadMulti(DefaultExtractors);
-		await client.player.extractors.register(YoutubeExtractor, {
-			cookie: process.env.YOUTUBE_COOKIE,
+		await client.player.extractors.register(YoutubeiExtractor, {
+			authentication: process.env.YOUTUBE_OAUTH_CREDENTIALS,
 		});
 		YTLog.setLevel(YTLog.Level.NONE);
 		registerPlayerEvents(client.player);

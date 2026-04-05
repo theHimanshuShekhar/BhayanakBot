@@ -18,7 +18,7 @@ RUN pnpm build
 # production: lean runtime image with only prod deps + compiled output
 FROM node:22-alpine AS production
 
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg python3
 RUN npm install -g pnpm
 
 WORKDIR /app
