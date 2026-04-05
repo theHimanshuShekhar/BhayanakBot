@@ -6,6 +6,7 @@ import "@sapphire/plugin-scheduled-tasks/register";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeiExtractor, Log as YTLog } from "discord-player-youtubei";
+import { registerPlayerEvents } from "./lib/music/events.js";
 
 const client = new BhayanakClient();
 
@@ -16,6 +17,7 @@ async function main() {
 			authentication: process.env.YOUTUBE_OAUTH_CREDENTIALS,
 		});
 		YTLog.setLevel(YTLog.Level.NONE);
+		registerPlayerEvents(client.player);
 		await client.login(process.env.DISCORD_TOKEN);
 
 		// Schedule recurring polling tasks via @sapphire/plugin-scheduled-tasks
@@ -49,5 +51,14 @@ async function main() {
 		process.exit(1);
 	}
 }
+
+async function shutdown() {
+	await client.player.destroy();
+	client.destroy();
+	process.exit(0);
+}
+
+process.once("SIGINT", () => void shutdown());
+process.once("SIGTERM", () => void shutdown());
 
 void main();

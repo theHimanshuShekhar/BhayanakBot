@@ -1,6 +1,8 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
+import { buildQueueEmbed, QUEUE_PAGE_SIZE } from "../../lib/music/embeds.js";
+import { buildQueuePageButtons } from "../../lib/music/components.js";
 
 export class QueueCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -25,26 +27,11 @@ export class QueueCommand extends Command {
 		}
 
 		const page = interaction.options.getInteger("page") ?? 1;
-		const pageSize = 10;
-		const tracks = queue.tracks.toArray();
-		const totalPages = Math.max(1, Math.ceil(tracks.length / pageSize));
+		const totalPages = Math.max(1, Math.ceil(queue.tracks.toArray().length / QUEUE_PAGE_SIZE));
 
-		const pageTracks = tracks.slice((page - 1) * pageSize, page * pageSize);
-
-		const lines = pageTracks.map(
-			(t, i) => `${(page - 1) * pageSize + i + 1}. **${t.title}** — ${t.author} \`${t.duration}\``,
-		);
-
-		const embed = new EmbedBuilder()
-			.setTitle("Music Queue")
-			.setColor(0x5865f2)
-			.addFields({ name: "Now Playing", value: `**${queue.currentTrack.title}** — ${queue.currentTrack.author}` })
-			.setFooter({ text: `Page ${page}/${totalPages} · ${tracks.length} track(s) in queue` });
-
-		if (lines.length > 0) {
-			embed.addFields({ name: "Up Next", value: lines.join("\n") });
-		}
-
-		return interaction.reply({ embeds: [embed] });
+		return interaction.reply({
+			embeds: [buildQueueEmbed(queue, page)],
+			components: [buildQueuePageButtons(page, totalPages)],
+		});
 	}
 }
