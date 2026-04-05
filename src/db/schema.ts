@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
 
 // --- Enums ---
 
@@ -49,14 +49,18 @@ export const guildSettings = pgTable("guild_settings", {
 	antiRaidJoinWindow: integer("anti_raid_join_window").default(10), // seconds
 });
 
-export const users = pgTable("users", {
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	xp: integer("xp").default(0).notNull(),
-	level: integer("level").default(0).notNull(),
-	totalMessages: integer("total_messages").default(0).notNull(),
-	lastMessageAt: timestamp("last_message_at"),
-});
+export const users = pgTable(
+	"users",
+	{
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		xp: integer("xp").default(0).notNull(),
+		level: integer("level").default(0).notNull(),
+		totalMessages: integer("total_messages").default(0).notNull(),
+		lastMessageAt: timestamp("last_message_at"),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
+);
 
 export const modCases = pgTable("mod_cases", {
 	id: serial("id").primaryKey(),
@@ -87,14 +91,18 @@ export const tickets = pgTable("tickets", {
 	closedBy: varchar("closed_by", { length: 20 }),
 });
 
-export const reactionRoles = pgTable("reaction_roles", {
-	messageId: varchar("message_id", { length: 20 }).notNull(),
-	emoji: varchar("emoji", { length: 100 }).notNull(),
-	roleId: varchar("role_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	type: reactionRoleTypeEnum("type").default("normal").notNull(),
-	groupId: varchar("group_id", { length: 50 }),
-});
+export const reactionRoles = pgTable(
+	"reaction_roles",
+	{
+		messageId: varchar("message_id", { length: 20 }).notNull(),
+		emoji: varchar("emoji", { length: 100 }).notNull(),
+		roleId: varchar("role_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		type: reactionRoleTypeEnum("type").default("normal").notNull(),
+		groupId: varchar("group_id", { length: 50 }),
+	},
+	(t) => [primaryKey({ columns: [t.messageId, t.emoji] })],
+);
 
 export const roleMenus = pgTable("role_menus", {
 	id: serial("id").primaryKey(),
@@ -115,11 +123,15 @@ export const roleMenuOptions = pgTable("role_menu_options", {
 	emoji: varchar("emoji", { length: 100 }),
 });
 
-export const levelRewards = pgTable("level_rewards", {
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	level: integer("level").notNull(),
-	roleId: varchar("role_id", { length: 20 }).notNull(),
-});
+export const levelRewards = pgTable(
+	"level_rewards",
+	{
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		level: integer("level").notNull(),
+		roleId: varchar("role_id", { length: 20 }).notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.guildId, t.level] })],
+);
 
 export const polls = pgTable("polls", {
 	id: serial("id").primaryKey(),
@@ -246,10 +258,14 @@ export const rpgOwnedPets = pgTable("rpg_owned_pets", {
 	acquiredAt: timestamp("acquired_at").defaultNow().notNull(),
 });
 
-export const rpgOwnedProperties = pgTable("rpg_owned_properties", {
-	id: serial("id").primaryKey(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	propertyId: varchar("property_id", { length: 50 }).notNull(),
-	purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
-	lastCollectedAt: timestamp("last_collected_at").defaultNow().notNull(),
-});
+export const rpgOwnedProperties = pgTable(
+	"rpg_owned_properties",
+	{
+		id: serial("id").primaryKey(),
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		propertyId: varchar("property_id", { length: 50 }).notNull(),
+		purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
+		lastCollectedAt: timestamp("last_collected_at").defaultNow().notNull(),
+	},
+	(t) => [unique().on(t.userId, t.propertyId)],
+);
