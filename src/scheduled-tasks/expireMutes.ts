@@ -27,7 +27,16 @@ export class ExpireMutesTask extends ScheduledTask {
 				if (settings?.mutedRoleId) {
 					const member = await guild.members.fetch(modCase.userId).catch(() => null);
 					if (member) {
-						await member.roles.remove(settings.mutedRoleId, "Mute expired").catch(() => null);
+						const removed = await member.roles
+							.remove(settings.mutedRoleId, "Mute expired")
+							.then(() => true)
+							.catch(() => false);
+						if (!removed) {
+							this.container.logger.warn(
+								`[ExpireMutes] Failed to remove muted role from ${modCase.userId} in ${modCase.guildId} — will retry`,
+							);
+							continue;
+						}
 					}
 				}
 
