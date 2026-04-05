@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { guildSettings } from "../schema.js";
+import { invalidateGuildSettings } from "../../lib/music/guildSettingsCache.js";
 
 export type GuildSettings = typeof guildSettings.$inferSelect;
 export type GuildSettingsInsert = typeof guildSettings.$inferInsert;
@@ -18,5 +19,6 @@ export async function updateSettings(guildId: string, values: Partial<GuildSetti
 		.values({ guildId, ...values })
 		.onConflictDoUpdate({ target: guildSettings.guildId, set: values })
 		.returning();
+	invalidateGuildSettings(guildId);
 	return updated;
 }

@@ -1,6 +1,7 @@
 import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { useQueue } from "discord-player";
+import { formatPlayerError } from "../../lib/music/errors.js";
 
 export class MusicControlsCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -35,8 +36,15 @@ export class MusicControlsCommand extends Subcommand {
 		if (!queue?.isPlaying()) {
 			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
-		queue.node.pause();
-		return interaction.reply({ content: "Paused." });
+		if (queue.node.isPaused()) {
+			return interaction.reply({ content: "Already paused.", flags: MessageFlags.Ephemeral });
+		}
+		try {
+			queue.node.pause();
+			return interaction.reply({ content: "Paused." });
+		} catch (err) {
+			return interaction.reply({ content: `Failed to pause: ${formatPlayerError(err)}`, flags: MessageFlags.Ephemeral });
+		}
 	}
 
 	public async runResume(interaction: Subcommand.ChatInputCommandInteraction) {
@@ -44,8 +52,15 @@ export class MusicControlsCommand extends Subcommand {
 		if (!queue) {
 			return interaction.reply({ content: "Nothing in the queue.", flags: MessageFlags.Ephemeral });
 		}
-		queue.node.resume();
-		return interaction.reply({ content: "Resumed." });
+		if (!queue.node.isPaused()) {
+			return interaction.reply({ content: "Playback is not paused.", flags: MessageFlags.Ephemeral });
+		}
+		try {
+			queue.node.resume();
+			return interaction.reply({ content: "Resumed." });
+		} catch (err) {
+			return interaction.reply({ content: `Failed to resume: ${formatPlayerError(err)}`, flags: MessageFlags.Ephemeral });
+		}
 	}
 
 	public async runSkip(interaction: Subcommand.ChatInputCommandInteraction) {
@@ -54,8 +69,12 @@ export class MusicControlsCommand extends Subcommand {
 			return interaction.reply({ content: "Nothing is playing.", flags: MessageFlags.Ephemeral });
 		}
 		const skipped = queue.currentTrack.title;
-		queue.node.skip();
-		return interaction.reply({ content: `Skipped **${skipped}**.` });
+		try {
+			queue.node.skip();
+			return interaction.reply({ content: `Skipped **${skipped}**.` });
+		} catch (err) {
+			return interaction.reply({ content: `Failed to skip: ${formatPlayerError(err)}`, flags: MessageFlags.Ephemeral });
+		}
 	}
 
 	public async runStop(interaction: Subcommand.ChatInputCommandInteraction) {

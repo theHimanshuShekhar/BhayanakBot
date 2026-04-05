@@ -1,13 +1,11 @@
 import { AllFlowsPrecondition } from "@sapphire/framework";
 import { PermissionFlagsBits, type CommandInteraction, type ContextMenuCommandInteraction, type GuildMember, type Message } from "discord.js";
-import { db } from "../lib/database.js";
-import { guildSettings } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { getGuildSettingsCached } from "../lib/music/guildSettingsCache.js";
 
-async function isDJ(member: GuildMember, guildId: string): Promise<boolean> {
+export async function isDJ(member: GuildMember, guildId: string): Promise<boolean> {
 	if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
 	if (member.permissions.has(PermissionFlagsBits.ManageChannels)) return true;
-	const settings = await db.query.guildSettings.findFirst({ where: eq(guildSettings.guildId, guildId) });
+	const settings = await getGuildSettingsCached(guildId);
 	if (settings?.djRoleId && member.roles.cache.has(settings.djRoleId)) return true;
 	return false;
 }
