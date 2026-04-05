@@ -46,6 +46,12 @@ export class MessageCreateListener extends Listener {
 
 			// Spam detection
 			if (settings.autoModSpamThreshold) {
+				// Lazy cleanup: sweep expired entries when the map grows large
+				if (spamTracker.size > 5_000) {
+					for (const [k, v] of spamTracker) {
+						if (now > v.resetAt) spamTracker.delete(k);
+					}
+				}
 				const tracker = spamTracker.get(key);
 				if (!tracker || now > tracker.resetAt) {
 					spamTracker.set(key, { count: 1, resetAt: now + 5000 });

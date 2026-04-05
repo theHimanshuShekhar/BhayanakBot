@@ -2,6 +2,20 @@ import { LogLevel, SapphireClient } from "@sapphire/framework";
 import { GatewayIntentBits, Message, Partials } from "discord.js";
 import { Player } from "discord-player";
 
+/** A Map that evicts the oldest entry once `maxSize` is reached. */
+export class BoundedMap<K, V> extends Map<K, V> {
+	constructor(private readonly maxSize: number) {
+		super();
+	}
+
+	public override set(key: K, value: V): this {
+		if (!this.has(key) && this.size >= this.maxSize) {
+			this.delete(this.keys().next().value as K);
+		}
+		return super.set(key, value);
+	}
+}
+
 export interface SnipedMessage {
 	content: string;
 	authorId: string;
@@ -21,9 +35,9 @@ export interface EditSnipedMessage {
 
 export class BhayanakClient extends SapphireClient {
 	public readonly player: Player;
-	// In-memory caches keyed by channelId
-	public readonly snipeCache = new Map<string, SnipedMessage>();
-	public readonly editSnipeCache = new Map<string, EditSnipedMessage>();
+	// In-memory caches keyed by channelId — bounded to avoid unbounded growth
+	public readonly snipeCache = new BoundedMap<string, SnipedMessage>(1000);
+	public readonly editSnipeCache = new BoundedMap<string, EditSnipedMessage>(1000);
 	// Anti-raid: track recent joins per guild
 	public readonly recentJoins = new Map<string, number[]>();
 
@@ -61,8 +75,8 @@ export class BhayanakClient extends SapphireClient {
 declare module "@sapphire/framework" {
 	interface SapphireClient {
 		player: Player;
-		snipeCache: Map<string, SnipedMessage>;
-		editSnipeCache: Map<string, EditSnipedMessage>;
+		snipeCache: BoundedMap<string, SnipedMessage>;
+		editSnipeCache: BoundedMap<string, EditSnipedMessage>;
 		recentJoins: Map<string, number[]>;
 	}
 }
