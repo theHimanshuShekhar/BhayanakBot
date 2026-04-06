@@ -9,8 +9,12 @@ export async function addAutoResponse(data: {
 	trigger: string;
 	response: string;
 	matchType: "exact" | "contains" | "startsWith";
+	responseType?: "static" | "llm";
 }): Promise<AutoResponse> {
-	const [created] = await db.insert(autoResponses).values(data).returning();
+	const [created] = await db
+		.insert(autoResponses)
+		.values({ ...data, responseType: data.responseType ?? "static" })
+		.returning();
 	return created;
 }
 
