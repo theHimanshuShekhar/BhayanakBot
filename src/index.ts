@@ -30,6 +30,7 @@ async function main() {
 		await client.stores.get("scheduled-tasks").get("endGiveaways")?.run(null as never);
 		await client.stores.get("scheduled-tasks").get("endPolls")?.run(null as never);
 		await client.stores.get("scheduled-tasks").get("reloadOnRestart")?.run(null as never);
+		await client.stores.get("scheduled-tasks").get("generateDailyQuests")?.run(null as never);
 
 		// Schedule interval runs (every 30 seconds)
 		const tasks = ["expireMutes", "expireTempBans", "sendReminders", "endGiveaways", "endPolls"] as const;
@@ -47,6 +48,20 @@ async function main() {
 				}
 			}, 30_000);
 		}
+
+		// Check once per hour — task is idempotent, skips if quests already exist for today
+		let questTaskRunning = false;
+		setInterval(async () => {
+			if (questTaskRunning) return;
+			questTaskRunning = true;
+			try {
+				await client.stores.get("scheduled-tasks").get("generateDailyQuests")?.run(null as never);
+			} catch (err) {
+				client.logger.error("[ScheduledTask:generateDailyQuests] Error:", err);
+			} finally {
+				questTaskRunning = false;
+			}
+		}, 60 * 60 * 1000);
 	} catch (error) {
 		client.logger.fatal(error);
 		client.destroy();
