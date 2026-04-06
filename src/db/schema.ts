@@ -8,6 +8,7 @@ export const reactionRoleTypeEnum = pgEnum("reaction_role_type", ["normal", "tog
 export const ticketStatusEnum = pgEnum("ticket_status", ["open", "closed"]);
 export const suggestionStatusEnum = pgEnum("suggestion_status", ["pending", "approved", "denied"]);
 export const autoResponseMatchTypeEnum = pgEnum("auto_response_match_type", ["exact", "contains", "startsWith"]);
+export const autoResponseTypeEnum = pgEnum("auto_response_type", ["static", "llm"]);
 
 // --- Tables ---
 
@@ -203,6 +204,7 @@ export const autoResponses = pgTable("auto_responses", {
 	trigger: text("trigger").notNull(),
 	response: text("response").notNull(),
 	matchType: autoResponseMatchTypeEnum("match_type").default("contains").notNull(),
+	responseType: autoResponseTypeEnum("response_type").default("static").notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
