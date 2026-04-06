@@ -38,7 +38,7 @@ services:
       - botnet
 
   stable-diffusion:
-    image: universityofprofessorex/stable-diffusion-cpu:latest
+    image: ghcr.io/jim60105/stable-diffusion-webui:latest
     restart: unless-stopped
     command: >
       python launch.py
