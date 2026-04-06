@@ -26,8 +26,8 @@ services:
         condition: service_completed_successfully
       valkey:
         condition: service_healthy
-      ollama-pull:
-        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -72,6 +72,14 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      ollama serve &
+      until ollama list > /dev/null 2>&1; do sleep 2; done
+      ollama pull $$OLLAMA_MODEL
+      wait
     volumes:
       - ollamadata:/root/.ollama
     healthcheck:
@@ -79,19 +87,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 20s
-    networks:
-      - botnet
-
-  ollama-pull:
-    image: ollama/ollama:latest
-    restart: on-failure
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-tinyllama}"]
+      start_period: 30s
     networks:
       - botnet
 
