@@ -57,7 +57,7 @@ export class ProfileCommand extends Command {
 
 		const embed = new EmbedBuilder()
 			.setTitle(`${target.displayName}'s RPG Profile`)
-			.setThumbnail(target.displayAvatarURL())
+			.setThumbnail(profile.portraitUrl ?? target.displayAvatarURL())
 			.setColor(0x5865f2)
 			.addFields(
 				{ name: "💰 Coins", value: `${profile.coins.toLocaleString()}`, inline: true },

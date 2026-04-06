@@ -13,6 +13,11 @@ export async function getOrCreateSettings(guildId: string): Promise<GuildSetting
 	return created;
 }
 
+export async function getAllActiveGuildIds(): Promise<string[]> {
+	const rows = await db.selectDistinct({ guildId: guildSettings.guildId }).from(guildSettings);
+	return rows.map((r) => r.guildId);
+}
+
 export async function updateSettings(guildId: string, values: Partial<GuildSettingsInsert>): Promise<GuildSettings> {
 	const [updated] = await db
 		.insert(guildSettings)

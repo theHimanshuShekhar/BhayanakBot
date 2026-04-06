@@ -7,7 +7,9 @@ import {
 	getCooldown,
 	clearCooldown,
 	getEquippedTool,
+	getActivePet,
 	addXpToProfile,
+	checkAndAdvanceQuestProgress,
 	type StatKey,
 } from "../../db/queries/rpg.js";
 import { rollOutcome, randomPay } from "../../lib/rpg/helpers/outcome.js";
@@ -55,6 +57,7 @@ export class WorkCommand extends Command {
 		}
 
 		const { profile, stats } = await getOrCreateProfile(interaction.user.id);
+		const activePet = await getActivePet(interaction.user.id);
 
 		if (isInJail(profile)) {
 			const until = Math.floor(profile.jailUntil!.getTime() / 1000);
@@ -133,9 +136,13 @@ export class WorkCommand extends Command {
 				success: true,
 				pay,
 				playerName: interaction.user.displayName,
+				playerLevel: profile.level,
+				petName: activePet?.nickname ?? activePet?.petId,
+				petType: activePet?.petId,
+				activeItem: hasCharm ? "lucky charm" : undefined,
 			});
 
-			return interaction.editReply({
+			await interaction.editReply({
 				embeds: [
 					new EmbedBuilder()
 						.setColor(0x57f287)
@@ -146,11 +153,28 @@ export class WorkCommand extends Command {
 						.setFooter({ text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}` }),
 				],
 			});
+
+			await checkAndAdvanceQuestProgress({
+				userId: interaction.user.id,
+				guildId: interaction.guildId!,
+				objectiveType: "work",
+				objectiveJob: jobId,
+				onComplete: async (quest) => {
+					await interaction.followUp({
+						ephemeral: true,
+						content: `✅ Quest complete: **${quest.title}** — you earned **${quest.rewardCoins.toLocaleString()} coins** and **${quest.rewardXp} XP**!`,
+					});
+				},
+			});
+			return;
 		} else {
 			const flavor = await generateFlavorText({
 				action: job.name,
 				success: false,
 				playerName: interaction.user.displayName,
+				playerLevel: profile.level,
+				petName: activePet?.nickname ?? activePet?.petId,
+				petType: activePet?.petId,
 			});
 
 			return interaction.editReply({

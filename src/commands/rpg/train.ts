@@ -6,6 +6,7 @@ import {
 	setTrainingCooldown,
 	tryDebitCoins,
 	updateStat,
+	checkAndAdvanceQuestProgress,
 	type StatKey,
 } from "../../db/queries/rpg.js";
 import { formatDuration } from "../../lib/rpg/helpers/cooldown.js";
@@ -92,7 +93,7 @@ export class TrainCommand extends Command {
 			}
 			await updateStat(interaction.user.id, stat, newValue);
 
-			return interaction.editReply({
+			await interaction.editReply({
 				embeds: [
 					new EmbedBuilder()
 						.setColor(0x57f287)
@@ -103,6 +104,20 @@ export class TrainCommand extends Command {
 						),
 				],
 			});
+
+			await checkAndAdvanceQuestProgress({
+				userId: interaction.user.id,
+				guildId: interaction.guildId!,
+				objectiveType: "train",
+				objectiveJob: stat,
+				onComplete: async (quest) => {
+					await interaction.followUp({
+						ephemeral: true,
+						content: `✅ Quest complete: **${quest.title}** — you earned **${quest.rewardCoins.toLocaleString()} coins** and **${quest.rewardXp} XP**!`,
+					});
+				},
+			});
+			return;
 		}
 
 		// Free training — check cooldown
@@ -125,7 +140,7 @@ export class TrainCommand extends Command {
 		await updateStat(interaction.user.id, stat, newValue);
 		await setTrainingCooldown(interaction.user.id, stat, new Date());
 
-		return interaction.editReply({
+		await interaction.editReply({
 			embeds: [
 				new EmbedBuilder()
 					.setColor(0x57f287)
@@ -135,6 +150,19 @@ export class TrainCommand extends Command {
 						{ name: "Next Free Train", value: `in ${formatDuration(TRAINING_COOLDOWN_MS)}`, inline: true },
 					),
 			],
+		});
+
+		await checkAndAdvanceQuestProgress({
+			userId: interaction.user.id,
+			guildId: interaction.guildId!,
+			objectiveType: "train",
+			objectiveJob: stat,
+			onComplete: async (quest) => {
+				await interaction.followUp({
+					ephemeral: true,
+					content: `✅ Quest complete: **${quest.title}** — you earned **${quest.rewardCoins.toLocaleString()} coins** and **${quest.rewardXp} XP**!`,
+				});
+			},
 		});
 	}
 }

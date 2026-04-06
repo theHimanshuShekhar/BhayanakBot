@@ -3,6 +3,7 @@ import { boolean, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, tim
 // --- Enums ---
 
 export const autoModActionEnum = pgEnum("auto_mod_action", ["warn", "mute", "kick"]);
+export const questObjectiveTypeEnum = pgEnum("quest_objective_type", ["work", "crime", "train"]);
 export const modCaseTypeEnum = pgEnum("mod_case_type", ["warn", "mute", "unmute", "kick", "ban", "unban", "tempban"]);
 export const reactionRoleTypeEnum = pgEnum("reaction_role_type", ["normal", "toggle", "unique"]);
 export const ticketStatusEnum = pgEnum("ticket_status", ["open", "closed"]);
@@ -217,6 +218,7 @@ export const rpgProfiles = pgTable("rpg_profiles", {
 	xp: integer("xp").default(0).notNull(),
 	jailUntil: timestamp("jail_until"),
 	jailBailCost: integer("jail_bail_cost"),
+	portraitUrl: text("portrait_url"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -271,3 +273,35 @@ export const rpgOwnedProperties = pgTable(
 	},
 	(t) => [unique().on(t.userId, t.propertyId)],
 );
+
+export const dailyQuests = pgTable("daily_quests", {
+	id: serial("id").primaryKey(),
+	guildId: varchar("guild_id", { length: 20 }).notNull(),
+	title: varchar("title", { length: 100 }).notNull(),
+	description: text("description").notNull(),
+	objectiveType: questObjectiveTypeEnum("objective_type").notNull(),
+	objectiveJob: varchar("objective_job", { length: 50 }),
+	objectiveCount: integer("objective_count").default(1).notNull(),
+	rewardCoins: integer("reward_coins").default(500).notNull(),
+	rewardXp: integer("reward_xp").default(100).notNull(),
+	date: varchar("date", { length: 10 }).notNull(),
+	generatedAt: timestamp("generated_at").defaultNow().notNull(),
+});
+
+export const questProgress = pgTable(
+	"quest_progress",
+	{
+		questId: integer("quest_id").notNull(),
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		progress: integer("progress").default(0).notNull(),
+		completedAt: timestamp("completed_at"),
+	},
+	(t) => [primaryKey({ columns: [t.questId, t.userId] })],
+);
+
+export const petPortraits = pgTable("pet_portraits", {
+	petId: varchar("pet_id", { length: 50 }).primaryKey(),
+	imageUrl: text("image_url").notNull(),
+	generatedAt: timestamp("generated_at").defaultNow().notNull(),
+});
