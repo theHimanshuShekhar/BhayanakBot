@@ -38,7 +38,7 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 		if (Math.random() >= chance) return;
 
 		const channel = message.channel;
-		if (!channel.isTextBased()) return;
+		if (!channel.isSendable()) return;
 
 		// Fetch recent message history for context
 		const fetched = await channel.messages.fetch({ limit: HISTORY_LIMIT }).catch(() => null);
@@ -76,6 +76,6 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 		const response = await callOllama(system, prompt, OLLAMA_TIMEOUT_MS);
 		if (!response) return;
 
-		await message.channel.send(response).catch(() => null);
+		await channel.send(response).catch(() => null);
 	}
 }
