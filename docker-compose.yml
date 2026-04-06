@@ -41,7 +41,6 @@ services:
     image: ghcr.io/jim60105/stable-diffusion-webui:latest
     restart: unless-stopped
     command: >
-      python launch.py
       --api --nowebui
       --use-cpu all
       --no-half

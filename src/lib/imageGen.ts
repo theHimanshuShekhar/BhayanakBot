@@ -11,8 +11,8 @@ export async function generateImage(prompt: string): Promise<Buffer | null> {
 				prompt,
 				negative_prompt: "ugly, blurry, low quality, deformed, nsfw",
 				steps: 20,
-				width: 512,
-				height: 512,
+				width: 128,
+				height: 128,
 				cfg_scale: 7,
 			}),
 		});
