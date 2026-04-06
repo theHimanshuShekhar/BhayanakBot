@@ -25,7 +25,12 @@ export class AutoRespondCommand extends Subcommand {
 						.setName("add")
 						.setDescription("Add an auto-response trigger")
 						.addStringOption((opt) => opt.setName("trigger").setDescription("Trigger text").setRequired(true))
-						.addStringOption((opt) => opt.setName("response").setDescription("Response text").setRequired(true))
+						.addStringOption((opt) =>
+							opt
+								.setName("response")
+								.setDescription("Static reply text, or the Ollama system prompt if use-llm is enabled")
+								.setRequired(true),
+						)
 						.addStringOption((opt) =>
 							opt
 								.setName("match-type")
@@ -35,6 +40,12 @@ export class AutoRespondCommand extends Subcommand {
 									{ name: "Contains", value: "contains" },
 									{ name: "Starts with", value: "startsWith" },
 								)
+								.setRequired(false),
+						)
+						.addBooleanOption((opt) =>
+							opt
+								.setName("use-llm")
+								.setDescription("Generate a unique response via Ollama instead of replying with static text")
 								.setRequired(false),
 						),
 				)
@@ -52,10 +63,14 @@ export class AutoRespondCommand extends Subcommand {
 		const trigger = interaction.options.getString("trigger", true);
 		const response = interaction.options.getString("response", true);
 		const matchType = (interaction.options.getString("match-type") ?? "contains") as "exact" | "contains" | "startsWith";
+		const useLlm = interaction.options.getBoolean("use-llm") ?? false;
+		const responseType = useLlm ? "llm" : "static";
 
-		await addAutoResponse({ guildId: interaction.guildId!, trigger, response, matchType });
+		await addAutoResponse({ guildId: interaction.guildId!, trigger, response, matchType, responseType });
+
+		const typeTag = useLlm ? "[LLM]" : "[Static]";
 		return interaction.reply({
-			content: `Auto-response added: \`${trigger}\` → \`${response}\` (match: ${matchType})`,
+			content: `Auto-response added: ${typeTag} \`${trigger}\` → \`${response}\` (match: ${matchType})`,
 			flags: MessageFlags.Ephemeral,
 		});
 	}
@@ -77,7 +92,10 @@ export class AutoRespondCommand extends Subcommand {
 			return interaction.reply({ content: "No auto-responses configured.", flags: MessageFlags.Ephemeral });
 		}
 
-		const lines = responses.map((r) => `**[${r.matchType}]** \`${r.trigger}\` → ${r.response.slice(0, 60)}`);
+		const lines = responses.map((r) => {
+			const typeTag = r.responseType === "llm" ? "[LLM]" : "[Static]";
+			return `**${typeTag} [${r.matchType}]** \`${r.trigger}\` → ${r.response.slice(0, 60)}`;
+		});
 
 		const embed = new EmbedBuilder()
 			.setTitle("Auto-Responses")
