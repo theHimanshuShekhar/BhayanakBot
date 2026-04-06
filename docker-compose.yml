@@ -5,13 +5,13 @@ services:
       target: base
     command: pnpm db:migrate
     restart: on-failure
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/bhayanakbot
+      DATABASE_URL: postgresql://postgres:postgres@10.1.1.111:2222/bhayanakbot
       NODE_ENV: production
     networks:
       - botnet
@@ -26,33 +26,34 @@ services:
         condition: service_completed_successfully
       valkey:
         condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
       # These override any values in .env so service hostnames are always correct
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/bhayanakbot
       VALKEY_URL: redis://valkey:6379
       OLLAMA_URL: http://ollama:11434
       NODE_ENV: production
     networks:
       - botnet
 
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: bhayanakbot
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bhayanakbot"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - botnet
+  # postgres:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: bhayanakbot
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d bhayanakbot"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   networks:
+  #     - botnet
 
   valkey:
     image: valkey/valkey:8-alpine
@@ -73,6 +74,24 @@ services:
     restart: unless-stopped
     volumes:
       - ollamadata:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - botnet
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    restart: on-failure
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-tinyllama}"]
     networks:
       - botnet
 
