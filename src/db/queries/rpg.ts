@@ -1,6 +1,9 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import {
+	dailyQuests,
+	petPortraits,
+	questProgress,
 	rpgCooldowns,
 	rpgInventory,
 	rpgOwnedPets,
@@ -8,6 +11,10 @@ import {
 	rpgProfiles,
 	rpgStats,
 } from "../schema.js";
+
+export type DailyQuest = typeof dailyQuests.$inferSelect;
+export type QuestProgress = typeof questProgress.$inferSelect;
+export type PetPortrait = typeof petPortraits.$inferSelect;
 
 export type RpgProfile = typeof rpgProfiles.$inferSelect;
 export type RpgStats = typeof rpgStats.$inferSelect;
@@ -199,6 +206,111 @@ export async function updateLastCollectedAt(propertyOwnedId: number): Promise<vo
 		.update(rpgOwnedProperties)
 		.set({ lastCollectedAt: new Date() })
 		.where(eq(rpgOwnedProperties.id, propertyOwnedId));
+}
+
+// --- Active Pet ---
+
+export async function getActivePet(userId: string): Promise<RpgOwnedPet | null> {
+	return (await db.query.rpgOwnedPets.findFirst({ where: eq(rpgOwnedPets.userId, userId) })) ?? null;
+}
+
+// --- Portrait ---
+
+export async function setPortraitUrl(userId: string, url: string): Promise<void> {
+	await db.update(rpgProfiles).set({ portraitUrl: url }).where(eq(rpgProfiles.userId, userId));
+}
+
+// --- Daily Quests ---
+
+export async function getTodayQuests(guildId: string, date: string): Promise<DailyQuest[]> {
+	return db.query.dailyQuests.findMany({
+		where: and(eq(dailyQuests.guildId, guildId), eq(dailyQuests.date, date)),
+	});
+}
+
+export async function insertDailyQuests(quests: (typeof dailyQuests.$inferInsert)[]): Promise<void> {
+	await db.insert(dailyQuests).values(quests);
+}
+
+export async function getUserQuestProgress(userId: string, questIds: number[]): Promise<QuestProgress[]> {
+	if (questIds.length === 0) return [];
+	return db.query.questProgress.findMany({
+		where: and(eq(questProgress.userId, userId), inArray(questProgress.questId, questIds)),
+	});
+}
+
+export async function upsertQuestProgress(
+	questId: number,
+	userId: string,
+	guildId: string,
+	progress: number,
+	completedAt?: Date,
+): Promise<void> {
+	await db
+		.insert(questProgress)
+		.values({ questId, userId, guildId, progress, completedAt })
+		.onConflictDoUpdate({
+			target: [questProgress.questId, questProgress.userId],
+			set: { progress, completedAt: completedAt ?? null },
+		});
+}
+
+export async function checkAndAdvanceQuestProgress(opts: {
+	userId: string;
+	guildId: string;
+	objectiveType: "work" | "crime" | "train";
+	objectiveJob: string;
+	onComplete: (quest: DailyQuest) => Promise<void>;
+}): Promise<void> {
+	const today = new Date().toISOString().slice(0, 10);
+	const quests = await getTodayQuests(opts.guildId, today);
+	if (quests.length === 0) return;
+
+	const matching = quests.filter(
+		(q) => q.objectiveType === opts.objectiveType && (q.objectiveJob === null || q.objectiveJob === opts.objectiveJob),
+	);
+	if (matching.length === 0) return;
+
+	const progressRows = await getUserQuestProgress(opts.userId, matching.map((q) => q.id));
+	const progressMap = new Map(progressRows.map((p) => [p.questId, p]));
+
+	for (const quest of matching) {
+		const existing = progressMap.get(quest.id);
+		if (existing?.completedAt) continue; // already done
+
+		const currentProgress = existing?.progress ?? 0;
+		const newProgress = currentProgress + 1;
+		const completedAt = newProgress >= quest.objectiveCount ? new Date() : undefined;
+
+		await upsertQuestProgress(quest.id, opts.userId, opts.guildId, newProgress, completedAt);
+
+		if (completedAt) {
+			await updateCoins(opts.userId, quest.rewardCoins);
+			const [updated] = await db
+				.update(rpgProfiles)
+				.set({
+					xp: sql`${rpgProfiles.xp} + ${quest.rewardXp}`,
+					level: sql`FLOOR(0.05 * SQRT(${rpgProfiles.xp} + ${quest.rewardXp}))::int`,
+				})
+				.where(eq(rpgProfiles.userId, opts.userId))
+				.returning({ level: rpgProfiles.level });
+			void updated; // level-up notification handled by caller if desired
+			await opts.onComplete(quest);
+		}
+	}
+}
+
+// --- Pet Portraits ---
+
+export async function getPetPortrait(petId: string): Promise<PetPortrait | null> {
+	return (await db.query.petPortraits.findFirst({ where: eq(petPortraits.petId, petId) })) ?? null;
+}
+
+export async function upsertPetPortrait(petId: string, imageUrl: string): Promise<void> {
+	await db
+		.insert(petPortraits)
+		.values({ petId, imageUrl })
+		.onConflictDoUpdate({ target: petPortraits.petId, set: { imageUrl, generatedAt: new Date() } });
 }
 
 export async function addXpToProfile(

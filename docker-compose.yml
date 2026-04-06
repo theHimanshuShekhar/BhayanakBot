@@ -32,7 +32,30 @@ services:
       # These override any values in .env so service hostnames are always correct
       VALKEY_URL: redis://valkey:6379
       OLLAMA_URL: http://ollama:11434
+      SD_URL: http://stable-diffusion:7860
       NODE_ENV: production
+    networks:
+      - botnet
+
+  stable-diffusion:
+    image: universityofprofessorex/stable-diffusion-cpu:latest
+    restart: unless-stopped
+    command: >
+      python launch.py
+      --api --nowebui
+      --use-cpu all
+      --no-half
+      --skip-torch-cuda-test
+    ports:
+      - "7860:7860"
+    volumes:
+      - sddata:/stable-diffusion-webui/models
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:7860/sdapi/v1/sd-models || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
     networks:
       - botnet
 
@@ -89,3 +112,4 @@ volumes:
   pgdata:
   valkeydata:
   ollamadata:
+  sddata:
