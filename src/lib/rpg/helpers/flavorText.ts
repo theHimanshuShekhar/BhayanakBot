@@ -353,11 +353,23 @@ export async function generateFlavorText(context: {
 	pay?: number;
 	playerName: string;
 	details?: string;
+	playerLevel?: number;
+	petName?: string;
+	petType?: string;
+	activeItem?: string;
+	jobStreak?: number;
 }): Promise<string> {
 	const outcomeWord = context.success ? "succeeded" : "failed";
 	const payClause = context.pay !== undefined ? ` earning ${context.pay} coins` : "";
 	const detailsClause = context.details ? ` (${context.details})` : "";
-	const prompt = `${context.playerName} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}. Narrate in 1 to 4 witty sentences.`;
+	const levelClause = context.playerLevel ? ` (level ${context.playerLevel})` : "";
+	const petClause = context.petName ? ` Their companion is ${context.petName} the ${context.petType}.` : "";
+	const itemClause = context.activeItem ? ` They used a ${context.activeItem}.` : "";
+	const streakClause =
+		context.jobStreak !== undefined && context.jobStreak >= 3
+			? ` This is their ${context.jobStreak}th time doing this today.`
+			: "";
+	const prompt = `${context.playerName}${levelClause} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}.${petClause}${itemClause}${streakClause} Narrate in 1 to 4 witty sentences.`;
 
 	const text = await callOllama(
 		"You are a witty RPG narrator. Write 1 to 4 sentences. No quotation marks.",
