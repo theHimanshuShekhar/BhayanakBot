@@ -5,6 +5,7 @@ import { addXp } from "../../db/queries/users.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { getAfk, clearAfk } from "../../db/queries/afk.js";
 import { findMatchingResponse } from "../../db/queries/autoResponses.js";
+import { generateAutoResponse } from "../../lib/autoresponder/llmResponse.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
@@ -98,7 +99,12 @@ export class MessageCreateListener extends Listener {
 		// --- Auto-responder ---
 		const match = await findMatchingResponse(message.guild.id, message.content);
 		if (match) {
-			await (message.channel as TextChannel).send(match.response).catch(() => null);
+			if (match.responseType === "llm") {
+				const reply = await generateAutoResponse(match.response, message.content, message.author.username);
+				if (reply) await (message.channel as TextChannel).send(reply).catch(() => null);
+			} else {
+				await (message.channel as TextChannel).send(match.response).catch(() => null);
+			}
 		}
 	}
 
