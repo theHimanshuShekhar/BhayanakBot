@@ -1,20 +1,20 @@
 services:
-  migrate:
-    build:
-      context: .
-      target: base
-    command: pnpm db:migrate
-    restart: on-failure
-    # depends_on:
-    #   postgres:
-    #     condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@10.1.1.111:2222/bhayanakbot
-      NODE_ENV: production
-    networks:
-      - botnet
+  # migrate:
+  #   build:
+  #     context: .
+  #     target: base
+  #   command: pnpm db:migrate
+  #   restart: on-failure
+  #   # depends_on:
+  #   #   postgres:
+  #   #     condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:postgres@10.1.1.111:2222/bhayanakbot
+  #     NODE_ENV: production
+  #   networks:
+  #     - botnet
 
   bot:
     build:
@@ -22,8 +22,6 @@ services:
       target: production
     restart: unless-stopped
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       valkey:
         condition: service_healthy
       ollama:
@@ -72,22 +70,14 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
-    environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      ollama serve &
-      until ollama list > /dev/null 2>&1; do sleep 2; done
-      ollama pull $$OLLAMA_MODEL
-      wait
     volumes:
       - ollamadata:/root/.ollama
     healthcheck:
-      test: ["CMD", "ollama", "list"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/11434'"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 10s
     networks:
       - botnet
 

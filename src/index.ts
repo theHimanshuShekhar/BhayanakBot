@@ -7,11 +7,13 @@ import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
 import { registerPlayerEvents } from "./lib/music/events.js";
+import { ensureOllamaModel } from "./lib/ollama.js";
 
 const client = new BhayanakClient();
 
 async function main() {
 	try {
+		await ensureOllamaModel();
 		await client.player.extractors.loadMulti(DefaultExtractors);
 		await client.player.extractors.register(YoutubeExtractor, {
 			cookie: process.env.YOUTUBE_COOKIE,
