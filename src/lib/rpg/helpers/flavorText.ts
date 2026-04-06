@@ -1,5 +1,4 @@
-const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "tinyllama";
+import { callOllama } from "../../ollama.js";
 
 type FallbackPool = { success: string[]; failure: string[] };
 
@@ -360,29 +359,10 @@ export async function generateFlavorText(context: {
 	const detailsClause = context.details ? ` (${context.details})` : "";
 	const prompt = `${context.playerName} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}. Narrate in 1 to 4 witty sentences.`;
 
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 2000);
-
-	try {
-		const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				model: OLLAMA_MODEL,
-				system: "You are a witty RPG narrator. Write 1 to 4 sentences. No quotation marks.",
-				prompt,
-				stream: false,
-			}),
-			signal: controller.signal,
-		});
-		if (!res.ok) return fallback(context.success, context.action);
-		const data = (await res.json()) as { response?: string };
-		const text = data.response?.trim();
-		if (!text) return fallback(context.success, context.action);
-		return text;
-	} catch {
-		return fallback(context.success, context.action);
-	} finally {
-		clearTimeout(timeout);
-	}
+	const text = await callOllama(
+		"You are a witty RPG narrator. Write 1 to 4 sentences. No quotation marks.",
+		prompt,
+		2000,
+	);
+	return text ?? fallback(context.success, context.action);
 }
