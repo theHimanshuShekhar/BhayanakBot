@@ -98,9 +98,11 @@ export class MessageCreateListener extends Listener {
 
 		// --- Auto-responder ---
 		const match = await findMatchingResponse(message.guild.id, message.content);
+		this.container.logger.debug(`[autoresponder] guild=${message.guild.id} content="${message.content.slice(0, 50)}" match=${match ? `trigger="${match.trigger}" type=${match.responseType}` : "none"}`);
 		if (match) {
 			if (match.responseType === "llm") {
 				const reply = await generateAutoResponse(match.response, message.content, message.author.username);
+				this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
 				if (reply) await (message.channel as TextChannel).send(reply).catch(() => null);
 			} else {
 				await (message.channel as TextChannel).send(match.response).catch(() => null);

@@ -5,6 +5,9 @@ export async function callOllama(system: string, prompt: string, timeoutMs = 300
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
+	console.log(`[ollama] POST ${OLLAMA_URL}/api/generate model=${OLLAMA_MODEL} timeout=${timeoutMs}ms`);
+	console.log(`[ollama] system="${system.slice(0, 80)}" prompt="${prompt.slice(0, 80)}"`);
+
 	try {
 		const res = await fetch(`${OLLAMA_URL}/api/generate`, {
 			method: "POST",
@@ -17,10 +20,17 @@ export async function callOllama(system: string, prompt: string, timeoutMs = 300
 			}),
 			signal: controller.signal,
 		});
-		if (!res.ok) return null;
+		console.log(`[ollama] HTTP status=${res.status} ok=${res.ok}`);
+		if (!res.ok) {
+			const body = await res.text().catch(() => "(unreadable)");
+			console.log(`[ollama] error body: ${body.slice(0, 200)}`);
+			return null;
+		}
 		const data = (await res.json()) as { response?: string };
+		console.log(`[ollama] raw response="${String(data.response).slice(0, 200)}"`);
 		return data.response?.trim() || null;
-	} catch {
+	} catch (err) {
+		console.log(`[ollama] fetch failed: ${err instanceof Error ? err.message : String(err)}`);
 		return null;
 	} finally {
 		clearTimeout(timeout);
