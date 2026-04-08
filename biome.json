@@ -24,6 +24,6 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["src"]
+		"includes": ["src", "web/src"]
 	}
 }
