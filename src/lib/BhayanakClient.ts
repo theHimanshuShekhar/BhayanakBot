@@ -44,6 +44,9 @@ export class BhayanakClient extends SapphireClient {
 	public constructor() {
 		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
 		super({
+			// Increase REST timeout to 60s to accommodate long-running operations like portrait image generation.
+			// This applies globally to ALL Discord REST calls (editReply, send, etc.).
+			rest: { timeout: 60_000 },
 			intents: [
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.GuildMembers,
