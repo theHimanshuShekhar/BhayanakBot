@@ -1,5 +1,8 @@
 node_modules/
 dist/
+web/dist/
+web/src/routeTree.gen.ts
 .env
 .env.local
 *.js.map
+.superpowers/

@@ -28,12 +28,15 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    ports:
+      - "3000:3000"
     environment:
       # These override any values in .env so service hostnames are always correct
       VALKEY_URL: redis://valkey:6379
       OLLAMA_URL: http://ollama:11434
       SD_URL: http://stable-diffusion:7860
       NODE_ENV: production
+      WEB_PORT: "3000"
     networks:
       - botnet
 
