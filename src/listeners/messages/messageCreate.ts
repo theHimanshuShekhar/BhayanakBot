@@ -11,6 +11,10 @@ import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
 
+// Auto-responder cooldown: Map<guildId:trigger, lastFiredAt>
+const autoResponderCooldown = new Map<string, number>();
+const AUTO_RESPONDER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
 const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.ly|tinyurl\.com)\//i;
 
 export class MessageCreateListener extends Listener {
@@ -100,12 +104,22 @@ export class MessageCreateListener extends Listener {
 		const match = await findMatchingResponse(message.guild.id, message.content);
 		this.container.logger.debug(`[autoresponder] guild=${message.guild.id} content="${message.content.slice(0, 50)}" match=${match ? `trigger="${match.trigger}" type=${match.responseType}` : "none"}`);
 		if (match) {
-			if (match.responseType === "llm") {
-				const reply = await generateAutoResponse(match.response, message.content, message.author.username);
-				this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
-				if (reply) await (message.channel as TextChannel).send(reply).catch(() => null);
+			const cooldownKey = `${message.guild.id}:${match.trigger}`;
+			const lastFired = autoResponderCooldown.get(cooldownKey) ?? 0;
+			const botMentioned = message.mentions.has(message.client.user);
+			const onCooldown = Date.now() - lastFired < AUTO_RESPONDER_COOLDOWN_MS;
+
+			if (onCooldown && !botMentioned) {
+				this.container.logger.debug(`[autoresponder] trigger="${match.trigger}" skipped (cooldown)`);
 			} else {
-				await (message.channel as TextChannel).send(match.response).catch(() => null);
+				autoResponderCooldown.set(cooldownKey, Date.now());
+				if (match.responseType === "llm") {
+					const reply = await generateAutoResponse(match.response, message.content, message.author.username);
+					this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
+					if (reply) await (message.channel as TextChannel).send(reply).catch(() => null);
+				} else {
+					await (message.channel as TextChannel).send(match.response).catch(() => null);
+				}
 			}
 		}
 	}
