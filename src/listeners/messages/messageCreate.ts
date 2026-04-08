@@ -116,9 +116,9 @@ export class MessageCreateListener extends Listener {
 				if (match.responseType === "llm") {
 					const reply = await generateAutoResponse(match.response, message.content, message.author.username);
 					this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
-					if (reply) await (message.channel as TextChannel).send(reply).catch(() => null);
+					if (reply) await message.reply(reply).catch(() => null);
 				} else {
-					await (message.channel as TextChannel).send(match.response).catch(() => null);
+					await message.reply(match.response).catch(() => null);
 				}
 			}
 		}
