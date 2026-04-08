@@ -7,6 +7,7 @@ export async function generateImage(prompt: string): Promise<Buffer | null> {
 		const res = await fetch(`${SD_URL}/sdapi/v1/txt2img`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
+			signal: AbortSignal.timeout(5 * 60_000), // 5-minute timeout for CPU generation
 			body: JSON.stringify({
 				prompt,
 				negative_prompt: "ugly, blurry, low quality, deformed, nsfw",
