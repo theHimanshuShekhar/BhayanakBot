@@ -72,7 +72,21 @@ export class PortraitCommand extends Command {
 			.setImage("attachment://portrait.png")
 			.setFooter({ text: "Next portrait available in 7 days" });
 
-		const reply = await interaction.editReply({ embeds: [embed], files: [attachment] });
+		let reply: Awaited<ReturnType<typeof interaction.editReply>>;
+		try {
+			reply = await interaction.editReply({ embeds: [embed], files: [attachment] });
+		} catch {
+			// HTTP/2 connection to Discord may have gone stale during long image generation.
+			// Retry once without the file to at least inform the user.
+			return interaction.editReply({
+				embeds: [
+					new EmbedBuilder()
+						.setColor(0xed4245)
+						.setTitle("🎨 Upload Failed")
+						.setDescription("Portrait was generated but failed to upload to Discord. Please try the command again."),
+				],
+			});
+		}
 
 		// Save the CDN URL from the reply attachment
 		const attachmentUrl = reply.attachments.first()?.url;
