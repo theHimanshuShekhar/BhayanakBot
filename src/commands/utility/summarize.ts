@@ -4,10 +4,11 @@ import { callOllama } from "../../lib/ollama.js";
 
 const COOLDOWN_MS = 10 * 60 * 1000;
 const MAX_MESSAGES = 200;
-const OLLAMA_TIMEOUT_MS = 30_000;
+const OLLAMA_TIMEOUT_MS = 300_000;
 
 const SYSTEM_PROMPT = [
-	"You are a helpful assistant. Summarize the following Discord chat conversation concisely in 3-6 bullet points.",
+	"You are a helpful assistant. Summarize the following Discord chat conversation concisely in bullet points.",
+	"Use as many bullet points as needed to capture the conversation — fewer for short chats, more for long ones.",
 	"Focus on key topics, decisions, and notable moments.",
 	"Do not use quotation marks. Do not include greetings or preamble.",
 ].join(" ");
