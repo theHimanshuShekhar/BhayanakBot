@@ -40,6 +40,8 @@ export class BhayanakClient extends SapphireClient {
 	public readonly editSnipeCache = new BoundedMap<string, EditSnipedMessage>(1000);
 	// Anti-raid: track recent joins per guild
 	public readonly recentJoins = new Map<string, number[]>();
+	// Personality profile cache keyed by "userId:guildId"
+	public readonly personalityCache = new BoundedMap<string, string>(500);
 
 	public constructor() {
 		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
@@ -81,5 +83,6 @@ declare module "@sapphire/framework" {
 		snipeCache: BoundedMap<string, SnipedMessage>;
 		editSnipeCache: BoundedMap<string, EditSnipedMessage>;
 		recentJoins: Map<string, number[]>;
+		personalityCache: BoundedMap<string, string>;
 	}
 }

@@ -1,6 +1,8 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { callOllama } from "../../lib/ollama.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 const HISTORY_LIMIT = 20;
 const OLLAMA_TIMEOUT_MS = 60_000;
@@ -51,7 +53,11 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 
 		await channel.sendTyping().catch(() => null);
 
-		const response = await callOllama(SYSTEM_PROMPT, prompt, OLLAMA_TIMEOUT_MS);
+		const client = message.client as BhayanakClient;
+		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guildId!);
+		const systemWithPersonality = personalityCtx + SYSTEM_PROMPT;
+
+		const response = await callOllama(systemWithPersonality, prompt, OLLAMA_TIMEOUT_MS);
 		if (!response) return;
 
 		await message.reply(response).catch(() => null);
