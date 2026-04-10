@@ -33,6 +33,7 @@ async function main() {
 		await client.stores.get("scheduled-tasks").get("endPolls")?.run(null as never);
 		await client.stores.get("scheduled-tasks").get("reloadOnRestart")?.run(null as never);
 		await client.stores.get("scheduled-tasks").get("generateDailyQuests")?.run(null as never);
+		await client.stores.get("scheduled-tasks").get("refreshPersonalityProfiles")?.run(null as never);
 
 		// Schedule interval runs (every 30 seconds)
 		const tasks = ["expireMutes", "expireTempBans", "sendReminders", "endGiveaways", "endPolls"] as const;
@@ -50,6 +51,20 @@ async function main() {
 				}
 			}, 30_000);
 		}
+
+		// Refresh personality profiles every 6 hours
+		let personalityTaskRunning = false;
+		setInterval(async () => {
+			if (personalityTaskRunning) return;
+			personalityTaskRunning = true;
+			try {
+				await client.stores.get("scheduled-tasks").get("refreshPersonalityProfiles")?.run(null as never);
+			} catch (err) {
+				client.logger.error("[ScheduledTask:refreshPersonalityProfiles] Error:", err);
+			} finally {
+				personalityTaskRunning = false;
+			}
+		}, 6 * 60 * 60 * 1000);
 
 		// Check once per hour — task is idempotent, skips if quests already exist for today
 		let questTaskRunning = false;

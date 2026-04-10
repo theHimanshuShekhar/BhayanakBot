@@ -209,6 +209,28 @@ export const autoResponses = pgTable("auto_responses", {
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// --- Personality Profiling ---
+
+export const userMessages = pgTable("user_messages", {
+	id: serial("id").primaryKey(),
+	userId: varchar("user_id", { length: 20 }).notNull(),
+	guildId: varchar("guild_id", { length: 20 }).notNull(),
+	content: text("content").notNull(),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userPersonalityProfiles = pgTable(
+	"user_personality_profiles",
+	{
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		profile: text("profile"),
+		newMessageCount: integer("new_message_count").default(0).notNull(),
+		lastRefreshedAt: timestamp("last_refreshed_at"),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
+);
+
 // --- RPG Module ---
 
 export const rpgProfiles = pgTable("rpg_profiles", {

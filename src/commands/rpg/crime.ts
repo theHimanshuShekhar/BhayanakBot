@@ -22,6 +22,8 @@ import { getRemainingCooldown, formatDuration } from "../../lib/rpg/helpers/cool
 import { JOBS, getJob } from "../../lib/rpg/catalogs/jobs.js";
 import { ITEMS } from "../../lib/rpg/catalogs/items.js";
 import { generateFlavorText } from "../../lib/rpg/helpers/flavorText.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 const CRIME_CHOICES = Object.values(JOBS)
 	.filter((j) => j.category === "crime")
@@ -88,6 +90,9 @@ export class CrimeCommand extends Command {
 
 		const { profile, stats } = await getOrCreateProfile(interaction.user.id);
 		const activePet = await getActivePet(interaction.user.id);
+		const personalityCtx = interaction.guildId
+			? await getPersonalityContext(interaction.client as BhayanakClient, interaction.user.id, interaction.guildId)
+			: "";
 
 		if (isInJail(profile)) {
 			const until = Math.floor(profile.jailUntil!.getTime() / 1000);
@@ -185,6 +190,7 @@ export class CrimeCommand extends Command {
 				petName: activePet?.nickname ?? activePet?.petId,
 				petType: activePet?.petId,
 				activeItem: hasCharm ? "lucky charm" : undefined,
+				personalityContext: personalityCtx,
 			});
 
 			await interaction.editReply({
@@ -245,6 +251,7 @@ export class CrimeCommand extends Command {
 				playerLevel: profile.level,
 				petName: activePet?.nickname ?? activePet?.petId,
 				petType: activePet?.petId,
+				personalityContext: personalityCtx,
 			});
 
 			return interaction.editReply({
