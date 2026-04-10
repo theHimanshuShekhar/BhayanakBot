@@ -164,13 +164,18 @@ export class PfpEditCommand extends Command {
 			await interaction.editReply({ embeds: [embed], files: [attachment] });
 		} catch {
 			// HTTP/2 connection to Discord may have gone stale during long image generation.
-			return interaction.editReply({
-				embeds: [
-					new EmbedBuilder()
-						.setColor(0xed4245)
-						.setDescription("Image was generated but failed to upload to Discord. Please try again."),
-				],
-			});
+			// Fall back to followUp which opens a fresh connection.
+			try {
+				await interaction.followUp({ embeds: [embed], files: [attachment] });
+			} catch {
+				return interaction.editReply({
+					embeds: [
+						new EmbedBuilder()
+							.setColor(0xed4245)
+							.setDescription("Image was generated but failed to upload to Discord. Please try again."),
+					],
+				});
+			}
 		}
 
 		await setCooldown(interaction.user.id, "pfp-edit", USER_COOLDOWN_MS);
