@@ -5,11 +5,17 @@ import { addXp } from "../../db/queries/users.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { getAfk, clearAfk } from "../../db/queries/afk.js";
 import { findMatchingResponse } from "../../db/queries/autoResponses.js";
+import { storeUserMessage, incrementMessageCount } from "../../db/queries/personality.js";
 import { generateAutoResponse } from "../../lib/autoresponder/llmResponse.js";
+import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
+
+// Prevents concurrent profile rebuilds when two messages arrive simultaneously and both see count >= 100
+const profileRebuildInProgress = new Set<string>();
 
 // Auto-responder cooldown: Map<guildId:trigger, lastFiredAt>
 const autoResponderCooldown = new Map<string, number>();
@@ -26,6 +32,19 @@ export class MessageCreateListener extends Listener {
 		if (message.author.bot || !message.guild) return;
 
 		const settings = await getOrCreateSettings(message.guild.id);
+
+		// --- Personality profiling: store message + trigger rebuild when threshold hit ---
+		// Skip empty messages and command invocations
+		const trimmedContent = message.content.trim();
+		if (trimmedContent.length > 0 && !trimmedContent.startsWith("/")) {
+			await storeUserMessage(message.author.id, message.guild.id, trimmedContent);
+			const count = await incrementMessageCount(message.author.id, message.guild.id);
+			const rebuildKey = `${message.author.id}:${message.guild.id}`;
+			if (count >= 100 && !profileRebuildInProgress.has(rebuildKey)) {
+				profileRebuildInProgress.add(rebuildKey);
+				void buildPersonalityProfile(message.author.id, message.guild.id).finally(() => profileRebuildInProgress.delete(rebuildKey));
+			}
+		}
 
 		// --- AFK clear ---
 		const afk = await getAfk(message.author.id, message.guild.id);
@@ -114,7 +133,10 @@ export class MessageCreateListener extends Listener {
 			} else {
 				autoResponderCooldown.set(cooldownKey, Date.now());
 				if (match.responseType === "llm") {
-					const reply = await generateAutoResponse(match.response, message.content, message.author.username);
+					const client = this.container.client as BhayanakClient;
+					const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
+					const systemWithPersonality = personalityCtx + match.response;
+					const reply = await generateAutoResponse(systemWithPersonality, message.content, message.author.username);
 					this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
 					if (reply) await message.reply(reply).catch(() => null);
 				} else {

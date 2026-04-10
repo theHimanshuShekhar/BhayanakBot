@@ -358,6 +358,7 @@ export async function generateFlavorText(context: {
 	petType?: string;
 	activeItem?: string;
 	jobStreak?: number;
+	personalityContext?: string;
 }): Promise<string> {
 	const outcomeWord = context.success ? "succeeded" : "failed";
 	const payClause = context.pay !== undefined ? ` earning ${context.pay} coins` : "";
@@ -371,10 +372,7 @@ export async function generateFlavorText(context: {
 			: "";
 	const prompt = `${context.playerName}${levelClause} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}.${petClause}${itemClause}${streakClause} Narrate in 1 to 4 witty sentences.`;
 
-	const text = await callOllama(
-		"You are a witty RPG narrator. Write 1 to 4 sentences. No quotation marks.",
-		prompt,
-		2000,
-	);
+	const narratorSystem = (context.personalityContext ?? "") + "You are a witty RPG narrator. Write 1 to 4 sentences. No quotation marks.";
+	const text = await callOllama(narratorSystem, prompt, 2000);
 	return text ?? fallback(context.success, context.action);
 }
