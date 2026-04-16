@@ -370,9 +370,9 @@ export async function generateFlavorText(context: {
 		context.jobStreak !== undefined && context.jobStreak >= 3
 			? ` This is their ${context.jobStreak}th time doing this today.`
 			: "";
-	const prompt = `${context.playerName}${levelClause} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}.${petClause}${itemClause}${streakClause} Narrate in 1 to 4 witty sentences.`;
+	const prompt = `${context.playerName}${levelClause} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}.${petClause}${itemClause}${streakClause} Narrate in 1–2 witty sentences. Be brief.`;
 
-	const narratorSystem = (context.personalityContext ?? "") + "You are a witty RPG narrator. Write 1 to 4 sentences. No quotation marks.";
-	const text = await callOllama(narratorSystem, prompt, 2000);
+	const narratorSystem = (context.personalityContext ?? "") + "You are a witty RPG narrator. Write 1–2 short sentences, under 75 words total. No quotation marks.";
+	const text = await callOllama(narratorSystem, prompt, 2000, 120);
 	return text ?? fallback(context.success, context.action);
 }

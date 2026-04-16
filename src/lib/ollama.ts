@@ -20,7 +20,7 @@ export async function ensureOllamaModel(): Promise<void> {
 	}
 }
 
-export async function callOllama(system: string, prompt: string, timeoutMs = 3000): Promise<string | null> {
+export async function callOllama(system: string, prompt: string, timeoutMs = 3000, numPredict?: number): Promise<string | null> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -36,6 +36,7 @@ export async function callOllama(system: string, prompt: string, timeoutMs = 300
 				system,
 				prompt,
 				stream: false,
+				...(numPredict !== undefined && { options: { num_predict: numPredict } }),
 			}),
 			signal: controller.signal,
 		});
