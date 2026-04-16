@@ -42,10 +42,11 @@ export class MessageCreateListener extends Listener {
 			const rebuildKey = `${message.author.id}:${message.guild.id}`;
 			if (count >= 100 && !profileRebuildInProgress.has(rebuildKey)) {
 				profileRebuildInProgress.add(rebuildKey);
-				void buildPersonalityProfile(message.author.id, message.guild.id)
+				const guildId = message.guild.id;
+				void buildPersonalityProfile(message.author.id, guildId)
 					.catch((err) =>
 						this.container.logger.error(
-							`[personality] Inline build failed for userId=${message.author.id} guildId=${message.guild.id}:`,
+							`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
 							err,
 						),
 					)
