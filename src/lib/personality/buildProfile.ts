@@ -1,9 +1,16 @@
 import { container } from "@sapphire/framework";
+import { inArray, sql } from "drizzle-orm";
 import { callOllama } from "../ollama.js";
-import { deleteAbsorbedMessages, getPersonalityProfile, getUnabsorbedMessages, upsertPersonalityProfile } from "../../db/queries/personality.js";
+import { getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
+import { db } from "../database.js";
+import { userMessages, userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 
 const OLLAMA_TIMEOUT_MS = 120_000;
+// Prevent runaway prompts: absorb at most 500 messages or 40 000 chars per build pass.
+// Any remaining messages stay in user_messages and are picked up in the next cycle.
+const MAX_MESSAGES_PER_BUILD = 500;
+const MAX_CHARS_PER_BUILD = 40_000;
 
 const SYSTEM_PROMPT = [
 	"You are a personality analyst building a detailed psychological and social profile of a person based solely on their Discord messages.",
@@ -25,7 +32,15 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 
 	const existingProfile = await getPersonalityProfile(userId, guildId);
 
-	const messageBlock = messages.map((m) => m.content).join("\n");
+	// Build the message block, respecting the size caps (take the most recent messages first)
+	let messageBlock = "";
+	const absorbed: typeof messages = [];
+	for (const m of messages.slice(-MAX_MESSAGES_PER_BUILD)) {
+		if (messageBlock.length + m.content.length > MAX_CHARS_PER_BUILD) break;
+		messageBlock += (messageBlock ? "\n" : "") + m.content;
+		absorbed.push(m);
+	}
+	if (absorbed.length === 0) return;
 
 	const userPrompt = existingProfile
 		? [
@@ -50,12 +65,29 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 		return;
 	}
 
-	await upsertPersonalityProfile(userId, guildId, result);
-	await deleteAbsorbedMessages(messages.map((m) => m.id));
+	// Atomic: upsert profile + delete only the absorbed messages in one transaction.
+	// Decrement counter by absorbed count instead of resetting to 0 — this preserves
+	// increments from messages that arrived during the (potentially long) Ollama call.
+	await db.transaction(async (tx) => {
+		await tx
+			.insert(userPersonalityProfiles)
+			.values({ userId, guildId, profile: result, newMessageCount: 0, lastRefreshedAt: new Date() })
+			.onConflictDoUpdate({
+				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
+				set: {
+					profile: result,
+					newMessageCount: sql`GREATEST(0, ${userPersonalityProfiles.newMessageCount} - ${absorbed.length})`,
+					lastRefreshedAt: new Date(),
+				},
+			});
+		await tx.delete(userMessages).where(inArray(userMessages.id, absorbed.map((m) => m.id)));
+	});
 
 	// Invalidate in-memory cache so the next response picks up the fresh profile
 	const client = container.client as BhayanakClient;
 	client.personalityCache.delete(`${userId}:${guildId}`);
 
-	container.logger.debug(`[personality] Profile updated for userId=${userId} guildId=${guildId} (${messages.length} messages absorbed)`);
+	container.logger.debug(
+		`[personality] Profile updated for userId=${userId} guildId=${guildId} (${absorbed.length}/${messages.length} messages absorbed)`,
+	);
 }
