@@ -1,6 +1,7 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
-import { getPersonalityProfile } from "../../db/queries/personality.js";
+import { getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
+import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 
 const FIELD_LIMIT = 1024;
 
@@ -27,12 +28,40 @@ export class PersonalityCommand extends Command {
 		const profile = await getPersonalityProfile(target.id, guildId);
 
 		if (!profile) {
+			const messages = await getUnabsorbedMessages(target.id, guildId);
+
+			if (messages.length > 0) {
+				// Messages collected but profile not built yet — trigger build now
+				void buildPersonalityProfile(target.id, guildId).catch((err) =>
+					this.container.logger.error(
+						`[personality] Manual build failed for userId=${target.id} guildId=${guildId}:`,
+						err,
+					),
+				);
+
+				return interaction.editReply({
+					embeds: [
+						new EmbedBuilder()
+							.setColor(0x57f287)
+							.setTitle(`Personality Profile — ${target.displayName}`)
+							.setDescription(
+								`No profile exists yet, but **${messages.length}** message(s) have been collected.\n\n` +
+									`Profile building has been triggered — check back in a minute or two.`,
+							),
+					],
+				});
+			}
+
+			// No messages at all — nothing to build from
 			return interaction.editReply({
 				embeds: [
 					new EmbedBuilder()
 						.setColor(0xfee75c)
 						.setTitle(`Personality Profile — ${target.displayName}`)
-						.setDescription("No personality profile exists for this user yet. The bot needs more messages to build one."),
+						.setDescription(
+							"No personality profile exists yet, and no messages have been collected.\n\n" +
+								"The profile will build automatically once enough plain-text messages have been sent.",
+						),
 				],
 			});
 		}
