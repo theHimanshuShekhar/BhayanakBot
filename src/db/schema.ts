@@ -49,6 +49,8 @@ export const guildSettings = pgTable("guild_settings", {
 	antiRaidEnabled: boolean("anti_raid_enabled").default(false).notNull(),
 	antiRaidJoinThreshold: integer("anti_raid_join_threshold").default(10),
 	antiRaidJoinWindow: integer("anti_raid_join_window").default(10), // seconds
+	// Personality profiling
+	personalityEnabled: boolean("personality_enabled").default(true).notNull(),
 });
 
 export const users = pgTable(
