@@ -1,0 +1,1 @@
+ALTER TABLE "guild_settings" ADD COLUMN "personality_enabled" boolean DEFAULT true NOT NULL;

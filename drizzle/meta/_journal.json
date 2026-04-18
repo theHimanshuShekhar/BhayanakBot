@@ -43,6 +43,13 @@
       "when": 1775833022399,
       "tag": "0005_chunky_triathlon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776368141202,
+      "tag": "0006_hard_flatman",
+      "breakpoints": true
     }
   ]
 }
