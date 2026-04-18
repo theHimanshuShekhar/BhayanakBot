@@ -3,7 +3,7 @@ import { EmbedBuilder } from "discord.js";
 import { getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 
-const FIELD_LIMIT = 1024;
+const EXCERPT_LIMIT = 300;
 
 export class PersonalityCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -66,23 +66,20 @@ export class PersonalityCommand extends Command {
 			});
 		}
 
+		const excerpt = profile.length > EXCERPT_LIMIT ? profile.slice(0, EXCERPT_LIMIT) + "..." : profile;
+
 		const embed = new EmbedBuilder()
 			.setColor(0x5865f2)
 			.setTitle(`Personality Profile — ${target.displayName}`)
-			.setThumbnail(target.displayAvatarURL({ size: 128 }));
+			.setThumbnail(target.displayAvatarURL({ size: 128 }))
+			.setDescription(excerpt)
+			.setFooter({ text: "Full profile attached as .txt file" });
 
-		// Split profile into chunks that fit Discord's field value limit
-		const chunks: string[] = [];
-		let remaining = profile;
-		while (remaining.length > 0) {
-			chunks.push(remaining.slice(0, FIELD_LIMIT));
-			remaining = remaining.slice(FIELD_LIMIT);
-		}
+		const attachment = {
+			attachment: Buffer.from(profile, "utf-8"),
+			name: `${target.username}-personality.txt`,
+		};
 
-		for (let i = 0; i < chunks.length; i++) {
-			embed.addFields({ name: i === 0 ? "Profile" : "\u200b", value: chunks[i] });
-		}
-
-		return interaction.editReply({ embeds: [embed] });
+		return interaction.editReply({ embeds: [embed], files: [attachment] });
 	}
 }
