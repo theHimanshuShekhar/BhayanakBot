@@ -77,15 +77,19 @@ export class PortraitCommand extends Command {
 			reply = await interaction.editReply({ embeds: [embed], files: [attachment] });
 		} catch {
 			// HTTP/2 connection to Discord may have gone stale during long image generation.
-			// Retry once without the file to at least inform the user.
-			return interaction.editReply({
-				embeds: [
-					new EmbedBuilder()
-						.setColor(0xed4245)
-						.setTitle("🎨 Upload Failed")
-						.setDescription("Portrait was generated but failed to upload to Discord. Please try the command again."),
-				],
-			});
+			// Fall back to followUp which opens a fresh connection.
+			try {
+				reply = await interaction.followUp({ embeds: [embed], files: [attachment] });
+			} catch {
+				return interaction.editReply({
+					embeds: [
+						new EmbedBuilder()
+							.setColor(0xed4245)
+							.setTitle("🎨 Upload Failed")
+							.setDescription("Portrait was generated but failed to upload to Discord. Please try the command again."),
+					],
+				});
+			}
 		}
 
 		// Save the CDN URL from the reply attachment
