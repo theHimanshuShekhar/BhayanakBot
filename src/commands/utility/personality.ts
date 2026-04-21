@@ -80,6 +80,23 @@ export class PersonalityCommand extends Command {
 			name: `${target.username}-personality.txt`,
 		};
 
-		return interaction.editReply({ embeds: [embed], files: [attachment] });
+		try {
+			return await interaction.editReply({ embeds: [embed], files: [attachment] });
+		} catch {
+			// HTTP/2 connection to Discord may be stale — fall back to followUp (fresh connection).
+			try {
+				return await interaction.followUp({ embeds: [embed], files: [attachment], ephemeral: true });
+			} catch {
+				return interaction.followUp({
+					embeds: [
+						new EmbedBuilder()
+							.setColor(0xed4245)
+							.setTitle(`Personality Profile — ${target.displayName}`)
+							.setDescription("Failed to upload the profile to Discord. Please try the command again."),
+					],
+					ephemeral: true,
+				});
+			}
+		}
 	}
 }
