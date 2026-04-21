@@ -143,7 +143,7 @@ export function buildCommandDetail(
 	if (entry.help.examples.length > 0) {
 		embed.addFields({
 			name: "Examples",
-			value: codeBlock(entry.help.examples.map((e) => e).join("\n")),
+			value: truncate(codeBlock(entry.help.examples.join("\n")), 1024),
 		});
 	} else if (entry.isFallback) {
 		embed.addFields({ name: "Examples", value: "*No examples yet.*" });
@@ -152,7 +152,9 @@ export function buildCommandDetail(
 	if (entry.help.subcommands) {
 		for (const [subName, sub] of Object.entries(entry.help.subcommands)) {
 			const value =
-				sub.examples.length > 0 ? `${sub.summary}\n${codeBlock(sub.examples.join("\n"))}` : sub.summary;
+				sub.examples.length > 0
+					? truncate(`${sub.summary}\n${codeBlock(sub.examples.join("\n"))}`, 1024)
+					: sub.summary;
 			embed.addFields({ name: `/${entry.name} ${subName}`, value });
 		}
 	}
