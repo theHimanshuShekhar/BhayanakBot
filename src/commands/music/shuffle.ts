@@ -4,7 +4,14 @@ import { useQueue } from "discord-player";
 
 export class ShuffleCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly", "IsDJ"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly", "IsDJ"],
+			help: {
+				summary: "Shuffle the current music queue.",
+				examples: ["/shuffle"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

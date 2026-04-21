@@ -3,7 +3,14 @@ import { resetUser } from "../../db/queries/users.js";
 
 export class ResetCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly", "IsAdmin"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "Reset a user's XP and level back to zero.",
+				examples: ["/level-reset user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

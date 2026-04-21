@@ -13,6 +13,15 @@ export class GiveawayCommand extends Subcommand {
 				{ name: "reroll", chatInputRun: "runReroll" },
 			],
 			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Start, end, or reroll a giveaway.",
+				examples: ["/giveaway start duration:1h prize:Nitro winners:2", "/giveaway end message-id:123456", "/giveaway reroll message-id:123456"],
+				subcommands: {
+					start: { summary: "Start a timed giveaway in the current channel.", examples: ["/giveaway start duration:1h prize:Nitro winners:2"] },
+					end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
+					reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
+				},
+			},
 		});
 	}
 

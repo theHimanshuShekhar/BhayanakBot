@@ -12,6 +12,15 @@ export class RoleMenuCommand extends Subcommand {
 				{ name: "add-option", chatInputRun: "runAddOption" },
 			],
 			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "Create and manage self-assignable role select menus.",
+				examples: ["/rolemenu create channel:#roles", "/rolemenu add-option id:abc role:@Gamer label:Gamer"],
+				subcommands: {
+					create: { summary: "Create a role selection menu in a channel.", examples: ["/rolemenu create channel:#roles"] },
+					delete: { summary: "Delete an existing role menu.", examples: ["/rolemenu delete id:abc123"] },
+					"add-option": { summary: "Add a role option to an existing menu.", examples: ["/rolemenu add-option id:abc123 role:@Gamer label:Gamer"] },
+				},
+			},
 		});
 	}
 

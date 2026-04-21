@@ -26,7 +26,14 @@ const responses = [
 
 export class EightBallCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Ask the magic 8-ball a yes/no question.",
+				examples: ["/8ball question:Will I win today?"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

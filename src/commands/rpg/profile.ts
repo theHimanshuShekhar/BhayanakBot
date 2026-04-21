@@ -5,7 +5,13 @@ import { getPet } from "../../lib/rpg/catalogs/pets.js";
 
 export class ProfileCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "View your RPG profile or another player's stats and progress.",
+				examples: ["/profile", "/profile user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

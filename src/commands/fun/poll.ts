@@ -5,7 +5,14 @@ import { polls } from "../../db/schema.js";
 
 export class PollCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Create a button-based poll with up to 4 options.",
+				examples: ['/poll question:"Best language?" options:"Python,JS,Go,Rust"'],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

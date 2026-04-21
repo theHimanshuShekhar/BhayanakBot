@@ -27,7 +27,13 @@ const JOB_CHOICES = Object.values(JOBS)
 
 export class WorkCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Do a legal job to earn coins and XP on a cooldown.",
+				examples: ["/work job:miner", "/work job:hacker"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

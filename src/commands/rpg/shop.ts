@@ -51,7 +51,13 @@ export function buildShopPage(page: number): { embed: EmbedBuilder; row: ActionR
 
 export class ShopCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Browse, buy, and sell items in the RPG shop.",
+				examples: ["/shop browse", "/shop buy item:lucky_charm", "/shop sell item:rare_gem"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

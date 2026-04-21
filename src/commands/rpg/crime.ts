@@ -44,7 +44,13 @@ function buildJailRow(bailCost: number): ActionRowBuilder<ButtonBuilder> {
 
 export class CrimeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Attempt a crime job for coins and XP — risk jail if you fail.",
+				examples: ["/crime job:pickpocket", "/crime job:heist"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

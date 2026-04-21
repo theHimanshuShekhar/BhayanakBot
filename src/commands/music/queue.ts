@@ -6,7 +6,14 @@ import { buildQueuePageButtons } from "../../lib/music/components.js";
 
 export class QueueCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "View the current music queue.",
+				examples: ["/queue", "/queue page:2"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

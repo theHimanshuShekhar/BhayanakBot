@@ -5,7 +5,14 @@ import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 
 export class SuggestCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Submit a suggestion to the server's suggestions channel.",
+				examples: ['/suggest idea:"Add a movie night bot"'],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

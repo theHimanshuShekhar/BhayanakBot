@@ -39,7 +39,14 @@ const PRESET_CHOICES = Object.keys(PRESET_PROMPTS).map((key) => ({ name: key.rep
 
 export class PfpEditCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Add a fun frame or effect to your profile picture.",
+				examples: ["/pfp-edit effect:rainbow"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

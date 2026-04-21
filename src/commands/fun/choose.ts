@@ -3,7 +3,14 @@ import { Command } from "@sapphire/framework";
 
 export class ChooseCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Have the bot randomly pick from a list of choices.",
+				examples: ["/choose options:pizza,sushi,tacos"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

@@ -17,7 +17,13 @@ const PET_CHOICES = getBuyablePets().map((p) => ({
 
 export class PetCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Buy, view, and manage your pet companions.",
+				examples: ["/pet view", "/pet buy pet:cat", "/pet rename name:Whiskers"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

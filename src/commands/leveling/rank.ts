@@ -4,7 +4,14 @@ import { getOrCreateUser, getLeaderboard } from "../../db/queries/users.js";
 
 export class RankCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "View your XP rank or another member's.",
+				examples: ["/rank", "/rank user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

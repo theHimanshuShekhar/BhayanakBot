@@ -4,7 +4,14 @@ import { useQueue } from "discord-player";
 
 export class VolumeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly", "IsDJ"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly", "IsDJ"],
+			help: {
+				summary: "Set the playback volume (1–200).",
+				examples: ["/volume level:80"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

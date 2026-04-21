@@ -5,7 +5,14 @@ const SUBREDDITS = ["memes", "dankmemes", "me_irl", "wholesomememes"];
 
 export class MemeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Fetch a random meme from Reddit.",
+				examples: ["/meme"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

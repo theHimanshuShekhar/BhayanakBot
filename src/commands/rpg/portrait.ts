@@ -8,7 +8,13 @@ const PORTRAIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export class PortraitCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Generate an AI character portrait based on your RPG stats (7-day cooldown).",
+				examples: ["/portrait"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
