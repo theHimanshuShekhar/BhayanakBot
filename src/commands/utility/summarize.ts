@@ -80,6 +80,11 @@ export class SummarizeCommand extends Command {
 			cooldownDelay: COOLDOWN_MS,
 			cooldownScope: BucketScope.User,
 			cooldownLimit: 1,
+			help: {
+				summary: "Summarize recent messages in this channel using AI.",
+				examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
+				usageNotes: "Uses the local Ollama model. `time` overrides `count` if both are given.",
+			},
 		});
 	}
 

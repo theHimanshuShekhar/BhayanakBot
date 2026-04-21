@@ -7,7 +7,14 @@ const EXCERPT_LIMIT = 300;
 
 export class PersonalityCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly", "IsAdmin"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "View the bot's personality profile for a user (admin only).",
+				examples: ["/personality", "/personality user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

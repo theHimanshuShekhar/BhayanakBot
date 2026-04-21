@@ -3,7 +3,14 @@ import { EmbedBuilder, GuildMember } from "discord.js";
 
 export class UserInfoCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Display information about a user (account age, join date, roles).",
+				examples: ["/userinfo", "/userinfo user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
