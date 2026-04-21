@@ -18,7 +18,7 @@ export function CategoryTabs() {
 								key={cat.id}
 								to="/commands/$category"
 								params={{ category: cat.id }}
-								className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-3.5 text-xs font-medium no-underline transition-colors duration-150 ${
+								className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-3.5 text-lg font-medium no-underline transition-colors duration-150 ${
 									isActive
 										? "border-[#7c3aed] text-violet-400"
 										: "border-transparent text-slate-500 hover:text-slate-300"
@@ -27,7 +27,7 @@ export function CategoryTabs() {
 								<span>{cat.icon}</span>
 								<span>{cat.label}</span>
 								<span
-									className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+									className={`rounded-full px-1.5 py-0.5 text-sm font-bold ${
 										isActive ? "bg-[#7c3aed]/40 text-violet-300" : "bg-[#7c3aed]/10 text-violet-500"
 									}`}
 								>

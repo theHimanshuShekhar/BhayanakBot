@@ -21,10 +21,10 @@ function LandingPage() {
 			<section className="relative overflow-hidden px-6 pb-20 pt-24 text-center">
 				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(79,70,229,0.12),transparent)]" />
 				<div className="relative mx-auto max-w-2xl">
-					<span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-violet-400">
+					<span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-base font-semibold uppercase tracking-widest text-violet-400">
 						⚡ Discord Bot
 					</span>
-					<h1 className="mb-5 text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl">
+					<h1 className="mb-5 text-6xl font-extrabold leading-tight tracking-tight sm:text-7xl">
 						The Most{" "}
 						<span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
 							Bhayanak
@@ -32,20 +32,20 @@ function LandingPage() {
 						<br />
 						Bot for Your Server
 					</h1>
-					<p className="mx-auto mb-9 max-w-lg text-lg leading-relaxed text-slate-400">
+					<p className="mx-auto mb-9 max-w-lg text-xl leading-relaxed text-slate-400">
 						RPG economy, music, moderation, leveling, giveaways, and more — all in one powerful Discord bot.
 					</p>
 					<div className="flex justify-center gap-3">
 						<a
 							href="https://discord.com/oauth2/authorize"
-							className="rounded-lg bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90"
+							className="rounded-lg bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] px-6 py-2.5 text-lg font-semibold text-white no-underline shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90"
 						>
 							Add to Discord
 						</a>
 						<Link
 							to="/commands/$category"
 							params={{ category: "all" }}
-							className="rounded-lg border border-[#7c3aed]/40 px-6 py-2.5 text-sm font-semibold text-violet-400 no-underline transition-colors hover:border-[#7c3aed]/70 hover:text-violet-300"
+							className="rounded-lg border border-[#7c3aed]/40 px-6 py-2.5 text-lg font-semibold text-violet-400 no-underline transition-colors hover:border-[#7c3aed]/70 hover:text-violet-300"
 						>
 							Browse Commands →
 						</Link>
@@ -57,14 +57,14 @@ function LandingPage() {
 			<div className="border-y border-white/[0.05] bg-white/[0.02]">
 				<div className="mx-auto flex max-w-3xl justify-center gap-12 px-6 py-7">
 					{[
-						{ value: "52", label: "Commands" },
+						{ value: "56", label: "Commands" },
 						{ value: "12", label: "Categories" },
 						{ value: "RPG", label: "Economy System" },
 						{ value: "AI", label: "Powered Narration" },
 					].map(({ value, label }) => (
 						<div key={label} className="text-center">
-							<div className="text-2xl font-extrabold text-violet-400">{value}</div>
-							<div className="mt-0.5 text-[11px] uppercase tracking-widest text-slate-600">{label}</div>
+							<div className="text-3xl font-extrabold text-violet-400">{value}</div>
+							<div className="mt-0.5 text-base uppercase tracking-widest text-slate-600">{label}</div>
 						</div>
 					))}
 				</div>
@@ -72,8 +72,8 @@ function LandingPage() {
 
 			{/* Features */}
 			<section className="mx-auto max-w-5xl px-6 py-20">
-				<p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#7c3aed]">What it does</p>
-				<h2 className="mb-2 text-3xl font-extrabold">Everything your server needs</h2>
+				<p className="mb-3 text-base font-bold uppercase tracking-widest text-[#7c3aed]">What it does</p>
+				<h2 className="mb-2 text-4xl font-extrabold">Everything your server needs</h2>
 				<p className="mb-12 text-slate-500">One bot. No compromises.</p>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{FEATURES.map((f) => (
@@ -84,18 +84,18 @@ function LandingPage() {
 
 			{/* CTA */}
 			<section className="border-t border-[#7c3aed]/15 bg-gradient-to-br from-[#7c3aed]/08 to-[#4f46e5]/08 px-6 py-20 text-center">
-				<h2 className="mb-3 text-3xl font-extrabold">Ready to power up your server?</h2>
+				<h2 className="mb-3 text-4xl font-extrabold">Ready to power up your server?</h2>
 				<p className="mb-8 text-slate-500">Free to use. No credit card required.</p>
 				<a
 					href="https://discord.com/oauth2/authorize"
-					className="inline-block rounded-lg bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] px-8 py-3 text-sm font-semibold text-white no-underline shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90"
+					className="inline-block rounded-lg bg-gradient-to-r from-[#7c3aed] to-[#4f46e5] px-8 py-3 text-lg font-semibold text-white no-underline shadow-lg shadow-violet-900/30 transition-opacity hover:opacity-90"
 				>
 					Add BhayanakBot to Discord
 				</a>
 			</section>
 
 			{/* Footer */}
-			<footer className="border-t border-white/[0.05] px-6 py-6 text-center text-sm text-slate-600">
+			<footer className="border-t border-white/[0.05] px-6 py-6 text-center text-lg text-slate-600">
 				© 2026 BhayanakBot ·{" "}
 				<a
 					href="https://github.com/theHimanshuShekhar/BhayanakBot"
