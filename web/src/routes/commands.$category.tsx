@@ -24,7 +24,12 @@ function CommandsPage() {
 		const filtered = category === "all" ? COMMANDS : COMMANDS.filter((c) => c.category === category);
 		if (!query) return filtered;
 		return filtered.filter(
-			(c) => c.name.toLowerCase().includes(query) || c.description.toLowerCase().includes(query),
+			(c) =>
+				c.name.toLowerCase().includes(query) ||
+				c.description.toLowerCase().includes(query) ||
+				c.examples.some((ex) => ex.toLowerCase().includes(query)) ||
+				(c.usageNotes?.toLowerCase().includes(query) ?? false) ||
+				(c.subcommands ? Object.keys(c.subcommands).some((sub) => sub.toLowerCase().includes(query)) : false),
 		);
 	}, [category, query]);
 
@@ -49,15 +54,15 @@ function CommandsPage() {
 			<main className="mx-auto max-w-5xl px-6 py-8">
 				{/* Page header */}
 				<div className="mb-6">
-					<h1 className="text-3xl font-extrabold">Commands</h1>
-					<p className="mt-1 text-sm text-slate-500">
+					<h1 className="text-4xl font-extrabold">Commands</h1>
+					<p className="mt-1 text-xl text-slate-500">
 						{COMMANDS.length} commands across {CATEGORIES.length - 1} categories — search above or browse by category
 					</p>
 				</div>
 
 				{/* Search banner */}
 				{query && (
-					<div className="mb-6 flex items-center gap-2.5 rounded-lg border border-[#7c3aed]/25 bg-[#7c3aed]/08 px-4 py-2.5 text-sm text-violet-400">
+					<div className="mb-6 flex items-center gap-2.5 rounded-lg border border-[#7c3aed]/25 bg-[#7c3aed]/08 px-4 py-2.5 text-lg text-violet-400">
 						<svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
 							<path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 						</svg>
@@ -69,7 +74,7 @@ function CommandsPage() {
 				{/* No results */}
 				{commandsToShow.length === 0 && (
 					<div className="py-16 text-center text-slate-500">
-						<div className="mb-2 text-4xl">🔍</div>
+						<div className="mb-2 text-5xl">🔍</div>
 						<p>No commands matched <strong className="text-slate-400">"{q}"</strong></p>
 					</div>
 				)}
@@ -83,10 +88,10 @@ function CommandsPage() {
 					return (
 						<section key={cat.id} className={`mb-10 transition-opacity duration-150 ${isDimmed ? "opacity-25 pointer-events-none" : ""}`}>
 							<div className="mb-4 flex items-center gap-3">
-								<span className="text-2xl">{cat.icon}</span>
+								<span className="text-3xl">{cat.icon}</span>
 								<div>
-									<h2 className="text-lg font-bold">{cat.label}</h2>
-									<p className="text-xs text-slate-500">{cat.description}</p>
+									<h2 className="text-2xl font-bold">{cat.label}</h2>
+									<p className="text-lg text-slate-500">{cat.description}</p>
 								</div>
 							</div>
 							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

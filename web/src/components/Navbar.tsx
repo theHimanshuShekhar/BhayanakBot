@@ -54,21 +54,21 @@ export function Navbar() {
 			{/* Logo */}
 			<Link to="/" className="flex items-center gap-2.5 no-underline">
 				<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#4f46e5]" />
-				<span className="text-sm font-bold tracking-wide text-slate-100">BhayanakBot</span>
+				<span className="text-xl font-bold tracking-wide text-slate-100">BhayanakBot</span>
 			</Link>
 
 			{/* Nav links */}
 			<div className="flex items-center gap-6">
 				<Link
 					to="/"
-					className="text-sm text-slate-400 no-underline transition-colors hover:text-slate-200 [&.active]:font-semibold [&.active]:text-violet-400"
+					className="text-xl text-slate-400 no-underline transition-colors hover:text-slate-200 [&.active]:font-semibold [&.active]:text-violet-400"
 				>
 					Home
 				</Link>
 				<Link
 					to="/commands/$category"
 					params={{ category: "all" }}
-					className="text-sm text-slate-400 no-underline transition-colors hover:text-slate-200 [&.active]:font-semibold [&.active]:text-violet-400"
+					className="text-xl text-slate-400 no-underline transition-colors hover:text-slate-200 [&.active]:font-semibold [&.active]:text-violet-400"
 					activeOptions={{ exact: false }}
 				>
 					Commands
@@ -77,7 +77,7 @@ export function Navbar() {
 					href="https://github.com/theHimanshuShekhar/BhayanakBot"
 					target="_blank"
 					rel="noopener noreferrer"
-					className="text-sm text-slate-400 no-underline transition-colors hover:text-slate-200"
+					className="text-xl text-slate-400 no-underline transition-colors hover:text-slate-200"
 				>
 					GitHub
 				</a>
@@ -101,9 +101,9 @@ export function Navbar() {
 					onChange={(e) => handleSearch(e.target.value)}
 					onKeyDown={handleKeyDown}
 					placeholder='Search commands…'
-					className="w-full bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-600"
+					className="w-full bg-transparent text-lg text-slate-200 outline-none placeholder:text-slate-600"
 				/>
-				<kbd className="hidden shrink-0 rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-[10px] text-slate-500 sm:block">
+				<kbd className="hidden shrink-0 rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-base text-slate-500 sm:block">
 					⌘K
 				</kbd>
 			</div>
