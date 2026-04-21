@@ -4,7 +4,14 @@ import { getLeaderboard } from "../../db/queries/users.js";
 
 export class LeaderboardCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "View the top XP earners in this server.",
+				examples: ["/leaderboard", "/leaderboard page:2"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

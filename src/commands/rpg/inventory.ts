@@ -16,7 +16,13 @@ import { getItem } from "../../lib/rpg/catalogs/items.js";
 
 export class InventoryCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "View your item inventory and use or equip items.",
+				examples: ["/inventory", "/inventory use:lucky_charm"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

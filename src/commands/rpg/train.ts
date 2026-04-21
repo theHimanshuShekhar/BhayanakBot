@@ -32,7 +32,13 @@ const STAT_EMOJI: Record<StatKey, string> = {
 
 export class TrainCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Train a stat to improve your RPG performance (4-hour cooldown, costs coins).",
+				examples: ["/train stat:strength", "/train stat:intelligence"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

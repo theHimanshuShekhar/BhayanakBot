@@ -17,7 +17,13 @@ const PROPERTY_CHOICES = getBuyableProperties().map((p) => ({
 
 export class PropertyCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Buy properties that generate passive coin income over time.",
+				examples: ["/property buy property:house", "/property collect", "/property list"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

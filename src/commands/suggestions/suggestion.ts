@@ -11,6 +11,14 @@ export class SuggestionCommand extends Subcommand {
 				{ name: "deny", chatInputRun: "runDeny" },
 			],
 			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Approve or deny a submitted suggestion.",
+				examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 response:Out of scope"],
+				subcommands: {
+					approve: { summary: "Approve a suggestion with an optional response.", examples: ["/suggestion approve id:5"] },
+					deny: { summary: "Deny a suggestion with an optional response.", examples: ["/suggestion deny id:3 response:Out of scope"] },
+				},
+			},
 		});
 	}
 

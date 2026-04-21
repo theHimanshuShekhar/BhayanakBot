@@ -9,7 +9,13 @@ function progressBar(current: number, total: number, length = 8): string {
 
 export class QuestsCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "View today's daily quests and your completion progress.",
+				examples: ["/quests"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

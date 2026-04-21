@@ -3,7 +3,14 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel
 
 export class TicketPanelCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly", "IsAdmin"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "Post a ticket creation panel button in a channel.",
+				examples: ["/ticket-panel channel:#support title:Open a Ticket"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

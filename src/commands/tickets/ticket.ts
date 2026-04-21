@@ -32,6 +32,18 @@ export class TicketCommand extends Subcommand {
 				{ name: "transcript", chatInputRun: "runTranscript" },
 			],
 			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Open, close, claim, or manage support tickets.",
+				examples: ["/ticket open topic:billing issue", "/ticket close", "/ticket claim", "/ticket add user:@helper"],
+				subcommands: {
+					open: { summary: "Open a new support ticket.", examples: ["/ticket open topic:billing issue"] },
+					close: { summary: "Close the current ticket channel.", examples: ["/ticket close"] },
+					claim: { summary: "Claim the ticket as your own to handle.", examples: ["/ticket claim"] },
+					add: { summary: "Add a user to the ticket channel.", examples: ["/ticket add user:@helper"] },
+					remove: { summary: "Remove a user from the ticket channel.", examples: ["/ticket remove user:@helper"] },
+					transcript: { summary: "Export a text transcript of the ticket.", examples: ["/ticket transcript"] },
+				},
+			},
 		});
 	}
 

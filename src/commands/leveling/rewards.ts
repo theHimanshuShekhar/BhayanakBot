@@ -12,6 +12,15 @@ export class RewardsCommand extends Subcommand {
 				{ name: "remove", chatInputRun: "runRemove" },
 			],
 			preconditions: ["GuildOnly"],
+			help: {
+				summary: "View and manage role rewards granted at specific XP levels.",
+				examples: ["/rewards list", "/rewards add level:10 role:@Veteran"],
+				subcommands: {
+					list: { summary: "List all configured level rewards.", examples: ["/rewards list"] },
+					add: { summary: "Add a role reward for reaching a level.", examples: ["/rewards add level:10 role:@Veteran"] },
+					remove: { summary: "Remove a level reward.", examples: ["/rewards remove level:10"] },
+				},
+			},
 		});
 	}
 

@@ -11,6 +11,14 @@ export class ReactionRolesCommand extends Subcommand {
 				{ name: "remove", chatInputRun: "runRemove" },
 			],
 			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "Add or remove reaction roles on messages.",
+				examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member", "/reactionrole remove message-id:123456 emoji:👍"],
+				subcommands: {
+					add: { summary: "Attach a reaction role to a message.", examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"] },
+					remove: { summary: "Remove a reaction role from a message.", examples: ["/reactionrole remove message-id:123456 emoji:👍"] },
+				},
+			},
 		});
 	}
 

@@ -6,7 +6,14 @@ import { buildNowPlayingButtons } from "../../lib/music/components.js";
 
 export class NowPlayingCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Show the currently playing song with progress bar.",
+				examples: ["/nowplaying"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

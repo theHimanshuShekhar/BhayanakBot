@@ -12,6 +12,15 @@ export class AutoRespondCommand extends Subcommand {
 				{ name: "list", chatInputRun: "runList" },
 			],
 			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "Add, remove, and list automatic keyword response triggers.",
+				examples: ['/autorespond add trigger:"hello" response:"Hi there!"', "/autorespond list", "/autorespond remove trigger:hello"],
+				subcommands: {
+					add: { summary: "Add a new auto-response trigger.", examples: ['/autorespond add trigger:"hello" response:"Hi there!"'] },
+					remove: { summary: "Remove an auto-response trigger.", examples: ["/autorespond remove trigger:hello"] },
+					list: { summary: "List all configured auto-responses.", examples: ["/autorespond list"] },
+				},
+			},
 		});
 	}
 

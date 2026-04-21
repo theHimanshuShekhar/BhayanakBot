@@ -13,7 +13,14 @@ function isYouTubeVideoUrl(query: string): boolean {
 
 export class PlayCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly", "IsDJ"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly", "IsDJ"],
+			help: {
+				summary: "Play a song or playlist from a URL or search query.",
+				examples: ["/play query:never gonna give you up", "/play query:https://youtu.be/dQw4w9WgXcQ"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

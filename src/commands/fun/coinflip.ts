@@ -2,7 +2,14 @@ import { Command } from "@sapphire/framework";
 
 export class CoinflipCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Flip a coin — heads or tails.",
+				examples: ["/coinflip"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

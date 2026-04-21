@@ -15,6 +15,16 @@ export class ConfigCommand extends Subcommand {
 			name: "config",
 			description: "Configure BhayanakBot settings for this server",
 			preconditions: ["GuildOnly", "IsAdmin"],
+			help: {
+				summary: "Configure server channels, roles, auto-moderation, and anti-raid settings.",
+				examples: ["/config view", "/config set setting:log-channel channel:#mod-log", "/config automod setting:spam-threshold number:5"],
+				subcommands: {
+					view: { summary: "View current server configuration.", examples: ["/config view"] },
+					set: { summary: "Set a configuration value for a specific setting.", examples: ["/config set setting:log-channel channel:#mod-log"] },
+					automod: { summary: "Configure auto-moderation thresholds.", examples: ["/config automod setting:spam-threshold number:5"] },
+					antiraid: { summary: "Configure anti-raid protection (join rate limits).", examples: ["/config antiraid setting:threshold number:10"] },
+				},
+			},
 			subcommands: [
 				{ name: "view", chatInputRun: "chatInputView" },
 				{ name: "set", chatInputRun: "chatInputSet" },
