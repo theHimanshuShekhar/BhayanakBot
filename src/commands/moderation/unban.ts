@@ -5,7 +5,16 @@ import { logToChannel } from "./warn.js";
 
 export class UnbanCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "unban", description: "Unban a user", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "unban",
+			description: "Unban a user",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Unban a user by their user ID.",
+				examples: ['/unban user-id:123456789012345678 reason:"appeal accepted"'],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

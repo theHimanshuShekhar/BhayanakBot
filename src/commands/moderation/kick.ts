@@ -5,7 +5,16 @@ import { logToChannel } from "./warn.js";
 
 export class KickCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "kick", description: "Kick a member", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "kick",
+			description: "Kick a member",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Kick a member from the server.",
+				examples: ['/kick user:@someone reason:"inappropriate behavior"'],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

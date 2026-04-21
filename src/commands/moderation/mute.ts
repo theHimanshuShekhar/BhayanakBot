@@ -7,7 +7,16 @@ import ms from "ms";
 
 export class MuteCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "mute", description: "Mute a member", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "mute",
+			description: "Mute a member",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Mute a member for a duration.",
+				examples: ['/mute user:@x duration:10m reason:"spam"', "/mute user:@y duration:1h"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
