@@ -14,14 +14,13 @@ import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
 
-// Prevents concurrent profile rebuilds when two messages arrive simultaneously and both see count >= 100
-const profileRebuildInProgress = new Set<string>();
-
 // Auto-responder cooldown: Map<guildId:trigger, lastFiredAt>
 const autoResponderCooldown = new Map<string, number>();
 const AUTO_RESPONDER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
 const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.ly|tinyurl\.com)\//i;
+const URL_PATTERN = /https?:\/\/\S+/g;
+const HAS_ALPHA_PATTERN = /[A-Za-z]/;
 
 export class MessageCreateListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -34,23 +33,24 @@ export class MessageCreateListener extends Listener {
 		const settings = await getOrCreateSettings(message.guild.id);
 
 		// --- Personality profiling: store message + trigger rebuild when threshold hit ---
-		// Skip empty messages and command invocations
+		// Skip empty messages, command invocations, URL-only posts, and messages with no alphabetic content
 		const trimmedContent = message.content.trim();
-		if (settings.personalityEnabled && trimmedContent.length > 0 && !trimmedContent.startsWith("/")) {
+		const isMeaningfulForPersonality =
+			trimmedContent.length > 0 &&
+			!trimmedContent.startsWith("/") &&
+			HAS_ALPHA_PATTERN.test(trimmedContent.replace(URL_PATTERN, ""));
+		if (settings.personalityEnabled && isMeaningfulForPersonality) {
 			await storeUserMessage(message.author.id, message.guild.id, trimmedContent);
 			const count = await incrementMessageCount(message.author.id, message.guild.id);
-			const rebuildKey = `${message.author.id}:${message.guild.id}`;
-			if (count >= 100 && !profileRebuildInProgress.has(rebuildKey)) {
-				profileRebuildInProgress.add(rebuildKey);
+			if (count >= 100) {
+				// buildPersonalityProfile serialises concurrent calls per user internally.
 				const guildId = message.guild.id;
-				void buildPersonalityProfile(message.author.id, guildId)
-					.catch((err) =>
-						this.container.logger.error(
-							`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
-							err,
-						),
-					)
-					.finally(() => profileRebuildInProgress.delete(rebuildKey));
+				void buildPersonalityProfile(message.author.id, guildId).catch((err) =>
+					this.container.logger.error(
+						`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
+						err,
+					),
+				);
 			}
 		}
 
@@ -146,9 +146,21 @@ export class MessageCreateListener extends Listener {
 					const systemWithPersonality = personalityCtx + match.response;
 					const reply = await generateAutoResponse(systemWithPersonality, message.content, message.author.username);
 					this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
-					if (reply) await message.reply(reply).catch(() => null);
+					if (reply) {
+						const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+						if (safeReply.length !== reply.length) {
+							this.container.logger.warn(
+								`[autoresponder] LLM reply truncated from ${reply.length} to ${safeReply.length} chars for trigger="${match.trigger}"`,
+							);
+						}
+						await message.reply(safeReply).catch((err) =>
+							this.container.logger.warn(`[autoresponder] reply send failed:`, err),
+						);
+					}
 				} else {
-					await message.reply(match.response).catch(() => null);
+					await message.reply(match.response).catch((err) =>
+						this.container.logger.warn(`[autoresponder] static reply send failed:`, err),
+					);
 				}
 			}
 		}

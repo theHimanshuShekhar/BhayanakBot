@@ -73,9 +73,17 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 		await channel.sendTyping().catch(() => null);
 
-		const response = await callOllama(system, prompt, OLLAMA_TIMEOUT_MS);
+		const response = await callOllama(system, prompt, OLLAMA_TIMEOUT_MS, 160);
 		if (!response) return;
 
-		await channel.send(response).catch(() => null);
+		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;
+		if (safeResponse.length !== response.length) {
+			this.container.logger.warn(
+				`[randomResponder] reply truncated from ${response.length} to ${safeResponse.length} chars`,
+			);
+		}
+		await channel.send(safeResponse).catch((err) =>
+			this.container.logger.warn(`[randomResponder] send failed:`, err),
+		);
 	}
 }

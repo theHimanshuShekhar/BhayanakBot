@@ -12,6 +12,11 @@ const OLLAMA_TIMEOUT_MS = 120_000;
 const MAX_MESSAGES_PER_BUILD = 500;
 const MAX_CHARS_PER_BUILD = 40_000;
 
+// Shared across all call sites (inline messageCreate trigger, /personality manual trigger,
+// scheduled refresh) so concurrent builds for the same user don't race on the same
+// user_messages rows and clobber each other's transactions.
+const rebuildInProgress = new Set<string>();
+
 const SYSTEM_PROMPT = [
 	"You are a personality analyst building a detailed psychological and social profile of a person based solely on their Discord messages.",
 	"Analyze and describe the following dimensions in depth:",
@@ -27,6 +32,17 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 export async function buildPersonalityProfile(userId: string, guildId: string): Promise<void> {
+	const rebuildKey = `${userId}:${guildId}`;
+	if (rebuildInProgress.has(rebuildKey)) return;
+	rebuildInProgress.add(rebuildKey);
+	try {
+		await buildPersonalityProfileUnguarded(userId, guildId);
+	} finally {
+		rebuildInProgress.delete(rebuildKey);
+	}
+}
+
+async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<void> {
 	const messages = await getUnabsorbedMessages(userId, guildId);
 	if (messages.length === 0) return;
 
