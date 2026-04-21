@@ -3,7 +3,14 @@ import { EmbedBuilder } from "discord.js";
 
 export class AvatarCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Show a user's avatar at full resolution.",
+				examples: ["/avatar", "/avatar user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

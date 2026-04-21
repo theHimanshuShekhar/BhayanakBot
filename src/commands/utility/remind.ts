@@ -16,6 +16,18 @@ export class RemindCommand extends Subcommand {
 				{ name: "cancel", chatInputRun: "runCancel" },
 			],
 			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Set, list, and cancel personal reminders.",
+				examples: ['/remind set time:2h message:"stretch"', "/remind list", "/remind cancel id:3"],
+				subcommands: {
+					set: {
+						summary: "Set a reminder after a duration (e.g. 10m, 2h, 1d).",
+						examples: ['/remind set time:30m message:"check oven"'],
+					},
+					list: { summary: "List your active reminders.", examples: ["/remind list"] },
+					cancel: { summary: "Cancel a reminder by its ID.", examples: ["/remind cancel id:7"] },
+				},
+			},
 		});
 	}
 

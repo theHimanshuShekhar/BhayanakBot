@@ -3,7 +3,14 @@ import { EmbedBuilder , MessageFlags } from "discord.js";
 
 export class EditSnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Show the last edited message in this channel (before the edit).",
+				examples: ["/editsnipe"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

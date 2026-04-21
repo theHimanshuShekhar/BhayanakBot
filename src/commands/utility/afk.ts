@@ -11,6 +11,14 @@ export class AfkCommand extends Subcommand {
 				{ name: "clear", chatInputRun: "runClear" },
 			],
 			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Manage your AFK status — set a message or clear it.",
+				examples: ["/afk set reason:brb lunch", "/afk clear"],
+				subcommands: {
+					set: { summary: "Set yourself as AFK with an optional reason.", examples: ["/afk set reason:studying"] },
+					clear: { summary: "Clear your AFK status manually.", examples: ["/afk clear"] },
+				},
+			},
 		});
 	}
 

@@ -3,7 +3,14 @@ import { EmbedBuilder } from "discord.js";
 
 export class ServerInfoCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Display information about this server.",
+				examples: ["/serverinfo"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

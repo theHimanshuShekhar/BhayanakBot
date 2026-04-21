@@ -3,7 +3,13 @@ import { EmbedBuilder } from "discord.js";
 
 export class PingCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options });
+		super(context, {
+			...options,
+			help: {
+				summary: "Check bot latency and API response time.",
+				examples: ["/ping"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

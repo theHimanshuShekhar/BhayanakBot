@@ -3,7 +3,14 @@ import { EmbedBuilder , MessageFlags } from "discord.js";
 
 export class SnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, preconditions: ["GuildOnly"] });
+		super(context, {
+			...options,
+			preconditions: ["GuildOnly"],
+			help: {
+				summary: "Show the last deleted message in this channel.",
+				examples: ["/snipe"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
