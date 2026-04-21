@@ -6,7 +6,16 @@ import ms from "ms";
 
 export class BanCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "ban", description: "Ban a member", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "ban",
+			description: "Ban a member",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Ban a member from the server, optionally as a temporary ban.",
+				examples: ['/ban user:@spammer reason:"raid"', "/ban user:@x duration:7d"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

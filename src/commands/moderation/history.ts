@@ -8,7 +8,16 @@ const typeEmoji: Record<string, string> = {
 
 export class HistoryCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "history", description: "View moderation history for a user", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "history",
+			description: "View moderation history for a user",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "View moderation history for a user.",
+				examples: ["/history user:@someone"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

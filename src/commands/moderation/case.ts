@@ -17,6 +17,14 @@ export class CaseCommand extends Subcommand {
 				{ name: "view", chatInputRun: "chatInputView" },
 				{ name: "edit", chatInputRun: "chatInputEdit" },
 			],
+			help: {
+				summary: "View or edit a moderation case.",
+				examples: ["/case view number:12", '/case edit number:12 reason:"updated context"'],
+				subcommands: {
+					view: { summary: "View a specific case by its number.", examples: ["/case view number:5"] },
+					edit: { summary: "Edit the reason for an existing case.", examples: ['/case edit number:5 reason:"typo fix"'] },
+				},
+			},
 		});
 	}
 

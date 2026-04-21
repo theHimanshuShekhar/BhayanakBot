@@ -6,7 +6,16 @@ import { logToChannel } from "./warn.js";
 
 export class UnmuteCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "unmute", description: "Unmute a member", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "unmute",
+			description: "Unmute a member",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Unmute a previously muted member.",
+				examples: ['/unmute user:@x reason:"served time"'],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

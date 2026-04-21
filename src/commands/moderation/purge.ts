@@ -3,7 +3,16 @@ import { type ChatInputCommandInteraction, PermissionFlagsBits, TextChannel , Me
 
 export class PurgeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "purge", description: "Delete multiple messages", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "purge",
+			description: "Delete multiple messages",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Bulk-delete messages from a channel (optionally filtered by user).",
+				examples: ["/purge amount:50", "/purge amount:20 user:@spammer"],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {

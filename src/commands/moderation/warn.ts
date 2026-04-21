@@ -6,7 +6,16 @@ import { TextChannel } from "discord.js";
 
 export class WarnCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
-		super(context, { ...options, name: "warn", description: "Warn a member", preconditions: ["GuildOnly", "IsModerator"] });
+		super(context, {
+			...options,
+			name: "warn",
+			description: "Warn a member",
+			preconditions: ["GuildOnly", "IsModerator"],
+			help: {
+				summary: "Warn a member and log the case.",
+				examples: ['/warn user:@x reason:"no caps in #general"'],
+			},
+		});
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
