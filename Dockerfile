@@ -16,6 +16,8 @@ FROM node:22-alpine AS migration
 
 RUN npm install -g pnpm drizzle-kit
 
+ENV NODE_PATH=/usr/local/lib/node_modules
+
 WORKDIR /app
 
 COPY drizzle.config.ts ./
