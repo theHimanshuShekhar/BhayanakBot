@@ -29,7 +29,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
       NODE_ENV: production
     networks:
       - botnet
@@ -106,7 +106,7 @@ services:
     ports:
       - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL}
