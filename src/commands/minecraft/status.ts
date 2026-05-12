@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
 
-const MC_SERVER_HOST = "mc.bhayank.net";
+const MC_SERVER_HOST = "mc.bhayanak.net";
 const MC_STATUS_API = `https://api.mcstatus.io/v2/status/java/${MC_SERVER_HOST}`;
 
 interface McStatusResponse {

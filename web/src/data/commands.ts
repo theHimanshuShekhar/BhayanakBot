@@ -451,7 +451,7 @@ export const COMMANDS: Command[] = [
 	// Minecraft (1)
 	{
 		name: "/minecraft",
-		description: "Show the status of our Minecraft server at mc.bhayank.net and browse recommended mods.",
+		description: "Show the status of our Minecraft server at mc.bhayanak.net and browse recommended mods.",
 		examples: ["/minecraft"],
 		category: "minecraft",
 	},
