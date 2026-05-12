@@ -24,8 +24,8 @@ interface McStatusResponse {
 		list?: { name_clean: string; name_html: string; uuid: string }[];
 	};
 	motd?: {
-		clean: string[];
-		html: string[];
+		clean: string;
+		html: string;
 	};
 	icon?: string;
 }
@@ -66,9 +66,9 @@ function stripMinecraftColorCodes(text: string): string {
 	return text.replace(/§[0-9a-fklmnor]/g, "").trim();
 }
 
-function formatMotd(motd: { clean: string[] } | undefined): string {
-	if (!motd?.clean?.length) return "*No description*";
-	return motd.clean.map((line) => stripMinecraftColorCodes(line)).join("\n").slice(0, 1024) || "*No description*";
+function formatMotd(motd: { clean: string } | undefined): string {
+	if (!motd?.clean) return "*No description*";
+	return stripMinecraftColorCodes(motd.clean).slice(0, 1024) || "*No description*";
 }
 
 function formatPlayerList(list: { name_clean: string }[] | undefined): string {
