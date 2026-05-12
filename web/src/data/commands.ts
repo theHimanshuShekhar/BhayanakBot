@@ -20,7 +20,7 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
-	{ id: "all", label: "All", icon: "⚡", description: "All 56 commands" },
+	{ id: "all", label: "All", icon: "⚡", description: "All 57 commands" },
 	{ id: "rpg", label: "RPG & Economy", icon: "⚔️", description: "Profile, jobs, crime, training, shop, pets, properties, quests." },
 	{ id: "moderation", label: "Moderation", icon: "🛡️", description: "Mute, kick, ban, warn, purge, and case management." },
 	{ id: "music", label: "Music", icon: "🎵", description: "Play, queue, and control music in voice channels." },
@@ -33,6 +33,7 @@ export const CATEGORIES: Category[] = [
 	{ id: "suggestions", label: "Suggestions", icon: "💡", description: "Submit and manage community suggestions." },
 	{ id: "config", label: "Server Config", icon: "⚙️", description: "Configure channels, roles, auto-mod, and anti-raid settings." },
 	{ id: "autorespond", label: "Autoresponders", icon: "🤖", description: "Configure automatic message responses (static or LLM-generated)." },
+	{ id: "minecraft", label: "Minecraft", icon: "⛏️", description: "Minecraft server status and recommended mods." },
 ];
 
 export const COMMANDS: Command[] = [
@@ -446,5 +447,12 @@ export const COMMANDS: Command[] = [
 			remove: { summary: "Remove an auto-response trigger.", examples: ["/autorespond remove trigger:hello"] },
 			list: { summary: "List all configured auto-responses.", examples: ["/autorespond list"] },
 		},
+	},
+	// Minecraft (1)
+	{
+		name: "/minecraft",
+		description: "Show the status of our Minecraft server at mc.bhayank.net and browse recommended mods.",
+		examples: ["/minecraft"],
+		category: "minecraft",
 	},
 ];
