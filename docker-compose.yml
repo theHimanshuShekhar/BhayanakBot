@@ -1,69 +1,5 @@
 services:
-  migrate:
-    build:
-      context: .
-      target: migration
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
-      NODE_ENV: production
-    networks:
-      - botnet
-
-  bot:
-    build:
-      context: .
-      target: production
-    restart: unless-stopped
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      valkey:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    ports:
-      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
-    environment:
-      # Service hostnames are fixed inside Docker Compose but values can be overridden via .env
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
-      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL}
-      DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
-      SD_URL: ${SD_URL:-http://stable-diffusion:7860}
-      NODE_ENV: ${NODE_ENV:-production}
-      WEB_PORT: ${WEB_PORT:-3000}
-    networks:
-      - botnet
-
-  stable-diffusion:
-    image: ghcr.io/jim60105/stable-diffusion-webui:latest
-    restart: unless-stopped
-    command: >
-      --api --nowebui
-      --use-cpu all
-      --no-half
-      --skip-torch-cuda-test
-    ports:
-      - "7860:7860"
-    volumes:
-      - sddata:/stable-diffusion-webui/models
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:7860/sdapi/v1/sd-models || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 20
-      start_period: 120s
-    networks:
-      - botnet
-      
+  # ── Layer 1: Data ──────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -81,6 +17,22 @@ services:
     networks:
       - botnet
 
+  # ── Layer 2: Schema (runs after postgres is ready) ────────────
+  migrate:
+    build:
+      context: .
+      target: migration
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
+      NODE_ENV: production
+    networks:
+      - botnet
+
+  # ── Layer 3: Supporting services ──────────────────────────────
   valkey:
     image: valkey/valkey:8-alpine
     restart: unless-stopped
@@ -106,6 +58,57 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - botnet
+
+  stable-diffusion:
+    image: ghcr.io/jim60105/stable-diffusion-webui:latest
+    restart: unless-stopped
+    command: >
+      --api --nowebui
+      --use-cpu all
+      --no-half
+      --skip-torch-cuda-test
+    ports:
+      - "7860:7860"
+    volumes:
+      - sddata:/stable-diffusion-webui/models
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:7860/sdapi/v1/sd-models || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    networks:
+      - botnet
+
+  # ── Layer 4: Application (depends on everything above) ────────
+  bot:
+    build:
+      context: .
+      target: production
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
+      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      SD_URL: ${SD_URL:-http://stable-diffusion:7860}
+      NODE_ENV: ${NODE_ENV:-production}
+      WEB_PORT: ${WEB_PORT:-3000}
     networks:
       - botnet
 
