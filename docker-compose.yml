@@ -25,6 +25,8 @@ services:
       target: migration
     container_name: bhayanak_bot_migrate
     restart: on-failure
+    labels:
+      - "dockhand.hidden=true"
     depends_on:
       postgres:
         condition: service_healthy
