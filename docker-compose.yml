@@ -1,20 +1,20 @@
 services:
-  # migrate:
-  #   build:
-  #     context: .
-  #     target: base
-  #   command: pnpm db:migrate
-  #   restart: on-failure
-  #   # depends_on:
-  #   #   postgres:
-  #   #     condition: service_healthy
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:2222/bhayanakbot
-  #     NODE_ENV: production
-  #   networks:
-  #     - botnet
+  migrate:
+    build:
+      context: .
+      target: base
+    command: pnpm db:migrate
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:***@postgres:2222/bhayanakbot
+      NODE_ENV: production
+    networks:
+      - botnet
 
   bot:
     build:
@@ -22,6 +22,8 @@ services:
       target: production
     restart: unless-stopped
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       valkey:
         condition: service_healthy
       ollama:
