@@ -14,16 +14,17 @@ COPY . .
 # migration: minimal image to run database migrations (no ffmpeg/python/build deps)
 FROM node:22-alpine AS migration
 
-RUN npm install -g pnpm drizzle-kit
-
-ENV NODE_PATH=/usr/local/lib/node_modules
+RUN npm install -g pnpm
 
 WORKDIR /app
+
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild esbuild
 
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 
-CMD ["drizzle-kit", "migrate"]
+CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
 
 # build: compiles TypeScript and web frontend on top of base
 FROM base AS build
