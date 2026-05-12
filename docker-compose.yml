@@ -2,9 +2,8 @@ services:
   migrate:
     build:
       context: .
-      target: base
-    command: pnpm db:migrate
-    restart: on-failure
+      target: migration
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy

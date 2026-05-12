@@ -1,4 +1,4 @@
-# base: full deps + source, used for building and running migrations
+# base: full deps + source, used for building
 FROM node:22-alpine AS base
 
 RUN apk add --no-cache ffmpeg python3 make g++ gcompat
@@ -10,6 +10,18 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# migration: minimal image to run database migrations (no ffmpeg/python/build deps)
+FROM node:22-alpine AS migration
+
+RUN npm install -g pnpm drizzle-kit
+
+WORKDIR /app
+
+COPY drizzle.config.ts ./
+COPY drizzle/ ./drizzle/
+
+CMD ["drizzle-kit", "migrate"]
 
 # build: compiles TypeScript and web frontend on top of base
 FROM base AS build
