@@ -8,10 +8,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
-      DATABASE_URL: postgresql://postgres:***@postgres:2222/bhayanakbot
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
       NODE_ENV: production
     networks:
       - botnet
@@ -34,7 +32,7 @@ services:
       - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     environment:
       # Service hostnames are fixed inside Docker Compose but values can be overridden via .env
-      DATABASE_URL: postgresql://postgres:postgres@postgres:2222/bhayanakbot
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:2222/bhayanakbot
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL}
@@ -72,7 +70,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: bhayanakbot
     volumes:
       - pgdata:/var/lib/postgresql/data
