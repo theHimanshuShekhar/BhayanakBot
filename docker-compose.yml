@@ -2,6 +2,7 @@ services:
   # ── Layer 1: Data ──────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
+    container_name: bhayanak_bot_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -22,6 +23,7 @@ services:
     build:
       context: .
       target: migration
+    container_name: bhayanak_bot_migrate
     restart: on-failure
     depends_on:
       postgres:
@@ -35,6 +37,7 @@ services:
   # ── Layer 3: Supporting services ──────────────────────────────
   valkey:
     image: valkey/valkey:8-alpine
+    container_name: bhayanak_bot_valkey
     restart: unless-stopped
     command: valkey-server --appendonly yes
     volumes:
@@ -49,6 +52,7 @@ services:
 
   ollama:
     image: ollama/ollama:latest
+    container_name: bhayanak_bot_ollama
     restart: unless-stopped
     volumes:
       - ollamadata:/root/.ollama
@@ -63,6 +67,7 @@ services:
 
   stable-diffusion:
     image: ghcr.io/jim60105/stable-diffusion-webui:latest
+    container_name: bhayanak_bot_sd
     restart: unless-stopped
     command: >
       --api --nowebui
@@ -87,6 +92,7 @@ services:
     build:
       context: .
       target: production
+    container_name: bhayanak_bot
     restart: unless-stopped
     depends_on:
       migrate:
