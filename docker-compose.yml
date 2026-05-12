@@ -31,12 +31,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # These override any values in .env so service hostnames are always correct
-      VALKEY_URL: redis://valkey:6379
-      OLLAMA_URL: http://ollama:11434
-      SD_URL: http://stable-diffusion:7860
-      NODE_ENV: production
-      WEB_PORT: "3000"
+      # Service hostnames are fixed inside Docker Compose but values can be overridden via .env
+      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      SD_URL: ${SD_URL:-http://stable-diffusion:7860}
+      NODE_ENV: ${NODE_ENV:-production}
+      WEB_PORT: ${WEB_PORT:-3000}
     networks:
       - botnet
 
