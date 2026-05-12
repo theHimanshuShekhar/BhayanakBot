@@ -29,7 +29,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     environment:
       # Service hostnames are fixed inside Docker Compose but values can be overridden via .env
       DATABASE_URL: postgresql://postgres:postgres@postgres:2222/bhayanakbot
