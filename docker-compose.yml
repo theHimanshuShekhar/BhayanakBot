@@ -11,7 +11,7 @@ services:
   #   env_file:
   #     - .env
   #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@10.1.1.111:2222/bhayanakbot
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:2222/bhayanakbot
   #     NODE_ENV: production
   #   networks:
   #     - botnet
@@ -26,12 +26,13 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
-    env_file:
-      - .env
+      postgres:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
       # Service hostnames are fixed inside Docker Compose but values can be overridden via .env
+      DATABASE_URL: postgresql://postgres:postgres@postgres:2222/bhayanakbot
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL}
@@ -63,23 +64,23 @@ services:
       start_period: 120s
     networks:
       - botnet
-
-  # postgres:
-  #   image: postgres:16-alpine
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: bhayanakbot
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres -d bhayanakbot"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 10
-  #   networks:
-  #     - botnet
+      
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bhayanakbot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bhayanakbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - botnet
 
   valkey:
     image: valkey/valkey:8-alpine
