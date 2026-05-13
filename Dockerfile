@@ -30,7 +30,7 @@ CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
 FROM base AS build
 RUN pnpm build && pnpm web:build
 
-# production: lean runtime image with only prod deps + compiled output
+# production: runtime image with drizzle-kit for startup migration + compiled output
 FROM node:22-alpine AS production
 
 RUN apk add --no-cache ffmpeg python3 gcompat
@@ -39,9 +39,13 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml .npmrc ./
-RUN pnpm install --frozen-lockfile --prod
+# Full install (not --prod) so drizzle-kit is available for startup migration
+RUN pnpm install --frozen-lockfile
+
+COPY drizzle.config.ts ./
+COPY drizzle/ ./drizzle/
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/web/dist ./web/dist
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "pnpm db:migrate && node dist/index.js"]

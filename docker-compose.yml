@@ -18,25 +18,7 @@ services:
     networks:
       - botnet
 
-  # ── Layer 2: Schema (runs after postgres is ready) ────────────
-  migrate:
-    build:
-      context: .
-      target: migration
-    container_name: bhayanak_bot_migrate
-    restart: on-failure
-    labels:
-      - "dockhand.hidden=true"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
-      NODE_ENV: production
-    networks:
-      - botnet
-
-  # ── Layer 3: Supporting services ──────────────────────────────
+  # ── Layer 2: Supporting services ──────────────────────────────
   valkey:
     image: valkey/valkey:8-alpine
     container_name: bhayanak_bot_valkey
@@ -58,8 +40,12 @@ services:
     restart: unless-stopped
     volumes:
       - ollamadata:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 8G
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/11434'"]
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -71,6 +57,10 @@ services:
     image: ghcr.io/jim60105/stable-diffusion-webui:latest
     container_name: bhayanak_bot_sd
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8G
     command: >
       --api --nowebui
       --use-cpu all
@@ -96,15 +86,23 @@ services:
       target: production
     container_name: bhayanak_bot
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       valkey:
         condition: service_healthy
       ollama:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "const h=require('http');h.get('http://localhost:'+(process.env.WEB_PORT||3000)+'/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     ports:
       - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     environment:
