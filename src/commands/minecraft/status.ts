@@ -36,29 +36,23 @@ interface ModEntry {
 	summary: string;
 }
 
-const REQUIRED_MODS: ModEntry[] = [
-	{
-		name: "Simple Voice Chat",
-		url: "https://modrinth.com/mod/simple-voice-chat",
-		summary: "Proximity voice chat with push-to-talk, whispering, and group chats. **Mandatory** — everyone needs this to talk on the server.",
-	},
-];
+const REQUIRED_MODS: ModEntry[] = [];
 
 const RECOMMENDED_MODS: ModEntry[] = [
+	{
+		name: "Homestead",
+		url: "https://www.curseforge.com/minecraft/modpacks/homestead-cozy",
+		summary: "A cozy, family-friendly kitchen-sink modpack focused on farming, building, and exploration.",
+	},
 	{
 		name: "Distant Horizons",
 		url: "https://modrinth.com/mod/distanthorizons",
 		summary: "See farther without turning your game into a slideshow — adds LOD-based distant terrain rendering.",
 	},
 	{
-		name: "Xaero's Minimap",
-		url: "https://modrinth.com/mod/xaeros-minimap",
-		summary: "Full-featured minimap with entity radar, waypoints, and cave mode.",
-	},
-	{
-		name: "Xaero's World Map",
-		url: "https://modrinth.com/mod/xaeros-world-map",
-		summary: "Self-writing fullscreen world map that pairs with Xaero's Minimap.",
+		name: "Extra FTB Mods",
+		url: "https://discord.com/channels/199168135935295488/199168135935295488/1504511226003329315",
+		summary: "Extra FTB utility mods (Teams, Quests, Essentials, Library, Filter System, XMod Compat, Quests Additions). Download the zip and extract into your mods folder.",
 	},
 ];
 
@@ -108,7 +102,7 @@ export class MinecraftStatusCommand extends Command {
 		await interaction.deferReply();
 
 		const embed = new EmbedBuilder()
-			.setTitle("⛏️ Bhayanak Minecraft Server")
+			.setTitle("⛏️ Bhayanak Minecraft — Homestead")
 			.setColor(0x3fb67b)
 			.setTimestamp();
 
@@ -173,10 +167,12 @@ export class MinecraftStatusCommand extends Command {
 		}
 
 		// --- Required Mods ---
-		embed.addFields({
-			name: "📌 Required Mods",
-			value: formatModList(REQUIRED_MODS),
-		});
+		if (REQUIRED_MODS.length > 0) {
+			embed.addFields({
+				name: "📌 Required Mods",
+				value: formatModList(REQUIRED_MODS),
+			});
+		}
 
 		// --- Recommended Mods ---
 		if (RECOMMENDED_MODS.length > 0) {
