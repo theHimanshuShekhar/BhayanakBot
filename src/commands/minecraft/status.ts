@@ -36,23 +36,24 @@ interface ModEntry {
 	summary: string;
 }
 
-const REQUIRED_MODS: ModEntry[] = [];
-
-const RECOMMENDED_MODS: ModEntry[] = [
+const REQUIRED_MODS: ModEntry[] = [
 	{
 		name: "Homestead",
 		url: "https://www.curseforge.com/minecraft/modpacks/homestead-cozy",
-		summary: "A cozy, family-friendly kitchen-sink modpack focused on farming, building, and exploration.",
-	},
-	{
-		name: "Distant Horizons",
-		url: "https://modrinth.com/mod/distanthorizons",
-		summary: "See farther without turning your game into a slideshow — adds LOD-based distant terrain rendering.",
+		summary: "The modpack itself. Install from CurseForge or use your preferred launcher.",
 	},
 	{
 		name: "Extra FTB Mods",
 		url: "https://discord.com/channels/199168135935295488/199168135935295488/1504511226003329315",
 		summary: "Extra FTB utility mods (Teams, Quests, Essentials, Library, Filter System, XMod Compat, Quests Additions). Download the zip and extract into your mods folder.",
+	},
+];
+
+const RECOMMENDED_MODS: ModEntry[] = [
+	{
+		name: "Distant Horizons",
+		url: "https://modrinth.com/mod/distanthorizons",
+		summary: "See farther without turning your game into a slideshow — adds LOD-based distant terrain rendering.",
 	},
 ];
 
