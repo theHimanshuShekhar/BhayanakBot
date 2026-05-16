@@ -309,3 +309,58 @@ export async function addXpToProfile(
 	const leveledUp = row.level > oldLevel;
 	return { newXp: row.xp, newLevel: row.level, leveledUp };
 }
+
+// --- Daily Streak ---
+
+const DAILY_BASE_REWARD = 500;
+const DAILY_STREAK_BONUS = 50;
+const DAILY_MAX_STREAK_BONUS = 1000;
+const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DAILY_GRACE_PERIOD_MS = 48 * 60 * 60 * 1000; // 48 hours to maintain streak
+
+export function getDailyReward(streak: number): { coins: number; xp: number } {
+	const bonus = Math.min(streak * DAILY_STREAK_BONUS, DAILY_MAX_STREAK_BONUS);
+	return { coins: DAILY_BASE_REWARD + bonus, xp: 100 + Math.min(streak * 10, 200) };
+}
+
+export function canClaimDaily(lastDailyAt: Date | null): { canClaim: boolean; remainingMs: number } {
+	if (!lastDailyAt) return { canClaim: true, remainingMs: 0 };
+	const remainingMs = DAILY_COOLDOWN_MS - (Date.now() - lastDailyAt.getTime());
+	return { canClaim: remainingMs <= 0, remainingMs: Math.max(0, remainingMs) };
+}
+
+export function shouldResetStreak(lastDailyAt: Date | null): boolean {
+	if (!lastDailyAt) return false;
+	return Date.now() - lastDailyAt.getTime() > DAILY_GRACE_PERIOD_MS;
+}
+
+export async function claimDaily(userId: string): Promise<{
+	streak: number;
+	reward: { coins: number; xp: number };
+	leveledUp: boolean;
+}> {
+	const profile = await db.query.rpgProfiles.findFirst({ where: eq(rpgProfiles.userId, userId) });
+	if (!profile) throw new Error(`RPG profile not found for userId: ${userId}`);
+
+	const resetStreak = shouldResetStreak(profile.lastDailyAt);
+	const newStreak = resetStreak ? 1 : profile.dailyStreak + 1;
+	const reward = getDailyReward(newStreak);
+
+	const [updated] = await db
+		.update(rpgProfiles)
+		.set({
+			coins: sql`${rpgProfiles.coins} + ${reward.coins}`,
+			xp: sql`${rpgProfiles.xp} + ${reward.xp}`,
+			level: sql`FLOOR(0.05 * SQRT(${rpgProfiles.xp} + ${reward.xp}))::int`,
+			dailyStreak: newStreak,
+			lastDailyAt: new Date(),
+		})
+		.where(eq(rpgProfiles.userId, userId))
+		.returning({ coins: rpgProfiles.coins, xp: rpgProfiles.xp, level: rpgProfiles.level });
+
+	if (!updated) throw new Error(`Failed to claim daily for userId: ${userId}`);
+	const oldLevel = Math.floor(0.05 * Math.sqrt(updated.xp - reward.xp));
+	const leveledUp = updated.level > oldLevel;
+
+	return { streak: newStreak, reward, leveledUp };
+}

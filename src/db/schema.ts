@@ -246,6 +246,8 @@ export const rpgProfiles = pgTable("rpg_profiles", {
 	xp: integer("xp").default(0).notNull(),
 	jailUntil: timestamp("jail_until"),
 	jailBailCost: integer("jail_bail_cost"),
+	dailyStreak: integer("daily_streak").default(0).notNull(),
+	lastDailyAt: timestamp("last_daily_at"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

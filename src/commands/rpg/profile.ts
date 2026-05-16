@@ -61,6 +61,8 @@ export class ProfileCommand extends Command {
 						.join(", ") + (ownedPets.length > 3 ? ` +${ownedPets.length - 3} more` : "")
 				: "None";
 
+		const streakText = profile.dailyStreak > 0 ? `🔥 ${profile.dailyStreak} day streak` : "No streak yet";
+
 		const embed = new EmbedBuilder()
 			.setTitle(`${target.displayName}'s RPG Profile`)
 			.setThumbnail(target.displayAvatarURL())
@@ -76,6 +78,7 @@ export class ProfileCommand extends Command {
 				{ name: "🗣️ Charisma", value: statBar(stats.charisma), inline: true },
 				{ name: "🍀 Luck", value: statBar(stats.luck), inline: true },
 				{ name: "🐾 Pets", value: petDisplay, inline: true },
+				{ name: "📅 Daily Streak", value: streakText, inline: true },
 			)
 			.setFooter({ text: `Total XP: ${profile.xp.toLocaleString()}` });
 
