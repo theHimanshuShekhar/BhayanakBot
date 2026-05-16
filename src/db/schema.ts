@@ -212,6 +212,11 @@ export const autoResponses = pgTable("auto_responses", {
 	response: text("response").notNull(),
 	matchType: autoResponseMatchTypeEnum("match_type").default("contains").notNull(),
 	responseType: autoResponseTypeEnum("response_type").default("static").notNull(),
+	useRegex: boolean("use_regex").default(false).notNull(),
+	channelIds: jsonb("channel_ids").$type<string[]>().default([]).notNull(), // empty = all channels
+	requireMention: boolean("require_mention").default(false).notNull(),
+	chancePercent: integer("chance_percent").default(100).notNull(), // 0-100
+	deleteTrigger: boolean("delete_trigger").default(false).notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -236,6 +241,13 @@ export const userPersonalityProfiles = pgTable(
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
 );
+
+export const guildPersonalityProfiles = pgTable("guild_personality_profiles", {
+	guildId: varchar("guild_id", { length: 20 }).primaryKey(),
+	profile: text("profile"),
+	messageCount: integer("message_count").default(0).notNull(),
+	lastRefreshedAt: timestamp("last_refreshed_at"),
+});
 
 // --- RPG Module ---
 

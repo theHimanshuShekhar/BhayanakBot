@@ -6,7 +6,9 @@ import { createCase } from "../../db/queries/modCases.js";
 import { getAfk, clearAfk } from "../../db/queries/afk.js";
 import { findMatchingResponse } from "../../db/queries/autoResponses.js";
 import { storeUserMessage, incrementMessageCount } from "../../db/queries/personality.js";
-import { generateAutoResponse } from "../../lib/autoresponder/llmResponse.js";
+import { incrementGuildMessageCount } from "../../db/queries/guildPersonality.js";
+import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
+import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
@@ -17,6 +19,14 @@ const spamTracker = new Map<string, { count: number; resetAt: number }>();
 // Auto-responder cooldown: Map<guildId:trigger, lastFiredAt>
 const autoResponderCooldown = new Map<string, number>();
 const AUTO_RESPONDER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
+// Per-user auto-responder cooldown: Map<guildId:userId, lastFiredAt>
+const userAutoResponderCooldown = new Map<string, number>();
+const USER_AUTO_RESPONDER_COOLDOWN_MS = 30 * 1000; // 30 seconds
+
+// Conversation history for LLM context: Map<channelId, messages[]>
+const CONVERSATION_HISTORY_LIMIT = 20;
+const conversationHistory = new Map<string, { author: string; content: string; timestamp: number }[]>();
 
 const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.ly|tinyurl\.com)\//i;
 const URL_PATTERN = /https?:\/\/\S+/g;
@@ -31,6 +41,9 @@ export class MessageCreateListener extends Listener {
 		if (message.author.bot || !message.guild) return;
 
 		const settings = await getOrCreateSettings(message.guild.id);
+
+		// --- Store conversation history ---
+		this.addToConversationHistory(message);
 
 		// --- Personality profiling: store message + trigger rebuild when threshold hit ---
 		// Skip empty messages, command invocations, URL-only posts, and messages with no alphabetic content
@@ -52,13 +65,26 @@ export class MessageCreateListener extends Listener {
 					),
 				);
 			}
+			// Also increment guild message count for server-wide personality profiling
+			const guildId = message.guild.id;
+			const guildCount = await incrementGuildMessageCount(guildId);
+			if (guildCount >= 200) {
+				void buildGuildPersonalityProfile(guildId).catch((err) =>
+					this.container.logger.error(
+						`[guild-personality] Inline build failed for guildId=${guildId}:`,
+						err,
+					),
+				);
+			}
 		}
 
 		// --- AFK clear ---
 		const afk = await getAfk(message.author.id, message.guild.id);
 		if (afk) {
 			await clearAfk(message.author.id, message.guild.id);
-			await message.reply(`Welcome back, <@${message.author.id}>! I removed your AFK status.`).then((m) => setTimeout(() => m.delete().catch(() => null), 5000));
+			await message.reply(`Welcome back, <@${message.author.id}>! I removed your AFK status.`).then((m) =>
+				setTimeout(() => m.delete().catch(() => null), 5000),
+			);
 		}
 
 		// --- Notify AFK users who are mentioned ---
@@ -66,7 +92,9 @@ export class MessageCreateListener extends Listener {
 			const mentionedAfk = await getAfk(mentionedUser.id, message.guild.id);
 			if (mentionedAfk) {
 				await (message.channel as TextChannel)
-					.send(`**${mentionedUser.username}** is AFK${mentionedAfk.reason ? `: ${mentionedAfk.reason}` : ""} — set <t:${Math.floor(mentionedAfk.setAt.getTime() / 1000)}:R>`)
+					.send(
+						`**${mentionedUser.username}** is AFK${mentionedAfk.reason ? `: ${mentionedAfk.reason}` : ""} — set <t:${Math.floor(mentionedAfk.setAt.getTime() / 1000)}:R>`,
+					)
 					.catch(() => null);
 			}
 		}
@@ -128,45 +156,162 @@ export class MessageCreateListener extends Listener {
 		}
 
 		// --- Auto-responder ---
-		const match = await findMatchingResponse(message.guild.id, message.content);
-		this.container.logger.debug(`[autoresponder] guild=${message.guild.id} content="${message.content.slice(0, 50)}" match=${match ? `trigger="${match.trigger}" type=${match.responseType}` : "none"}`);
+		const botMentioned = message.mentions.has(message.client.user);
+		const match = await findMatchingResponse(message.guild.id, message.content, message.channel.id, botMentioned);
+		this.container.logger.debug(
+			`[autoresponder] guild=${message.guild.id} content="${message.content.slice(0, 50)}" match=${match ? `trigger="${match.response.trigger}" type=${match.response.responseType}` : "none"}`,
+		);
+
 		if (match) {
-			const cooldownKey = `${message.guild.id}:${match.trigger}`;
+			const cooldownKey = `${message.guild.id}:${match.response.trigger}`;
 			const lastFired = autoResponderCooldown.get(cooldownKey) ?? 0;
-			const botMentioned = message.mentions.has(message.client.user);
+			const userCooldownKey = `${message.guild.id}:${message.author.id}`;
+			const lastUserFired = userAutoResponderCooldown.get(userCooldownKey) ?? 0;
 			const onCooldown = Date.now() - lastFired < AUTO_RESPONDER_COOLDOWN_MS;
+			const onUserCooldown = Date.now() - lastUserFired < USER_AUTO_RESPONDER_COOLDOWN_MS;
 
 			if (onCooldown && !botMentioned) {
-				this.container.logger.debug(`[autoresponder] trigger="${match.trigger}" skipped (cooldown)`);
+				this.container.logger.debug(`[autoresponder] trigger="${match.response.trigger}" skipped (cooldown)`);
+			} else if (onUserCooldown) {
+				this.container.logger.debug(`[autoresponder] trigger="${match.response.trigger}" skipped (user cooldown)`);
 			} else {
 				autoResponderCooldown.set(cooldownKey, Date.now());
-				if (match.responseType === "llm") {
+				userAutoResponderCooldown.set(userCooldownKey, Date.now());
+
+				// Delete trigger if configured
+				if (match.response.deleteTrigger) {
+					await message.delete().catch(() => null);
+				}
+
+				if (match.response.responseType === "llm") {
 					const client = this.container.client as BhayanakClient;
 					const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
-					const systemWithPersonality = personalityCtx + match.response;
-					const reply = await generateAutoResponse(systemWithPersonality, message.content, message.author.username);
-					this.container.logger.debug(`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`);
+					const systemWithPersonality = personalityCtx + match.response.response;
+					const conversationContext = this.getConversationContext(message.channel.id, 10);
+					const reply = await generateAutoResponse(
+						systemWithPersonality,
+						message.content,
+						message.author.username,
+						conversationContext,
+					);
+					this.container.logger.debug(
+						`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`,
+					);
 					if (reply) {
-						const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
-						if (safeReply.length !== reply.length) {
-							this.container.logger.warn(
-								`[autoresponder] LLM reply truncated from ${reply.length} to ${safeReply.length} chars for trigger="${match.trigger}"`,
-							);
-						}
-						await message.reply(safeReply).catch((err) =>
-							this.container.logger.warn(`[autoresponder] reply send failed:`, err),
-						);
+						const safeReply = this.substituteVariables(reply, match.captured);
+						await this.sendReply(message, safeReply, match.response.deleteTrigger);
 					}
 				} else {
-					await message.reply(match.response).catch((err) =>
-						this.container.logger.warn(`[autoresponder] static reply send failed:`, err),
-					);
+					const responseText = this.substituteVariables(match.response.response, match.captured);
+					await this.sendReply(message, responseText, match.response.deleteTrigger);
 				}
 			}
+		} else if (botMentioned && !message.content.match(/^\s*<@!?\d+>\s*$/)) {
+			// Smart mention reply when bot is @mentioned but no autoresponder matched
+			await this.handleSmartMention(message, settings);
 		}
 	}
 
-	private async takeAutoModAction(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>, reason: string) {
+	private substituteVariables(response: string, captured?: Record<string, string>): string {
+		if (!captured) return response;
+		let result = response;
+		for (const [key, value] of Object.entries(captured)) {
+			result = result.replaceAll(`{${key}}`, value);
+		}
+		return result;
+	}
+
+	private async sendReply(message: Message, content: string, deletedTrigger: boolean) {
+		const safeReply = content.length > 1990 ? `${content.slice(0, 1989)}…` : content;
+		if (safeReply.length !== content.length) {
+			this.container.logger.warn(
+				`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`,
+			);
+		}
+		// If trigger was deleted, send as regular message instead of reply
+		if (deletedTrigger) {
+			await (message.channel as TextChannel).send(safeReply).catch((err) =>
+				this.container.logger.warn(`[autoresponder] send failed:`, err),
+			);
+		} else {
+			await message.reply(safeReply).catch((err) =>
+				this.container.logger.warn(`[autoresponder] reply send failed:`, err),
+			);
+		}
+	}
+
+	private async handleSmartMention(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
+		// Skip if personality profiling is disabled or not in a guild
+		if (!settings.personalityEnabled || !message.guild) return;
+
+		const client = this.container.client as BhayanakClient;
+		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
+		const conversationContext = this.getConversationContext(message.channel.id, 15);
+
+		// Build a guild context if available
+		const guildProfile = client.guildPersonalityCache?.get(message.guild!.id);
+		const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
+
+		const systemPrompt = [
+			`You are a Discord bot named ${message.client.user.username}.`,
+			`You are chatting in the server "${message.guild!.name}".`,
+			`Be helpful, witty, and conversational.`,
+			personalityCtx,
+			guildContext,
+		].join("\n");
+
+		const reply = await generateMentionReply(
+			systemPrompt,
+			conversationContext,
+			message.author.username,
+			message.content.replace(new RegExp(`<@!?${message.client.user.id}>`, "g"), "").trim(),
+		);
+
+		if (reply) {
+			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+			await message.reply(safeReply).catch((err) =>
+				this.container.logger.warn(`[smart-mention] reply send failed:`, err),
+			);
+		}
+	}
+
+	private addToConversationHistory(message: Message) {
+		const channelId = message.channel.id;
+		let history = conversationHistory.get(channelId);
+		if (!history) {
+			history = [];
+			conversationHistory.set(channelId, history);
+		}
+		history.push({
+			author: message.author.username,
+			content: message.content.slice(0, 500), // cap individual message length
+			timestamp: Date.now(),
+		});
+		// Trim old messages
+		if (history.length > CONVERSATION_HISTORY_LIMIT) {
+			history.shift();
+		}
+		// Also remove messages older than 30 minutes
+		const cutoff = Date.now() - 30 * 60 * 1000;
+		while (history.length > 0 && history[0].timestamp < cutoff) {
+			history.shift();
+		}
+	}
+
+	private getConversationContext(channelId: string, limit: number): string {
+		const history = conversationHistory.get(channelId);
+		if (!history || history.length === 0) return "";
+		return history
+			.slice(-limit)
+			.map((m) => `${m.author}: ${m.content}`)
+			.join("\n");
+	}
+
+	private async takeAutoModAction(
+		message: Message,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+		reason: string,
+	) {
 		const action = settings.autoModAction ?? "warn";
 		const member = message.member;
 		if (!member) return;
@@ -206,7 +351,9 @@ export class MessageCreateListener extends Listener {
 		}
 
 		// Notify user
-		await message.author.send(`⚠️ Your message in **${message.guild!.name}** was removed by auto-mod. Reason: ${reason}`).catch(() => null);
+		await message.author
+			.send(`⚠️ Your message in **${message.guild!.name}** was removed by auto-mod. Reason: ${reason}`)
+			.catch(() => null);
 
 		// Log
 		if (settings.logChannelId) {
@@ -215,7 +362,11 @@ export class MessageCreateListener extends Listener {
 		}
 	}
 
-	private async handleLevelUp(message: Message, newLevel: number, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
+	private async handleLevelUp(
+		message: Message,
+		newLevel: number,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+	) {
 		const levelUpMsg = (settings.levelUpMessage ?? "🎉 **{user}** leveled up to **Level {level}**!")
 			.replace("{user}", `<@${message.author.id}>`)
 			.replace("{level}", newLevel.toString())

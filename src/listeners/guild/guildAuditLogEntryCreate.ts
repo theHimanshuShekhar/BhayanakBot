@@ -3,7 +3,7 @@ import {
 	AuditLogEvent,
 	EmbedBuilder,
 	Guild,
-	GuildAuditLogEntryCreatePayload,
+	GuildAuditLogsEntry,
 	TextChannel,
 } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
@@ -28,12 +28,12 @@ const ACTION_LABEL: Record<string, string> = {
 	warn: "⚠️ Warn",
 };
 
-export class GuildAuditLogEntryCreateListener extends Listener {
+export class GuildAuditLogsEntryCreateListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
 		super(context, { ...options, event: "guildAuditLogEntryCreate" });
 	}
 
-	public async run(entry: GuildAuditLogEntryCreatePayload, guild: Guild) {
+	public async run(entry: GuildAuditLogsEntry, guild: Guild) {
 		const settings = await getOrCreateSettings(guild.id);
 		if (!settings.logChannelId) return;
 
@@ -72,7 +72,7 @@ export class GuildAuditLogEntryCreateListener extends Listener {
 	}
 
 	private formatEntry(
-		entry: GuildAuditLogEntryCreatePayload,
+		entry: GuildAuditLogsEntry,
 		mutedRoleId: string | null,
 	): { embed: EmbedBuilder | null; caseType: string | null; targetId: string | null; durationMs?: number } {
 		switch (entry.action) {
@@ -158,7 +158,7 @@ export class GuildAuditLogEntryCreateListener extends Listener {
 
 	private buildEmbed(
 		action: string,
-		entry: GuildAuditLogEntryCreatePayload,
+		entry: GuildAuditLogsEntry,
 		targetId?: string,
 		extra?: string,
 	): EmbedBuilder {
