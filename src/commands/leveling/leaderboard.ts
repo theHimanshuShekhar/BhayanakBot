@@ -30,9 +30,8 @@ export class LeaderboardCommand extends Command {
 		const pageSize = 10;
 		const guildId = interaction.guildId!;
 
-		const allUsers = await getLeaderboard(guildId, page * pageSize);
-		const start = (page - 1) * pageSize;
-		const entries = allUsers.slice(start, start + pageSize);
+		const offset = (page - 1) * pageSize;
+		const entries = await getLeaderboard(guildId, pageSize, offset);
 
 		if (entries.length === 0) {
 			return interaction.reply({ content: "No users found on this page.", flags: MessageFlags.Ephemeral });
@@ -40,7 +39,7 @@ export class LeaderboardCommand extends Command {
 
 		const medals = ["🥇", "🥈", "🥉"];
 		const lines = entries.map((u, i) => {
-			const rank = start + i + 1;
+			const rank = offset + i + 1;
 			const medal = medals[rank - 1] ?? `**#${rank}**`;
 			return `${medal} <@${u.userId}> — Level ${u.level} · ${u.xp.toLocaleString()} XP`;
 		});

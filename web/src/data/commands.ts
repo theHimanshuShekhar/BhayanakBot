@@ -20,7 +20,7 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
-	{ id: "all", label: "All", icon: "⚡", description: "All 57 commands" },
+	{ id: "all", label: "All", icon: "⚡", description: "All 55 commands" },
 	{ id: "rpg", label: "RPG & Economy", icon: "⚔️", description: "Profile, jobs, crime, training, shop, pets, properties, quests." },
 	{ id: "moderation", label: "Moderation", icon: "🛡️", description: "Mute, kick, ban, warn, purge, and case management." },
 	{ id: "music", label: "Music", icon: "🎵", description: "Play, queue, and control music in voice channels." },
@@ -90,12 +90,6 @@ export const COMMANDS: Command[] = [
 		name: "/quests",
 		description: "View today's daily quests and your completion progress.",
 		examples: ["/quests"],
-		category: "rpg",
-	},
-	{
-		name: "/portrait",
-		description: "Generate an AI character portrait based on your RPG stats (7-day cooldown).",
-		examples: ["/portrait"],
 		category: "rpg",
 	},
 	// Moderation (9)
@@ -313,12 +307,6 @@ export const COMMANDS: Command[] = [
 		name: "/poll",
 		description: "Create a button-based poll with up to 4 options.",
 		examples: ['/poll question:"Best language?" options:"Python,JS,Go,Rust"'],
-		category: "fun",
-	},
-	{
-		name: "/pfp-edit",
-		description: "Add a fun frame or effect to your profile picture.",
-		examples: ["/pfp-edit effect:rainbow"],
 		category: "fun",
 	},
 	// Leveling (4)

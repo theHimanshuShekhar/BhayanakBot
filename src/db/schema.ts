@@ -194,12 +194,16 @@ export const suggestions = pgTable("suggestions", {
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const afkUsers = pgTable("afk_users", {
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	reason: text("reason"),
-	setAt: timestamp("set_at").defaultNow().notNull(),
-});
+export const afkUsers = pgTable(
+	"afk_users",
+	{
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		reason: text("reason"),
+		setAt: timestamp("set_at").defaultNow().notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
+);
 
 export const autoResponses = pgTable("auto_responses", {
 	id: serial("id").primaryKey(),
@@ -242,17 +246,16 @@ export const rpgProfiles = pgTable("rpg_profiles", {
 	xp: integer("xp").default(0).notNull(),
 	jailUntil: timestamp("jail_until"),
 	jailBailCost: integer("jail_bail_cost"),
-	portraitUrl: text("portrait_url"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const rpgStats = pgTable("rpg_stats", {
 	userId: varchar("user_id", { length: 20 }).primaryKey(),
-	strength: integer("strength").default(1).notNull(),
-	intelligence: integer("intelligence").default(1).notNull(),
-	agility: integer("agility").default(1).notNull(),
-	charisma: integer("charisma").default(1).notNull(),
-	luck: integer("luck").default(1).notNull(),
+	strength: integer("strength").default(50).notNull(),
+	intelligence: integer("intelligence").default(50).notNull(),
+	agility: integer("agility").default(50).notNull(),
+	charisma: integer("charisma").default(50).notNull(),
+	luck: integer("luck").default(50).notNull(),
 	strTrainedAt: timestamp("str_trained_at"),
 	intTrainedAt: timestamp("int_trained_at"),
 	agiTrainedAt: timestamp("agi_trained_at"),
@@ -324,8 +327,4 @@ export const questProgress = pgTable(
 	(t) => [primaryKey({ columns: [t.questId, t.userId] })],
 );
 
-export const petPortraits = pgTable("pet_portraits", {
-	petId: varchar("pet_id", { length: 50 }).primaryKey(),
-	imageUrl: text("image_url").notNull(),
-	generatedAt: timestamp("generated_at").defaultNow().notNull(),
-});
+

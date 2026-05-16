@@ -142,7 +142,7 @@ export class ConfigCommand extends Subcommand {
 					value: [
 						`Welcome: ${settings.welcomeChannelId ? `<#${settings.welcomeChannelId}>` : "Not set"}`,
 						`Goodbye: ${settings.goodbyeChannelId ? `<#${settings.goodbyeChannelId}>` : "Not set"}`,
-						`Log: ${settings.logChannelId ? `<#${settings.logChannelId}>` : "Not set"}`,
+						`Mod Log: ${settings.logChannelId ? `<#${settings.logChannelId}>` : "Not set"}`,
 						`Level Up: ${settings.levelUpChannelId ? `<#${settings.levelUpChannelId}>` : "Not set"}`,
 						`Music: ${settings.musicChannelId ? `<#${settings.musicChannelId}>` : "Any channel"}`,
 						`Starboard: ${settings.starboardChannelId ? `<#${settings.starboardChannelId}>` : "Not set"}`,

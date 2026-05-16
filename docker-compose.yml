@@ -53,32 +53,6 @@ services:
     networks:
       - botnet
 
-  stable-diffusion:
-    image: ghcr.io/jim60105/stable-diffusion-webui:latest
-    container_name: bhayanak_bot_sd
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 8G
-    command: >
-      --api --nowebui
-      --use-cpu all
-      --no-half
-      --skip-torch-cuda-test
-    ports:
-      - "7860:7860"
-    volumes:
-      - sddata:/stable-diffusion-webui/models
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:7860/sdapi/v1/sd-models || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 20
-      start_period: 120s
-    networks:
-      - botnet
-
   # ── Layer 4: Application (depends on everything above) ────────
   bot:
     build:
@@ -112,7 +86,6 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
-      SD_URL: ${SD_URL:-http://stable-diffusion:7860}
       NODE_ENV: ${NODE_ENV:-production}
       WEB_PORT: ${WEB_PORT:-3000}
     networks:
@@ -126,4 +99,3 @@ volumes:
   pgdata:
   valkeydata:
   ollamadata:
-  sddata:

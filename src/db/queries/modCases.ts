@@ -1,4 +1,4 @@
-import { and, desc, eq, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { modCases } from "../schema.js";
 
@@ -40,5 +40,22 @@ export async function deactivateCase(id: number): Promise<void> {
 export async function getExpiredActiveCases(type: "mute" | "tempban"): Promise<ModCase[]> {
 	return db.query.modCases.findMany({
 		where: and(eq(modCases.type, type), eq(modCases.active, true), lte(modCases.expiresAt, new Date())),
+	});
+}
+
+export async function findRecentCase(
+	guildId: string,
+	userId: string,
+	type: ModCase["type"],
+	since: Date,
+): Promise<ModCase | undefined> {
+	return db.query.modCases.findFirst({
+		where: and(
+			eq(modCases.guildId, guildId),
+			eq(modCases.userId, userId),
+			eq(modCases.type, type),
+			gte(modCases.createdAt, since),
+		),
+		orderBy: [desc(modCases.createdAt)],
 	});
 }

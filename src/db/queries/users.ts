@@ -33,11 +33,12 @@ export async function addXp(userId: string, guildId: string, amount: number): Pr
 	return { user: updated, leveledUp, newLevel };
 }
 
-export async function getLeaderboard(guildId: string, limit = 10): Promise<User[]> {
+export async function getLeaderboard(guildId: string, limit = 10, offset = 0): Promise<User[]> {
 	return db.query.users.findMany({
 		where: eq(users.guildId, guildId),
 		orderBy: [desc(users.xp)],
 		limit,
+		offset,
 	});
 }
 

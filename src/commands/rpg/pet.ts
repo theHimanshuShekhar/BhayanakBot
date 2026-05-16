@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder , MessageFlags } from "discord.js";
-import { getOrCreateProfile, getOwnedPets, addPet, renamePet, tryDebitCoins, getPetPortrait } from "../../db/queries/rpg.js";
+import { getOrCreateProfile, getOwnedPets, addPet, renamePet, tryDebitCoins } from "../../db/queries/rpg.js";
 import { getBuyablePets, getPet } from "../../lib/rpg/catalogs/pets.js";
 
 const RARITY_COLOR: Record<string, number> = {
@@ -83,18 +83,10 @@ export class PetCommand extends Command {
 				return `${pet?.emoji ?? "🐾"} ${display}\n*${pet?.description ?? ""}* \`[${pet?.rarity ?? "?"}]\``;
 			});
 
-			// Show portrait for the first pet (active pet)
-			const firstPet = pets[0]!;
-			const portrait = await getPetPortrait(firstPet.petId);
-
 			const embed = new EmbedBuilder()
 				.setTitle("🐾 Your Pets")
 				.setColor(0x5865f2)
 				.setDescription(lines.join("\n\n"));
-
-			if (portrait) {
-				embed.setThumbnail(portrait.imageUrl);
-			}
 
 			return interaction.editReply({ embeds: [embed] });
 		}

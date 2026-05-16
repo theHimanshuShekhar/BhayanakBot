@@ -38,17 +38,15 @@ export class BhayanakClient extends SapphireClient {
 	// In-memory caches keyed by channelId — bounded to avoid unbounded growth
 	public readonly snipeCache = new BoundedMap<string, SnipedMessage>(1000);
 	public readonly editSnipeCache = new BoundedMap<string, EditSnipedMessage>(1000);
-	// Anti-raid: track recent joins per guild
-	public readonly recentJoins = new Map<string, number[]>();
+	// Anti-raid: track recent joins per guild — bounded to avoid unbounded growth
+	public readonly recentJoins = new BoundedMap<string, number[]>(1000);
 	// Personality profile cache keyed by "userId:guildId"
 	public readonly personalityCache = new BoundedMap<string, string>(500);
 
 	public constructor() {
 		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
 		super({
-			// Increase REST timeout to 60s to accommodate long-running operations like portrait image generation.
-			// This applies globally to ALL Discord REST calls (editReply, send, etc.).
-			rest: { timeout: 60_000 },
+				rest: { timeout: 60_000 },
 			intents: [
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.GuildMembers,
@@ -57,6 +55,7 @@ export class BhayanakClient extends SapphireClient {
 				GatewayIntentBits.GuildVoiceStates,
 				GatewayIntentBits.MessageContent,
 				GatewayIntentBits.DirectMessages,
+				GatewayIntentBits.GuildModeration,
 			],
 			partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 			logger: {

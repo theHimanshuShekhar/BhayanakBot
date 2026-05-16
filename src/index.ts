@@ -95,4 +95,13 @@ async function shutdown() {
 process.once("SIGINT", () => void shutdown());
 process.once("SIGTERM", () => void shutdown());
 
+process.on("unhandledRejection", (reason, promise) => {
+	client.logger.error("[process] Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+	client.logger.error("[process] Uncaught Exception:", error);
+	void shutdown();
+});
+
 void main();

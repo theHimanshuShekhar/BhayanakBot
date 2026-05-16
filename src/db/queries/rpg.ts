@@ -2,7 +2,6 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import {
 	dailyQuests,
-	petPortraits,
 	questProgress,
 	rpgCooldowns,
 	rpgInventory,
@@ -14,7 +13,6 @@ import {
 
 export type DailyQuest = typeof dailyQuests.$inferSelect;
 export type QuestProgress = typeof questProgress.$inferSelect;
-export type PetPortrait = typeof petPortraits.$inferSelect;
 
 export type RpgProfile = typeof rpgProfiles.$inferSelect;
 export type RpgStats = typeof rpgStats.$inferSelect;
@@ -214,12 +212,6 @@ export async function getActivePet(userId: string): Promise<RpgOwnedPet | null> 
 	return (await db.query.rpgOwnedPets.findFirst({ where: eq(rpgOwnedPets.userId, userId) })) ?? null;
 }
 
-// --- Portrait ---
-
-export async function setPortraitUrl(userId: string, url: string): Promise<void> {
-	await db.update(rpgProfiles).set({ portraitUrl: url }).where(eq(rpgProfiles.userId, userId));
-}
-
 // --- Daily Quests ---
 
 export async function getTodayQuests(guildId: string, date: string): Promise<DailyQuest[]> {
@@ -298,19 +290,6 @@ export async function checkAndAdvanceQuestProgress(opts: {
 			await opts.onComplete(quest);
 		}
 	}
-}
-
-// --- Pet Portraits ---
-
-export async function getPetPortrait(petId: string): Promise<PetPortrait | null> {
-	return (await db.query.petPortraits.findFirst({ where: eq(petPortraits.petId, petId) })) ?? null;
-}
-
-export async function upsertPetPortrait(petId: string, imageUrl: string): Promise<void> {
-	await db
-		.insert(petPortraits)
-		.values({ petId, imageUrl })
-		.onConflictDoUpdate({ target: petPortraits.petId, set: { imageUrl, generatedAt: new Date() } });
 }
 
 export async function addXpToProfile(
