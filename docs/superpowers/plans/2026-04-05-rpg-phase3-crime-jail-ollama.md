@@ -33,7 +33,7 @@
 
 ```typescript
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "tinyllama";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:e2b";
 
 const FALLBACK_LINES: { success: string[]; failure: string[] } = {
 	success: [

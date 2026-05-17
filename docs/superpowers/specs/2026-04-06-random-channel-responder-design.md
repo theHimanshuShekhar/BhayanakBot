@@ -94,7 +94,7 @@ Bots and empty messages are filtered out of the history before formatting.
 ## Reused utilities
 
 - `callOllama(system, prompt, timeoutMs)` — `src/lib/ollama.ts`
-- `OLLAMA_MODEL` env var (defaults to `tinyllama`, compose overrides to `llama3.1:8b`)
+- `OLLAMA_MODEL` env var (defaults to `gemma4:e2b`, compose overrides to `llama3.1:8b`)
 
 ---
 

@@ -18,6 +18,7 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Suggestions** | `/suggest`, `/suggestion` |
 | **Auto-respond** | `/autorespond` |
 | **Config** | `/config` |
+| **AI Personality** | `/personality` |
 
 ### RPG System
 
@@ -30,6 +31,16 @@ The RPG is an economy and progression system:
 - **Pets**: Adopt companions (common → legendary rarity) via `/pet adopt`, rename with `/pet rename`
 - **Properties**: Buy housing and businesses via `/property buy`, collect passive coin income with `/property collect`
 - **AI flavor text**: Job/crime outcomes get narrated by a local Ollama instance (`gemma4:e2b` by default), with hand-written fallbacks if Ollama is unavailable
+
+### AI Personality System
+
+The bot builds personality profiles from server conversation to generate contextual responses:
+
+- **User Profiles**: Per-user personality profiles built from message history (100 messages → rebuild). View with `/personality`
+- **Guild Profiles**: Server-wide cultural profiles built from aggregate message data (200 messages → rebuild)
+- **Smart Mentions**: When @mentioned, the bot uses personality context + conversation history for contextual replies
+- **Random Responder**: Configurable chance-based responses in a designated channel, using guild personality for tone
+- **Privacy**: All profiling is opt-out via `/config set personality-profiling false`. Messages older than 30 days are purged automatically
 
 ## Stack
 

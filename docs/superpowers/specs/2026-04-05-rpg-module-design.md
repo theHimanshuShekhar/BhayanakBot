@@ -254,7 +254,7 @@ ollama:
     - OLLAMA_MAX_LOADED_MODELS=1
 ```
 
-Model: `tinyllama` (638MB) or `phi3:mini` (2.3GB) — configurable via env var `OLLAMA_MODEL`.
+Model: `gemma4:e2b` (7.2GB) — configurable via env var `OLLAMA_MODEL`.
 
 New env var: `OLLAMA_URL` (default `http://ollama:11434` in Docker, `http://localhost:11434` locally).
 
