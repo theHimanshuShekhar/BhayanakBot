@@ -28,25 +28,35 @@ async function isWhisperAvailable(): Promise<boolean> {
  * Converts PCM to WAV, writes to temp file, runs whisper.cpp binary, returns transcript.
  */
 export async function transcribeAudio(pcmBuffer: Buffer): Promise<string | null> {
-	if (!(await isWhisperAvailable())) return null;
+	console.log(`[STT] transcribeAudio called, pcmBuffer=${pcmBuffer.length}b`);
+	if (!(await isWhisperAvailable())) {
+		console.log("[STT] Whisper not available, skipping");
+		return null;
+	}
 
 	const tmpWav = join(tmpdir(), `bhayanak-stt-${Date.now()}.wav`);
+	console.log(`[STT] Writing temp WAV: ${tmpWav}`);
 
 	try {
 		// Convert PCM to WAV and write temp file
 		const wavBuffer = pcmToWav(pcmBuffer, 48_000, 2);
+		console.log(`[STT] WAV buffer size: ${wavBuffer.length}b`);
 		await writeFile(tmpWav, wavBuffer);
 
 		// Run whisper.cpp
-		const { stdout } = await execFileAsync(
+		console.log(`[STT] Running whisper: ${WHISPER_BINARY} -m ${WHISPER_MODEL} -f ${tmpWav}`);
+		const { stdout, stderr } = await execFileAsync(
 			WHISPER_BINARY,
 			["-m", WHISPER_MODEL, "-f", tmpWav, "--output-txt", "--no-timestamps", "--language", "en"],
 			{ timeout: 30_000 },
 		);
+		console.log(`[STT] Whisper stderr: ${stderr}`);
+		console.log(`[STT] Whisper stdout length: ${stdout.length}`);
 
 		// Parse output — whisper.cpp prints transcript to stdout when --output-txt is used
 		// or we can read the generated .txt file. Let's read stdout directly.
 		const text = stdout.trim();
+		console.log(`[STT] Transcript: "${text}"`);
 		return text.length > 0 ? text : null;
 	} catch (error) {
 		console.error("[STT] Transcription failed:", error);

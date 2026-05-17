@@ -37,6 +37,7 @@ export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceSta
 				const now = Date.now();
 				if (now - this.lastResponseTime < VOICE_COOLDOWN_MS) continue;
 
+				console.log(`[VoiceChannelMonitor] Auto-joining ${channel.id} (${humanCount} humans)`);
 				await this.joinAndListen(channel.id, guild.id);
 				return; // Only join one channel at a time
 			}
@@ -44,9 +45,13 @@ export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceSta
 	}
 
 	private async joinAndListen(channelId: string, guildId: string): Promise<void> {
-		if (this.isListening || isConnectedToVoice(guildId)) return;
+		if (this.isListening || isConnectedToVoice(guildId)) {
+			console.log(`[VoiceChannelMonitor] Skipping join: isListening=${this.isListening}, connected=${isConnectedToVoice(guildId)}`);
+			return;
+		}
 
 		this.isListening = true;
+		console.log(`[VoiceChannelMonitor] Creating voice connection for ${channelId}`);
 
 		const connection = joinVoiceChannel({
 			channelId,
@@ -58,6 +63,7 @@ export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceSta
 
 		try {
 			await runVoiceResponderSession(connection, this.container.client as BhayanakClient, guildId);
+			console.log("[VoiceChannelMonitor] Session completed");
 		} catch (error) {
 			console.error("[VoiceChannelMonitor] Session failed:", error);
 			connection.destroy();

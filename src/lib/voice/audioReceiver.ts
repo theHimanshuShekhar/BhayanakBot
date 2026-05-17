@@ -33,7 +33,11 @@ export function subscribeToAudio(
 	const userStreams = new Map<string, { opus: Transform; pcm: Transform; startTime: number }>();
 
 	receiver.speaking.on("start", (userId: string) => {
-		if (userStreams.has(userId)) return;
+		console.log(`[AudioReceiver] Speaking START for user ${userId}`);
+		if (userStreams.has(userId)) {
+			console.log(`[AudioReceiver] Already tracking user ${userId}, skipping`);
+			return;
+		}
 
 		const opusDecoder = new prism.opus.Decoder({
 			rate: 48_000,
@@ -49,10 +53,11 @@ export function subscribeToAudio(
 		});
 
 		opusDecoder.on("error", (err: Error) => {
-			console.warn(`[Voice] Opus decoder error for user ${userId}:`, err.message);
+			console.warn(`[AudioReceiver] Opus decoder error for user ${userId}:`, err.message);
 			userStreams.delete(userId);
 		});
 
+		console.log(`[AudioReceiver] Subscribing to user stream ${userId}`);
 		const userStream = receiver.subscribe(userId, {
 			end: {
 				behavior: EndBehaviorType.AfterSilence,
@@ -61,7 +66,7 @@ export function subscribeToAudio(
 		});
 
 		userStream.on("error", (err: Error) => {
-			console.warn(`[Voice] Audio stream error for user ${userId}:`, err.message);
+			console.warn(`[AudioReceiver] Audio stream error for user ${userId}:`, err.message);
 			userStreams.delete(userId);
 		});
 
@@ -72,14 +77,19 @@ export function subscribeToAudio(
 			pcm: opusDecoder,
 			startTime,
 		});
+		console.log(`[AudioReceiver] Now tracking user ${userId}`);
 
 		// Set up chunk timeout
 		const chunkTimeout = setTimeout(() => {
 			const data = userStreams.get(userId);
-			if (!data) return;
+			if (!data) {
+				console.log(`[AudioReceiver] Chunk timeout fired but no data for ${userId}`);
+				return;
+			}
 
 			const fullBuffer = Buffer.concat(pcmBuffer);
 			const durationMs = Date.now() - data.startTime;
+			console.log(`[AudioReceiver] Chunk timeout for ${userId}: buffer=${fullBuffer.length}b, duration=${durationMs}ms`);
 
 			// Get user info from the guild
 			const guild = connection.joinConfig.guildId;
@@ -105,8 +115,12 @@ export function subscribeToAudio(
 	});
 
 	receiver.speaking.on("end", (userId: string) => {
+		console.log(`[AudioReceiver] Speaking END for user ${userId}`);
 		const data = userStreams.get(userId);
-		if (!data) return;
+		if (!data) {
+			console.log(`[AudioReceiver] No stream data for ${userId} on end`);
+			return;
+		}
 
 		// Clear chunk timeout
 		if ((data.opus as any)._chunkTimeout) {
@@ -123,6 +137,7 @@ export function subscribeToAudio(
 		setTimeout(() => {
 			const fullBuffer = Buffer.concat(pcmBuffer);
 			const durationMs = Date.now() - data.startTime;
+			console.log(`[AudioReceiver] Final buffer for ${userId}: ${fullBuffer.length}b, ${durationMs}ms`);
 
 			if (fullBuffer.length > 0) {
 				onChunk({
@@ -131,6 +146,8 @@ export function subscribeToAudio(
 					pcmBuffer: fullBuffer,
 					durationMs,
 				});
+			} else {
+				console.log(`[AudioReceiver] Final buffer empty for ${userId}, skipping`);
 			}
 
 			userStreams.delete(userId);
@@ -138,6 +155,7 @@ export function subscribeToAudio(
 	});
 
 	return () => {
+		console.log(`[AudioReceiver] Cleanup called. Active streams: ${userStreams.size}`);
 		receiver.speaking.removeAllListeners("start");
 		receiver.speaking.removeAllListeners("end");
 		for (const [_, data] of userStreams) {
@@ -148,5 +166,6 @@ export function subscribeToAudio(
 		}
 		userStreams.clear();
 		subscription.destroy();
+		console.log("[AudioReceiver] Cleanup complete");
 	};
 }

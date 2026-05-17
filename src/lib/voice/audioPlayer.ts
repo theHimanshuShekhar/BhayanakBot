@@ -12,9 +12,11 @@ import {
  * Returns a promise that resolves when playback finishes.
  */
 export async function playAudio(connection: VoiceConnection, audioBuffer: Buffer): Promise<void> {
+	console.log(`[AudioPlayer] playAudio called, buffer=${audioBuffer.length}b`);
 	return new Promise((resolve, reject) => {
 		const player = createAudioPlayer();
 		const subscription = connection.subscribe(player);
+		console.log("[AudioPlayer] Audio player created and subscribed");
 
 		const stream = Readable.from([audioBuffer]);
 		const resource = createAudioResource(stream, {
@@ -22,8 +24,10 @@ export async function playAudio(connection: VoiceConnection, audioBuffer: Buffer
 		});
 
 		player.play(resource);
+		console.log("[AudioPlayer] Playback started");
 
 		player.on(AudioPlayerStatus.Idle, () => {
+			console.log("[AudioPlayer] Playback finished (Idle)");
 			player.stop();
 			subscription?.unsubscribe();
 			resolve();

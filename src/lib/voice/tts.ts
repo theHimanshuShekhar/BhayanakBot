@@ -23,10 +23,15 @@ async function isPiperAvailable(): Promise<boolean> {
  * Returns a Buffer containing WAV audio data.
  */
 export async function generateSpeech(text: string): Promise<Buffer | null> {
-	if (!(await isPiperAvailable())) return null;
+	console.log(`[TTS] generateSpeech called, text="${text.substring(0, 80)}..."`);
+	if (!(await isPiperAvailable())) {
+		console.log("[TTS] Piper not available, skipping");
+		return null;
+	}
 
 	return new Promise((resolve) => {
 		const chunks: Buffer[] = [];
+		console.log(`[TTS] Spawning: ${PIPER_BINARY} --model ${PIPER_MODEL}`);
 		const child = spawn(PIPER_BINARY, [
 			"--model",
 			PIPER_MODEL,
@@ -37,6 +42,7 @@ export async function generateSpeech(text: string): Promise<Buffer | null> {
 		]);
 
 		child.stdout.on("data", (chunk: Buffer) => {
+			console.log(`[TTS] Piper stdout chunk: ${chunk.length}b`);
 			chunks.push(chunk);
 		});
 
@@ -45,7 +51,9 @@ export async function generateSpeech(text: string): Promise<Buffer | null> {
 				console.error(`[TTS] Piper exited with code ${code}`);
 				resolve(null);
 			} else {
-				resolve(Buffer.concat(chunks));
+				const buf = Buffer.concat(chunks);
+				console.log(`[TTS] Piper finished, total audio: ${buf.length}b`);
+				resolve(buf);
 			}
 		});
 
@@ -56,5 +64,6 @@ export async function generateSpeech(text: string): Promise<Buffer | null> {
 
 		child.stdin.write(text);
 		child.stdin.end();
+		console.log("[TTS] Sent text to Piper stdin");
 	});
 }
