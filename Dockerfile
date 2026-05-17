@@ -34,7 +34,7 @@ CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
 # production: runtime image with drizzle-kit for startup migration + source
 FROM node:22-alpine AS production
 
-RUN apk add --no-cache ffmpeg python3 gcompat
+RUN apk add --no-cache ffmpeg python3 make g++ gcompat
 RUN npm install -g pnpm
 
 WORKDIR /app
