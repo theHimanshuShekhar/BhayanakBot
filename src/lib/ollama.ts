@@ -1,5 +1,5 @@
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "tinyllama";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma4:e2b";
 
 export async function ensureOllamaModel(): Promise<void> {
 	console.log(`[ollama] Ensuring model ${OLLAMA_MODEL} is available...`);

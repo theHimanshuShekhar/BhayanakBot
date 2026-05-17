@@ -55,7 +55,7 @@ No test suite exists yet.
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot` | Postgres connection |
 | `VALKEY_URL` | `redis://localhost:6379` | Valkey (Redis) for BullMQ |
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance |
-| `OLLAMA_MODEL` | `tinyllama` | Model used for flavor text |
+| `OLLAMA_MODEL` | `gemma4:e2b` | Model used for flavor text |
 | `NODE_ENV` | — | Controls log level (debug vs info) |
 
 ## RPG module

@@ -29,7 +29,7 @@ The RPG is an economy and progression system:
 - **Jail**: Failing a crime sends you to jail. Bail out for coins or attempt escape with an agility roll
 - **Pets**: Adopt companions (common → legendary rarity) via `/pet adopt`, rename with `/pet rename`
 - **Properties**: Buy housing and businesses via `/property buy`, collect passive coin income with `/property collect`
-- **AI flavor text**: Job/crime outcomes get narrated by a local Ollama instance (`tinyllama` by default), with hand-written fallbacks if Ollama is unavailable
+- **AI flavor text**: Job/crime outcomes get narrated by a local Ollama instance (`gemma4:e2b` by default), with hand-written fallbacks if Ollama is unavailable
 
 ## Stack
 
@@ -67,7 +67,7 @@ DISCORD_TOKEN=your_bot_token
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 VALKEY_URL=redis://localhost:6379
 OLLAMA_URL=http://localhost:11434   # optional
-OLLAMA_MODEL=tinyllama              # optional
+OLLAMA_MODEL=gemma4:e2b             # optional
 NODE_ENV=development
 ```
 
