@@ -8,15 +8,15 @@ import {
 import { Readable } from "node:stream";
 
 /**
- * Play MP3 audio buffer through a Discord voice connection.
+ * Play audio buffer (WAV or MP3) through a Discord voice connection.
  * Returns a promise that resolves when playback finishes.
  */
-export async function playAudio(connection: VoiceConnection, mp3Buffer: Buffer): Promise<void> {
+export async function playAudio(connection: VoiceConnection, audioBuffer: Buffer): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const player = createAudioPlayer();
 		const subscription = connection.subscribe(player);
 
-		const stream = Readable.from([mp3Buffer]);
+		const stream = Readable.from([audioBuffer]);
 		const resource = createAudioResource(stream, {
 			inputType: StreamType.Arbitrary,
 		});

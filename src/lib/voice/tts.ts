@@ -1,31 +1,40 @@
-import OpenAI from "openai";
+import { spawn } from "node:child_process";
 
-const openai = new OpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
-});
+const PIPER_BINARY = process.env.PIPER_BINARY ?? "piper";
+const PIPER_MODEL = process.env.PIPER_MODEL ?? "en_US-lessac-medium.onnx";
 
 /**
- * Generate speech audio from text using OpenAI TTS-1.
- * Returns a Buffer containing MP3 audio data.
+ * Generate speech audio from text using self-hosted Piper TTS.
+ * Returns a Buffer containing WAV audio data.
  */
 export async function generateSpeech(text: string): Promise<Buffer | null> {
-	if (!process.env.OPENAI_API_KEY) {
-		console.warn("[TTS] No OPENAI_API_KEY set, skipping speech generation");
-		return null;
-	}
+	return new Promise((resolve) => {
+		const chunks: Buffer[] = [];
+		const child = spawn(PIPER_BINARY, [
+			"--model", PIPER_MODEL,
+			"--output_file", "-", // stdout
+			"--sentence_silence", "0.2",
+		]);
 
-	try {
-		const response = await openai.audio.speech.create({
-			model: "tts-1",
-			voice: "onyx", // Deep, authoritative voice
-			input: text,
-			response_format: "mp3",
+		child.stdout.on("data", (chunk: Buffer) => {
+			chunks.push(chunk);
 		});
 
-		const arrayBuffer = await response.arrayBuffer();
-		return Buffer.from(arrayBuffer);
-	} catch (error) {
-		console.error("[TTS] Speech generation failed:", error);
-		return null;
-	}
+		child.on("close", (code) => {
+			if (code !== 0) {
+				console.error(`[TTS] Piper exited with code ${code}`);
+				resolve(null);
+			} else {
+				resolve(Buffer.concat(chunks));
+			}
+		});
+
+		child.on("error", (error) => {
+			console.error("[TTS] Failed to spawn Piper:", error);
+			resolve(null);
+		});
+
+		child.stdin.write(text);
+		child.stdin.end();
+	});
 }

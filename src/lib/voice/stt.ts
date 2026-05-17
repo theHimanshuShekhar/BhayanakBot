@@ -1,35 +1,48 @@
-import OpenAI from "openai";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { writeFile, unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
-const openai = new OpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
-});
+const execFileAsync = promisify(execFile);
+
+const WHISPER_BINARY = process.env.WHISPER_BINARY ?? "whisper-cli";
+const WHISPER_MODEL = process.env.WHISPER_MODEL ?? "ggml-base.en.bin";
 
 /**
- * Transcribe PCM audio buffer using OpenAI Whisper.
- * Converts PCM to WAV format first (Whisper requires a file format).
+ * Transcribe PCM audio buffer using self-hosted whisper.cpp.
+ * Converts PCM to WAV, writes to temp file, runs whisper.cpp binary, returns transcript.
  */
 export async function transcribeAudio(pcmBuffer: Buffer): Promise<string | null> {
-	if (!process.env.OPENAI_API_KEY) {
-		console.warn("[STT] No OPENAI_API_KEY set, skipping transcription");
-		return null;
-	}
+	const tmpWav = join(tmpdir(), `bhayanak-stt-${Date.now()}.wav`);
 
 	try {
-		// Convert PCM to WAV
-		const wavBuffer = pcmToWav(pcmBuffer, 48000, 2);
+		// Convert PCM to WAV and write temp file
+		const wavBuffer = pcmToWav(pcmBuffer, 48_000, 2);
+		await writeFile(tmpWav, wavBuffer);
 
-		const file = new File([new Uint8Array(wavBuffer)], "audio.wav", { type: "audio/wav" });
+		// Run whisper.cpp
+		const { stdout } = await execFileAsync(
+			WHISPER_BINARY,
+			[
+				"-m", WHISPER_MODEL,
+				"-f", tmpWav,
+				"--output-txt",
+				"--no-timestamps",
+				"--language", "en",
+			],
+			{ timeout: 30_000 },
+		);
 
-		const result = await openai.audio.transcriptions.create({
-			file,
-			model: "whisper-1",
-			language: "en",
-		});
-
-		return result.text || null;
+		// Parse output — whisper.cpp prints transcript to stdout when --output-txt is used
+		// or we can read the generated .txt file. Let's read stdout directly.
+		const text = stdout.trim();
+		return text.length > 0 ? text : null;
 	} catch (error) {
 		console.error("[STT] Transcription failed:", error);
 		return null;
+	} finally {
+		await unlink(tmpWav).catch(() => null);
 	}
 }
 

@@ -88,6 +88,13 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       NODE_ENV: ${NODE_ENV:-production}
       WEB_PORT: ${WEB_PORT:-3000}
+      WHISPER_BINARY: ${WHISPER_BINARY:-whisper-cli}
+      WHISPER_MODEL: ${WHISPER_MODEL:-/app/models/ggml-base.en.bin}
+      PIPER_BINARY: ${PIPER_BINARY:-piper}
+      PIPER_MODEL: ${PIPER_MODEL:-/app/models/en_US-lessac-medium.onnx}
+    volumes:
+      # Mount local whisper.cpp and piper models into the container
+      - ./models:/app/models:ro
     networks:
       - botnet
 
