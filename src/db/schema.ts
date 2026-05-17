@@ -51,6 +51,9 @@ export const guildSettings = pgTable("guild_settings", {
 	antiRaidJoinWindow: integer("anti_raid_join_window").default(10), // seconds
 	// Personality profiling
 	personalityEnabled: boolean("personality_enabled").default(true).notNull(),
+	// Random chat responder
+	randomResponseChannelId: varchar("random_response_channel_id", { length: 20 }),
+	randomResponseChance: integer("random_response_chance").default(0).notNull(),
 });
 
 export const users = pgTable(

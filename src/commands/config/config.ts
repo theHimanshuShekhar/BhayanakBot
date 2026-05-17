@@ -69,6 +69,8 @@ export class ConfigCommand extends Subcommand {
 									{ name: "goodbye-message", value: "goodbyeMessage" },
 								{ name: "level-up-message", value: "levelUpMessage" },
 								{ name: "personality-profiling", value: "personalityEnabled" },
+								{ name: "random-response-channel", value: "randomResponseChannelId" },
+								{ name: "random-response-chance", value: "randomResponseChance" },
 							),
 						)
 						.addChannelOption((opt) => opt.setName("channel").setDescription("Channel to set"))
@@ -185,7 +187,11 @@ export class ConfigCommand extends Subcommand {
 				},
 				{
 					name: "AI Personality",
-					value: `Profiling: ${settings.personalityEnabled ? "✅" : "❌"}`,
+					value: [
+						`Profiling: ${settings.personalityEnabled ? "✅" : "❌"}`,
+						`Random Response: ${settings.randomResponseChance > 0 ? `${settings.randomResponseChance}%` : "Disabled"}`,
+						`Response Channel: ${settings.randomResponseChannelId ? `<#${settings.randomResponseChannelId}>` : "Not set"}`,
+					].join("\n"),
 				},
 			)
 			.setTimestamp();
@@ -203,17 +209,22 @@ export class ConfigCommand extends Subcommand {
 
 		const channelSettings = [
 			"welcomeChannelId", "goodbyeChannelId", "logChannelId", "levelUpChannelId",
-			"musicChannelId", "starboardChannelId", "ticketCategoryId",
+			"musicChannelId", "starboardChannelId", "ticketCategoryId", "randomResponseChannelId",
 		];
 		const roleSettings = ["autoRole", "mutedRoleId", "ticketSupportRoleId", "djRoleId", "moderatorRoleId"];
-		const numberSettings = ["starThreshold", "xpRate", "xpCooldownSeconds"];
+		const numberSettings = ["starThreshold", "xpRate", "xpCooldownSeconds", "randomResponseChance"];
 		const textSettings = ["welcomeMessage", "goodbyeMessage", "levelUpMessage"];
 		const booleanSettings = ["personalityEnabled"];
 
 		let value: string | number | boolean | null = null;
 		if (channelSettings.includes(setting) && channel) value = channel.id;
 		else if (roleSettings.includes(setting) && role) value = role.id;
-		else if (numberSettings.includes(setting) && number !== null) value = number;
+		else if (numberSettings.includes(setting) && number !== null) {
+			if (setting === "randomResponseChance" && (number < 1 || number > 100)) {
+				return interaction.editReply("❌ Random response chance must be between 1 and 100.");
+			}
+			value = number;
+		}
 		else if (textSettings.includes(setting) && text) value = text;
 		else if (booleanSettings.includes(setting) && text) {
 			const lower = text.toLowerCase();

@@ -28,6 +28,10 @@ const USER_AUTO_RESPONDER_COOLDOWN_MS = 30 * 1000; // 30 seconds
 const smartMentionCooldown = new Map<string, number>();
 const SMART_MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds
 
+// Random chat responder cooldown: Map<guildId, lastFiredAt>
+const randomResponseCooldown = new Map<string, number>();
+const RANDOM_RESPONSE_COOLDOWN_MS = 45 * 1000; // 45 seconds
+
 // Conversation history for LLM context: Map<channelId, messages[]>
 const CONVERSATION_HISTORY_LIMIT = 20;
 const conversationHistory = new Map<string, { author: string; content: string; timestamp: number }[]>();
@@ -219,6 +223,9 @@ export class MessageCreateListener extends Listener {
 			// Smart mention reply when bot is @mentioned but no autoresponder matched
 			await this.handleSmartMention(message, settings);
 		}
+
+		// --- Random contextual chat responder ---
+		await this.handleRandomResponse(message, settings);
 	}
 
 	private substituteVariables(response: string, captured?: Record<string, string>): string {
@@ -289,6 +296,67 @@ export class MessageCreateListener extends Listener {
 			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
 			await message.reply(safeReply).catch((err) =>
 				this.container.logger.warn(`[smart-mention] reply send failed:`, err),
+			);
+		}
+	}
+
+	private async handleRandomResponse(
+		message: Message,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+	) {
+		// Must have a configured channel and non-zero chance
+		if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) return;
+		if (message.channel.id !== settings.randomResponseChannelId) return;
+
+		// Roll against the configured chance
+		const roll = Math.random() * 100;
+		if (roll > settings.randomResponseChance) {
+			this.container.logger.debug(
+				`[random-response] roll=${roll.toFixed(2)}% > chance=${settings.randomResponseChance}% (skipped)`,
+			);
+			return;
+		}
+
+		// Guild cooldown to prevent streaks
+		const guildId = message.guild!.id;
+		const lastFired = randomResponseCooldown.get(guildId) ?? 0;
+		if (Date.now() - lastFired < RANDOM_RESPONSE_COOLDOWN_MS) {
+			this.container.logger.debug(`[random-response] cooldown active for guild=${guildId}`);
+			return;
+		}
+		randomResponseCooldown.set(guildId, Date.now());
+
+		// Build system prompt from guild personality
+		const client = this.container.client as BhayanakClient;
+		const guildProfile = client.guildPersonalityCache?.get(guildId);
+		const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
+
+		const systemPrompt = [
+			`You are a Discord bot named ${message.client.user.username}.`,
+			`You are chatting in the server "${message.guild!.name}".`,
+			`Be helpful, witty, and conversational.`,
+			`Respond naturally to the ongoing conversation — don't ask questions unless it makes sense.`,
+			`Keep your response short (1-2 sentences max).`,
+			guildContext,
+		].join("\n");
+
+		const conversationContext = this.getConversationContext(message.channel.id, 10);
+
+		this.container.logger.debug(
+			`[random-response] triggered roll=${roll.toFixed(2)}% channel=${message.channel.id}`,
+		);
+
+		const reply = await generateMentionReply(
+			systemPrompt,
+			conversationContext,
+			message.author.username,
+			message.content,
+		);
+
+		if (reply) {
+			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+			await (message.channel as TextChannel).send(safeReply).catch((err) =>
+				this.container.logger.warn(`[random-response] send failed:`, err),
 			);
 		}
 	}
