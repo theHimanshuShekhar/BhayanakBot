@@ -8,7 +8,6 @@ import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { ensureOllamaModel } from "./lib/ollama.js";
-import { startWebServer } from "./lib/webServer.js";
 
 const client = new BhayanakClient();
 
@@ -22,7 +21,6 @@ async function main() {
 		YTLog.setLevel(YTLog.Level.NONE);
 		registerPlayerEvents(client.player);
 		await client.login(process.env.DISCORD_TOKEN);
-		startWebServer();
 
 		// Schedule recurring polling tasks via @sapphire/plugin-scheduled-tasks
 		// These run on intervals using Valkey/BullMQ as the backend

@@ -71,14 +71,6 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "const h=require('http');h.get('http://localhost:'+(process.env.WEB_PORT||3000)+'/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    ports:
-      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
@@ -87,7 +79,6 @@ services:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       NODE_ENV: ${NODE_ENV:-production}
-      WEB_PORT: ${WEB_PORT:-3000}
       WHISPER_BINARY: ${WHISPER_BINARY:-whisper-cli}
       WHISPER_MODEL: ${WHISPER_MODEL:-/app/models/ggml-base.en.bin}
       PIPER_BINARY: ${PIPER_BINARY:-piper}
