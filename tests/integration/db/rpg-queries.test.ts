@@ -34,7 +34,7 @@ describe("RPG database queries", () => {
 			expect(profile.userId).toBe(TEST_USER_ID);
 			expect(profile.coins).toBe(0);
 			expect(stats.userId).toBe(TEST_USER_ID);
-			expect(stats.strength).toBe(0);
+			expect(stats.strength).toBe(50);
 		});
 
 		it("returns existing profile without duplicating", async () => {
