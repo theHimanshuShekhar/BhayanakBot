@@ -6,3 +6,4 @@ web/src/routeTree.gen.ts
 .env.local
 *.js.map
 .superpowers/
+.worktrees/
