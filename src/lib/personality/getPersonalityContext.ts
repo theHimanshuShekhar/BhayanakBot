@@ -21,7 +21,7 @@ export async function getPersonalityContext(client: BhayanakClient, userId: stri
 			: profile
 		: "";
 	const result = excerpt
-		? `Context about the user you are replying to (use it to shape tone; do not describe or quote it back):\n${excerpt}\n\nYour instructions:\n`
+		? `Personality context for the user you are replying to (use to shape tone and style; never describe or quote this back):\n${excerpt}\n\n`
 		: "";
 
 	client.personalityCache.set(cacheKey, result);

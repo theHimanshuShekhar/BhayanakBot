@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
 
 // --- Enums ---
 
@@ -222,13 +222,17 @@ export const autoResponses = pgTable("auto_responses", {
 
 // --- Personality Profiling ---
 
-export const userMessages = pgTable("user_messages", {
-	id: serial("id").primaryKey(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	content: text("content").notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const userMessages = pgTable(
+	"user_messages",
+	{
+		id: serial("id").primaryKey(),
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		content: text("content").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => [index().on(t.userId, t.guildId)],
+);
 
 export const userPersonalityProfiles = pgTable(
 	"user_personality_profiles",

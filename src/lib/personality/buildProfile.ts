@@ -1,7 +1,7 @@
 import { container } from "@sapphire/framework";
-import { inArray, sql } from "drizzle-orm";
+import { inArray, sql, lt } from "drizzle-orm";
 import { callOllama } from "../ollama.js";
-import { getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
+import { getPersonalityProfile, getUnabsorbedMessages, cleanupOldMessages } from "../../db/queries/personality.js";
 import { db } from "../database.js";
 import { userMessages, userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
@@ -43,6 +43,9 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 }
 
 async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<void> {
+	// Clean up stale messages before building to keep the table lean
+	await cleanupOldMessages();
+
 	const messages = await getUnabsorbedMessages(userId, guildId);
 	if (messages.length === 0) return;
 
@@ -78,6 +81,12 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	const result = await callOllama(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
 	if (!result) {
 		container.logger.warn(`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`);
+		// Self-heal: reset newMessageCount to actual unabsorbed count so we don't keep retrying with a stale inflated count
+		const remaining = await getUnabsorbedMessages(userId, guildId);
+		await db
+			.update(userPersonalityProfiles)
+			.set({ newMessageCount: remaining.length })
+			.where(sql`${userPersonalityProfiles.userId} = ${userId} AND ${userPersonalityProfiles.guildId} = ${guildId}`);
 		return;
 	}
 

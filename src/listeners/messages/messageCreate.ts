@@ -46,12 +46,17 @@ export class MessageCreateListener extends Listener {
 		this.addToConversationHistory(message);
 
 		// --- Personality profiling: store message + trigger rebuild when threshold hit ---
-		// Skip empty messages, command invocations, URL-only posts, and messages with no alphabetic content
+		// Filter: skip commands, very short/long messages, URL-only posts, and spam
 		const trimmedContent = message.content.trim();
+		const contentWithoutUrls = trimmedContent.replace(URL_PATTERN, "");
+		const alphaCount = (contentWithoutUrls.match(/[A-Za-z]/g) ?? []).length;
 		const isMeaningfulForPersonality =
-			trimmedContent.length > 0 &&
+			trimmedContent.length >= 15 &&
+			trimmedContent.length <= 1000 &&
 			!trimmedContent.startsWith("/") &&
-			HAS_ALPHA_PATTERN.test(trimmedContent.replace(URL_PATTERN, ""));
+			!trimmedContent.startsWith("!") &&
+			alphaCount >= 5 &&
+			contentWithoutUrls.length >= 10;
 		if (settings.personalityEnabled && isMeaningfulForPersonality) {
 			await storeUserMessage(message.author.id, message.guild.id, trimmedContent);
 			const count = await incrementMessageCount(message.author.id, message.guild.id);

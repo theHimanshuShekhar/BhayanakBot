@@ -2,6 +2,8 @@ import { and, asc, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { userMessages, userPersonalityProfiles } from "../schema.js";
 
+const MESSAGE_RETENTION_DAYS = 30;
+
 export async function storeUserMessage(userId: string, guildId: string, content: string): Promise<void> {
 	await db.insert(userMessages).values({ userId, guildId, content });
 }
@@ -54,4 +56,10 @@ export async function getUsersNeedingRefresh(): Promise<{ userId: string; guildI
 		limit: 50,
 		columns: { userId: true, guildId: true },
 	});
+}
+
+/** Deletes messages older than MESSAGE_RETENTION_DAYS to prevent unbounded table growth. */
+export async function cleanupOldMessages(): Promise<void> {
+	const cutoff = new Date(Date.now() - MESSAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+	await db.delete(userMessages).where(lt(userMessages.createdAt, cutoff));
 }

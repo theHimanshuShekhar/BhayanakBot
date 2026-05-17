@@ -57,6 +57,13 @@
       "when": 1778973891057,
       "tag": "0007_rainy_madame_web",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778976313802,
+      "tag": "0008_dazzling_kabuki",
+      "breakpoints": true
     }
   ]
 }
