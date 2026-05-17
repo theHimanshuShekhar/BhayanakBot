@@ -71,9 +71,23 @@ RUN pnpm install --frozen-lockfile
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 
-# Copy voice binaries and models
+# Copy voice binaries, shared libs (preserving symlinks), and models
 COPY --from=whisper-builder /whisper/build/bin/whisper-cli /usr/local/bin/whisper-cli
-COPY --from=whisper-builder /whisper/ggml-base.en.bin /usr/local/share/whisper/ggml-base.en.bin
+COPY --from=whisper-builder /whisper/build/src/libwhisper.so /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/src/libwhisper.so.1 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/src/libwhisper.so.1.8.4 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml.so /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml.so.0 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml.so.0.11.1 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml-base.so /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml-base.so.0 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml-base.so.0.11.1 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml-cpu.so /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml-cpu.so.0 /usr/local/lib/
+COPY --from=whisper-builder /whisper/build/ggml/src/libggml-cpu.so.0.11.1 /usr/local/lib/
+# Model goes where the bot expects it
+RUN mkdir -p /app/models
+COPY --from=whisper-builder /whisper/ggml-base.en.bin /app/models/ggml-base.en.bin
 # Piper needs its libs + espeak-ng-data at runtime — copy entire directory
 COPY --from=piper-downloader /piper /usr/local/lib/piper
 RUN ln -s /usr/local/lib/piper/piper /usr/local/bin/piper
