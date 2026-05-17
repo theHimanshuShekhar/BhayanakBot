@@ -67,7 +67,7 @@ export class VoiceJoinCommand extends Command {
 			});
 		}
 
-		await interaction.deferReply();
+		await interaction.deferReply({ ephemeral: true });
 		console.log(`[VoiceJoin] Joining voice channel ${voiceChannel.id} (${voiceChannel.name})`);
 
 		try {

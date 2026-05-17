@@ -1,5 +1,7 @@
-import { spawn } from "node:child_process";
-import { access } from "node:fs/promises";
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const PIPER_BINARY = process.env.PIPER_BINARY ?? "piper";
 const PIPER_MODEL = process.env.PIPER_MODEL ?? "en_US-lessac-medium.onnx";
@@ -9,10 +11,11 @@ let piperAvailable: boolean | undefined;
 async function isPiperAvailable(): Promise<boolean> {
 	if (piperAvailable !== undefined) return piperAvailable;
 	try {
-		await access(PIPER_BINARY);
+		// fs.access does not search PATH, so use "which" to resolve the binary
+		await execFileAsync("which", [PIPER_BINARY]);
 		piperAvailable = true;
 	} catch {
-		console.warn(`[TTS] Binary not found: ${PIPER_BINARY}. Voice synthesis disabled.`);
+		console.warn(`[TTS] Binary not found in PATH: ${PIPER_BINARY}. Voice synthesis disabled.`);
 		piperAvailable = false;
 	}
 	return piperAvailable;

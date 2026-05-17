@@ -14,10 +14,11 @@ let whisperAvailable: boolean | undefined;
 async function isWhisperAvailable(): Promise<boolean> {
 	if (whisperAvailable !== undefined) return whisperAvailable;
 	try {
-		await access(WHISPER_BINARY);
+		// fs.access does not search PATH, so use "which" to resolve the binary
+		await execFileAsync("which", [WHISPER_BINARY]);
 		whisperAvailable = true;
 	} catch {
-		console.warn(`[STT] Binary not found: ${WHISPER_BINARY}. Voice transcription disabled.`);
+		console.warn(`[STT] Binary not found in PATH: ${WHISPER_BINARY}. Voice transcription disabled.`);
 		whisperAvailable = false;
 	}
 	return whisperAvailable;
