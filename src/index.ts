@@ -22,7 +22,7 @@ async function main() {
 		registerPlayerEvents(client.player);
 		await client.login(process.env.DISCORD_TOKEN);
 
-		client.once("ready", () => {
+		client.once("clientReady", () => {
 			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
 			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guilds`);
 		});
