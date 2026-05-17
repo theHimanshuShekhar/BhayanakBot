@@ -20,11 +20,39 @@ export async function ensureOllamaModel(): Promise<void> {
 	}
 }
 
-export async function callOllama(
+// Queue: Ollama is a single local instance — concurrent requests compete for GPU/CPU
+// and can hang or fail. Serialize all generation calls so only one runs at a time.
+type OllamaJob = {
+	system: string;
+	prompt: string;
+	timeoutMs: number;
+	numPredict: number | undefined;
+	resolve: (value: string | null) => void;
+};
+
+const queue: OllamaJob[] = [];
+let isRunning = false;
+
+function enqueue(job: OllamaJob): void {
+	queue.push(job);
+	if (!isRunning) void processQueue();
+}
+
+async function processQueue(): Promise<void> {
+	isRunning = true;
+	while (queue.length > 0) {
+		const job = queue.shift()!;
+		const result = await callOllamaInternal(job.system, job.prompt, job.timeoutMs, job.numPredict);
+		job.resolve(result);
+	}
+	isRunning = false;
+}
+
+async function callOllamaInternal(
 	system: string,
 	prompt: string,
-	timeoutMs = 3000,
-	numPredict?: number,
+	timeoutMs: number,
+	numPredict: number | undefined,
 ): Promise<string | null> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -60,4 +88,15 @@ export async function callOllama(
 	} finally {
 		clearTimeout(timeout);
 	}
+}
+
+export async function callOllama(
+	system: string,
+	prompt: string,
+	timeoutMs = 3000,
+	numPredict?: number,
+): Promise<string | null> {
+	return new Promise((resolve) => {
+		enqueue({ system, prompt, timeoutMs, numPredict, resolve });
+	});
 }
