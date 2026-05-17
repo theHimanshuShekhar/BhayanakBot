@@ -2,11 +2,7 @@ import { getVoiceConnection, joinVoiceChannel } from "@discordjs/voice";
 import { Listener } from "@sapphire/framework";
 import { Events, type VoiceState } from "discord.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
-import {
-	TARGET_GUILD_ID,
-	VOICE_COOLDOWN_MS,
-	VOICE_MIN_HUMANS_TO_JOIN,
-} from "../../lib/constants.js";
+import { TARGET_GUILD_ID, VOICE_COOLDOWN_MS, VOICE_MIN_HUMANS_TO_JOIN } from "../../lib/constants.js";
 import { isConnectedToVoice, runVoiceResponderSession } from "../../lib/voice/responder.js";
 
 export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceStateUpdate> {

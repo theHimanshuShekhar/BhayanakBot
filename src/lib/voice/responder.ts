@@ -1,11 +1,7 @@
-import {
-	getVoiceConnection,
-	joinVoiceChannel,
-	VoiceConnectionStatus,
-} from "@discordjs/voice";
+import { getVoiceConnection, type joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice";
 import type { BhayanakClient } from "../BhayanakClient.js";
-import { callOllama } from "../ollama.js";
 import { VOICE_LISTEN_DURATION_MS } from "../constants.js";
+import { callOllama } from "../ollama.js";
 import { playAudio } from "./audioPlayer.js";
 import { type AudioChunk, subscribeToAudio } from "./audioReceiver.js";
 import { transcribeAudio } from "./stt.js";
@@ -67,11 +63,7 @@ export async function runVoiceResponderSession(
 	connection.destroy();
 }
 
-async function handleAudioChunk(
-	chunk: AudioChunk,
-	client: BhayanakClient,
-	transcriptBuffer: string[],
-): Promise<void> {
+async function handleAudioChunk(chunk: AudioChunk, client: BhayanakClient, transcriptBuffer: string[]): Promise<void> {
 	const guild = client.guilds.cache.get(chunk.userId);
 	const member = guild?.members.cache.get(chunk.userId);
 	const username = member?.displayName ?? member?.user.username ?? chunk.userId;
