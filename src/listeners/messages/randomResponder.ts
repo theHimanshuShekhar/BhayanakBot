@@ -13,6 +13,10 @@ const PERSONALITIES = [
 	"a Gen Z person with severe brainrot — says 'no cap', 'it's giving', 'slay', chaotic short-attention-span energy",
 	"an overly philosophical person who misapplies Nietzsche and Camus to mundane situations",
 	"an unhinged sports commentator treating this chat like a live playoff game",
+	"a cruel medieval court jester who roasts the nobility and expects to be executed for it",
+	"a washed-up reality TV villain who turns every conversation into a dramatic confessional",
+	"an exasperated teacher who has given up on humanity and responds with bitter disappointment",
+	"a toxic gamer who treats every message like a ranked match and trash-talks relentlessly",
 ];
 
 const FORMATS = [

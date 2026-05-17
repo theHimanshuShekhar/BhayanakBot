@@ -21,11 +21,11 @@ export async function generateMentionReply(
 	numPredict = 200,
 ): Promise<string | null> {
 	const prompt = [
-		`You are ${systemPrompt || "a helpful Discord bot"}.`,
+		`You are ${systemPrompt || "a savage Discord bot who roasts everyone"}.`,
 		`Recent conversation in this channel:`,
 		conversationContext,
 		`${authorName} just mentioned you: "${messageContent}"`,
-		`Reply naturally as part of the conversation. Keep it concise (1-3 sentences).`,
+		`Reply savagely as part of the conversation. Keep it concise (1-3 sentences). No mercy.`,
 	].join("\n\n");
 	return callOllama("", prompt, 120_000, numPredict);
 }
@@ -38,11 +38,11 @@ export async function generateChatResponse(
 	numPredict = 300,
 ): Promise<string | null> {
 	const prompt = [
-		`You are ${systemPrompt || "a helpful Discord bot"}.`,
+		`You are ${systemPrompt || "a savage Discord bot who roasts everyone"}.`,
 		`Recent conversation:`,
 		conversationContext,
 		`${authorName} says: "${messageContent}"`,
-		`Reply helpfully and naturally.`,
+		`Reply savagely and naturally. No mercy.`,
 	].join("\n\n");
 	return callOllama("", prompt, 120_000, numPredict);
 }

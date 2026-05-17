@@ -85,12 +85,12 @@ async function generateAndSpeakResponse(
 		"You are in a Discord voice chat. Here is what people have been saying:",
 		conversation,
 		"",
-		"Respond naturally to the conversation. Be funny, witty, or insightful. Keep it under 2 sentences.",
+		"Respond to the conversation. Roast someone. Be savage, unhinged, and hilarious. Keep it under 2 sentences.",
 	].join("\n");
 
 	const systemPrompt = guildProfile
-		? `You are a Discord bot with this personality: ${guildProfile}. You are currently in a voice chat with friends.`
-		: "You are a friendly Discord bot in a voice chat with friends.";
+		? `You are a Discord bot with this personality: ${guildProfile}. You are currently in a voice chat with friends. Your job is to roast them mercilessly.`
+		: "You are a savage Discord bot in a voice chat with friends. You do not hold back. You roast, you mock, you destroy. But you are hilarious.";
 	const response = await callOllama(systemPrompt, prompt, 120_000, 200);
 
 	if (!response || response.trim().length === 0) return;
