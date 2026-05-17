@@ -92,7 +92,8 @@ export class ConfigCommand extends Subcommand {
 						.addIntegerOption((opt) =>
 							opt.setName("number").setDescription("Number value").setMinValue(1).setMaxValue(1000),
 						)
-						.addStringOption((opt) => opt.setName("text").setDescription("Text value (for messages)")),
+						.addStringOption((opt) => opt.setName("text").setDescription("Text value (for messages)"))
+						.addBooleanOption((opt) => opt.setName("toggle").setDescription("Toggle a boolean setting on/off")),
 				)
 				.addSubcommand((sub) =>
 					sub
@@ -230,6 +231,7 @@ export class ConfigCommand extends Subcommand {
 		const role = interaction.options.getRole("role");
 		const number = interaction.options.getInteger("number");
 		const text = interaction.options.getString("text");
+		const toggle = interaction.options.getBoolean("toggle");
 
 		const channelSettings = [
 			"welcomeChannelId",
@@ -255,7 +257,9 @@ export class ConfigCommand extends Subcommand {
 			}
 			value = number;
 		} else if (textSettings.includes(setting) && text) value = text;
-		else if (booleanSettings.includes(setting) && text) {
+		else if (booleanSettings.includes(setting) && toggle !== null) {
+			value = toggle;
+		} else if (booleanSettings.includes(setting) && text) {
 			const lower = text.toLowerCase();
 			if (lower === "true" || lower === "false") value = lower === "true";
 			else return interaction.editReply("❌ Boolean settings require `true` or `false` as the text value.");
