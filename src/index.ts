@@ -11,6 +11,22 @@ import { ensureOllamaModel } from "./lib/ollama.js";
 
 const client = new BhayanakClient();
 
+function formatDuration(ms: number): string {
+	const seconds = Math.floor(ms / 1000);
+	const minutes = Math.floor(seconds / 60);
+	const hours = Math.floor(minutes / 60);
+	const days = Math.floor(hours / 24);
+	const months = Math.floor(days / 30);
+	const years = Math.floor(days / 365);
+
+	if (years > 0) return `${years}y ${months % 12}mo ${days % 30}d`;
+	if (months > 0) return `${months}mo ${days % 30}d ${hours % 24}h`;
+	if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+	if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+	if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+	return `${seconds}s`;
+}
+
 async function main() {
 	try {
 		await ensureOllamaModel();
@@ -24,7 +40,12 @@ async function main() {
 
 		client.once("clientReady", () => {
 			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
-			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guilds`);
+			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guild(s):`);
+			for (const guild of client.guilds.cache.values()) {
+				const joined = guild.joinedAt;
+				const duration = joined ? formatDuration(Date.now() - joined.getTime()) : "unknown";
+				client.logger.info(`  - ${guild.name} (${guild.id}) — member for ${duration}`);
+			}
 		});
 
 		// Run initial scheduled tasks non-blocking so startup can't hang
