@@ -1,5 +1,5 @@
 import { container } from "@sapphire/framework";
-import { inArray, sql, lt } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { callOllama } from "../ollama.js";
 import { getPersonalityProfile, getUnabsorbedMessages, cleanupOldMessages } from "../../db/queries/personality.js";
 import { db } from "../database.js";

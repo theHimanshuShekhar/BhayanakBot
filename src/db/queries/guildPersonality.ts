@@ -49,3 +49,14 @@ export async function getRecentGuildMessages(guildId: string, limit: number): Pr
 		limit,
 	});
 }
+
+/** Resets the guild message count to a specific value (used for self-healing after failed builds). */
+export async function resetGuildMessageCount(guildId: string, count: number): Promise<void> {
+	await db
+		.insert(guildPersonalityProfiles)
+		.values({ guildId, messageCount: count })
+		.onConflictDoUpdate({
+			target: guildPersonalityProfiles.guildId,
+			set: { messageCount: count },
+		});
+}

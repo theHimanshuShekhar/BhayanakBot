@@ -5,6 +5,7 @@ import {
 	getRecentGuildMessages,
 	updateGuildPersonalityProfile,
 	getGuildMessageCount,
+	resetGuildMessageCount,
 } from "../../db/queries/guildPersonality.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 
@@ -78,6 +79,9 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 	const result = await callOllama(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
 	if (!result) {
 		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
+		// Self-heal: reset messageCount to actual recent message count so we don't keep retrying with stale inflated count
+		const recentMessages = await getRecentGuildMessages(guildId, MAX_MESSAGES_PER_BUILD);
+		await resetGuildMessageCount(guildId, recentMessages.length);
 		return;
 	}
 
