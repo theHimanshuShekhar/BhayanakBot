@@ -91,8 +91,8 @@ COPY --from=whisper-builder /whisper/ggml-base.en.bin /app/models/ggml-base.en.b
 # Piper needs its libs + espeak-ng-data at runtime — copy entire directory
 COPY --from=piper-downloader /piper /usr/local/lib/piper
 RUN ln -s /usr/local/lib/piper/piper /usr/local/bin/piper
-COPY --from=piper-downloader /piper-model.onnx /usr/local/share/piper/en_US-lessac-medium.onnx
-COPY --from=piper-downloader /piper-model.onnx.json /usr/local/share/piper/en_US-lessac-medium.onnx.json
+COPY --from=piper-downloader /piper-model.onnx /app/models/en_US-lessac-medium.onnx
+COPY --from=piper-downloader /piper-model.onnx.json /app/models/en_US-lessac-medium.onnx.json
 RUN chmod +x /usr/local/bin/whisper-cli /usr/local/bin/piper
 
 # Copy source and run directly with tsx instead of pre-compiling

@@ -89,9 +89,6 @@ services:
       WHISPER_MODEL: ${WHISPER_MODEL:-/app/models/ggml-base.en.bin}
       PIPER_BINARY: ${PIPER_BINARY:-piper}
       PIPER_MODEL: ${PIPER_MODEL:-/app/models/en_US-lessac-medium.onnx}
-    volumes:
-      # Mount local whisper.cpp and piper models into the container
-      - ./models:/app/models:ro
     networks:
       - botnet
 
