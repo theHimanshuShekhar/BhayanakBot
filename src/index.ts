@@ -22,40 +22,39 @@ async function main() {
 		registerPlayerEvents(client.player);
 		await client.login(process.env.DISCORD_TOKEN);
 
-		// Schedule recurring polling tasks via @sapphire/plugin-scheduled-tasks
-		// These run on intervals using Valkey/BullMQ as the backend
-		await client.stores
-			.get("scheduled-tasks")
-			.get("expireMutes")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("expireTempBans")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("sendReminders")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("endGiveaways")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("endPolls")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("reloadOnRestart")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("generateDailyQuests")
-			?.run(null as never);
-		await client.stores
-			.get("scheduled-tasks")
-			.get("refreshPersonalityProfiles")
-			?.run(null as never);
+		client.once("ready", () => {
+			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
+			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guilds`);
+		});
+
+		// Run initial scheduled tasks non-blocking so startup can't hang
+		// If a task fails, it logs but doesn't block the bot from processing events
+		const runTask = async (name: string) => {
+			const start = Date.now();
+			try {
+				await client.stores
+					.get("scheduled-tasks")
+					.get(name)
+					?.run(null as never);
+				client.logger.info(`[startup] Task ${name} completed in ${Date.now() - start}ms`);
+			} catch (err) {
+				client.logger.error(`[startup] Task ${name} failed after ${Date.now() - start}ms:`, err);
+			}
+		};
+
+		const startupTasks = [
+			"expireMutes",
+			"expireTempBans",
+			"sendReminders",
+			"endGiveaways",
+			"endPolls",
+			"reloadOnRestart",
+			"generateDailyQuests",
+			"refreshPersonalityProfiles",
+		];
+		for (const taskName of startupTasks) {
+			void runTask(taskName);
+		}
 
 		// Schedule interval runs (every 30 seconds)
 		const tasks = ["expireMutes", "expireTempBans", "sendReminders", "endGiveaways", "endPolls"] as const;
