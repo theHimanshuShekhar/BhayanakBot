@@ -9,8 +9,11 @@
     "start": "node dist/index.js",
     "lint": "biome lint .",
     "format": "biome format . --write",
-    "check": "biome check . --write",
-    "db:push": "drizzle-kit push",
+		"check": "biome check . --write",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -66,12 +69,14 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.6",
     "drizzle-kit": "^0.31.10",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.7"
+    "vite": "^8.0.7",
+    "vitest": "^4.1.6"
   }
 }
