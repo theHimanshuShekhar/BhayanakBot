@@ -314,6 +314,10 @@ export class MessageCreateListener extends Listener {
 		while (history.length > 0 && history[0].timestamp < cutoff) {
 			history.shift();
 		}
+		// Clean up empty entries to prevent unbounded Map growth
+		if (history.length === 0) {
+			conversationHistory.delete(channelId);
+		}
 	}
 
 	private getConversationContext(channelId: string, limit: number): string {
