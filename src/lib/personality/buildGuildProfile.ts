@@ -10,11 +10,11 @@ import {
 import { guildPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
-import { callOllama } from "../ollama.js";
+import { callOllamaLowPriority } from "../ollama.js";
 
-const OLLAMA_TIMEOUT_MS = 30_000;
-const MAX_MESSAGES_PER_BUILD = 500;
-const MAX_CHARS_PER_BUILD = 40_000;
+const OLLAMA_TIMEOUT_MS = 90_000;
+const MAX_MESSAGES_PER_BUILD = 100;
+const MAX_CHARS_PER_BUILD = 8_000;
 const BUILD_THRESHOLD = 200; // Build after 200 new messages
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -89,7 +89,7 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 				"\n",
 			);
 
-	const result = await callOllama(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
+	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
 	if (!result) {
 		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
 		// Self-heal: reset messageCount to actual recent message count so we don't keep retrying with stale inflated count

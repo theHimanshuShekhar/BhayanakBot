@@ -22,19 +22,29 @@ export async function ensureOllamaModel(): Promise<void> {
 
 // Queue: Ollama is a single local instance — concurrent requests compete for GPU/CPU
 // and can hang or fail. Serialize all generation calls so only one runs at a time.
+// High-priority jobs (flavor text, mentions, voice) jump ahead of low-priority
+// background jobs (personality builds) so users never wait behind a slow build.
 type OllamaJob = {
 	system: string;
 	prompt: string;
 	timeoutMs: number;
 	numPredict: number | undefined;
 	resolve: (value: string | null) => void;
+	priority: "high" | "low";
 };
 
 const queue: OllamaJob[] = [];
 let isRunning = false;
 
 function enqueue(job: OllamaJob): void {
-	queue.push(job);
+	if (job.priority === "high") {
+		// Insert after the last high-priority job, before any low-priority jobs
+		const firstLowIdx = queue.findIndex((j) => j.priority === "low");
+		if (firstLowIdx === -1) queue.push(job);
+		else queue.splice(firstLowIdx, 0, job);
+	} else {
+		queue.push(job);
+	}
 	if (!isRunning) void processQueue();
 }
 
@@ -97,6 +107,21 @@ export async function callOllama(
 	numPredict?: number,
 ): Promise<string | null> {
 	return new Promise((resolve) => {
-		enqueue({ system, prompt, timeoutMs, numPredict, resolve });
+		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "high" });
+	});
+}
+
+/**
+ * Call Ollama with low priority — suited for background tasks like personality
+ * profile builds that can wait behind interactive user-facing calls.
+ */
+export async function callOllamaLowPriority(
+	system: string,
+	prompt: string,
+	timeoutMs = 3000,
+	numPredict?: number,
+): Promise<string | null> {
+	return new Promise((resolve) => {
+		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "low" });
 	});
 }

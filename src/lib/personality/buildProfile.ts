@@ -4,13 +4,13 @@ import { cleanupOldMessages, getPersonalityProfile, getUnabsorbedMessages } from
 import { userMessages, userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
-import { callOllama } from "../ollama.js";
+import { callOllamaLowPriority } from "../ollama.js";
 
-const OLLAMA_TIMEOUT_MS = 30_000;
-// Prevent runaway prompts: absorb at most 500 messages or 40 000 chars per build pass.
-// Any remaining messages stay in user_messages and are picked up in the next cycle.
-const MAX_MESSAGES_PER_BUILD = 500;
-const MAX_CHARS_PER_BUILD = 40_000;
+const OLLAMA_TIMEOUT_MS = 90_000;
+// Prevent runaway prompts: absorb at most 100 messages or 8 000 chars per build pass.
+// phi3:mini on CPU can't handle 40K chars in a reasonable time; smaller chunks finish reliably.
+const MAX_MESSAGES_PER_BUILD = 100;
+const MAX_CHARS_PER_BUILD = 8_000;
 
 // Shared across all call sites (inline messageCreate trigger, /personality manual trigger,
 // scheduled refresh) so concurrent builds for the same user don't race on the same
@@ -90,7 +90,7 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 				"Build a detailed personality profile based on these messages.",
 			].join("\n");
 
-	const result = await callOllama(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
+	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
 	if (!result) {
 		container.logger.warn(
 			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,

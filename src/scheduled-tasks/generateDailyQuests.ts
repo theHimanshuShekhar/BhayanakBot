@@ -1,7 +1,7 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { getAllActiveGuildIds } from "../db/queries/guildSettings.js";
 import { getTodayQuests, insertDailyQuests } from "../db/queries/rpg.js";
-import { callOllama } from "../lib/ollama.js";
+import { callOllamaLowPriority } from "../lib/ollama.js";
 import { QUEST_TEMPLATES, type QuestTemplate } from "../lib/rpg/catalogs/questTemplates.js";
 
 const VALID_OBJECTIVE_TYPES = new Set(["work", "crime", "train"]);
@@ -53,7 +53,7 @@ async function generateQuestsWithOllama(guildId: string, date: string): Promise<
 
 Make the 3 quests varied — different objectiveTypes if possible. Respond with ONLY the JSON array.`;
 
-	const raw = await callOllama(system, prompt, 30_000);
+	const raw = await callOllamaLowPriority(system, prompt, 30_000);
 	if (!raw) return pickFallbackQuests(date, guildId);
 
 	try {
