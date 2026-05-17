@@ -67,8 +67,9 @@ export class ConfigCommand extends Subcommand {
 									{ name: "xp-cooldown", value: "xpCooldownSeconds" },
 									{ name: "welcome-message", value: "welcomeMessage" },
 									{ name: "goodbye-message", value: "goodbyeMessage" },
-									{ name: "level-up-message", value: "levelUpMessage" },
-								),
+								{ name: "level-up-message", value: "levelUpMessage" },
+								{ name: "personality-profiling", value: "personalityEnabled" },
+							),
 						)
 						.addChannelOption((opt) => opt.setName("channel").setDescription("Channel to set"))
 						.addRoleOption((opt) => opt.setName("role").setDescription("Role to set"))
@@ -182,6 +183,10 @@ export class ConfigCommand extends Subcommand {
 					name: "Starboard",
 					value: `Threshold: ${settings.starThreshold} ⭐`,
 				},
+				{
+					name: "AI Personality",
+					value: `Profiling: ${settings.personalityEnabled ? "✅" : "❌"}`,
+				},
 			)
 			.setTimestamp();
 
@@ -203,12 +208,18 @@ export class ConfigCommand extends Subcommand {
 		const roleSettings = ["autoRole", "mutedRoleId", "ticketSupportRoleId", "djRoleId", "moderatorRoleId"];
 		const numberSettings = ["starThreshold", "xpRate", "xpCooldownSeconds"];
 		const textSettings = ["welcomeMessage", "goodbyeMessage", "levelUpMessage"];
+		const booleanSettings = ["personalityEnabled"];
 
-		let value: string | number | null = null;
+		let value: string | number | boolean | null = null;
 		if (channelSettings.includes(setting) && channel) value = channel.id;
 		else if (roleSettings.includes(setting) && role) value = role.id;
 		else if (numberSettings.includes(setting) && number !== null) value = number;
 		else if (textSettings.includes(setting) && text) value = text;
+		else if (booleanSettings.includes(setting) && text) {
+			const lower = text.toLowerCase();
+			if (lower === "true" || lower === "false") value = lower === "true";
+			else return interaction.editReply("❌ Boolean settings require `true` or `false` as the text value.");
+		}
 		else return interaction.editReply("❌ Please provide the correct option type for this setting.");
 
 		await updateSettings(interaction.guildId!, { [setting]: value });
