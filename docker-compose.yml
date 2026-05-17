@@ -44,14 +44,6 @@ services:
       resources:
         limits:
           memory: 8G
-        reservations:
-          devices:
-            - driver: amdgpu
-              count: 1
-              capabilities: [gpu]
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 10s
