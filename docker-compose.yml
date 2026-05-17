@@ -43,7 +43,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 8G
+          memory: 4G
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 10s
