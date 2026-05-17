@@ -89,7 +89,9 @@ export function subscribeToAudio(
 
 			const fullBuffer = Buffer.concat(pcmBuffer);
 			const durationMs = Date.now() - data.startTime;
-			console.log(`[AudioReceiver] Chunk timeout for ${userId}: buffer=${fullBuffer.length}b, duration=${durationMs}ms`);
+			console.log(
+				`[AudioReceiver] Chunk timeout for ${userId}: buffer=${fullBuffer.length}b, duration=${durationMs}ms`,
+			);
 
 			// Get user info from the guild
 			const guild = connection.joinConfig.guildId;

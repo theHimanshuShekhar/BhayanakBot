@@ -46,7 +46,9 @@ export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceSta
 
 	private async joinAndListen(channelId: string, guildId: string): Promise<void> {
 		if (this.isListening || isConnectedToVoice(guildId)) {
-			console.log(`[VoiceChannelMonitor] Skipping join: isListening=${this.isListening}, connected=${isConnectedToVoice(guildId)}`);
+			console.log(
+				`[VoiceChannelMonitor] Skipping join: isListening=${this.isListening}, connected=${isConnectedToVoice(guildId)}`,
+			);
 			return;
 		}
 
