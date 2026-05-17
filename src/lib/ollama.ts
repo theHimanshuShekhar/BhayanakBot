@@ -31,6 +31,7 @@ type OllamaJob = {
 	numPredict: number | undefined;
 	resolve: (value: string | null) => void;
 	priority: "high" | "low";
+	label?: string;
 };
 
 const queue: OllamaJob[] = [];
@@ -52,7 +53,7 @@ async function processQueue(): Promise<void> {
 	isRunning = true;
 	while (queue.length > 0) {
 		const job = queue.shift()!;
-		const result = await callOllamaInternal(job.system, job.prompt, job.timeoutMs, job.numPredict);
+		const result = await callOllamaInternal(job.system, job.prompt, job.timeoutMs, job.numPredict, job.label);
 		job.resolve(result);
 	}
 	isRunning = false;
@@ -63,11 +64,15 @@ async function callOllamaInternal(
 	prompt: string,
 	timeoutMs: number,
 	numPredict: number | undefined,
+	label?: string,
 ): Promise<string | null> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
 	console.log(`[ollama] POST ${OLLAMA_URL}/api/generate model=${OLLAMA_MODEL} timeout=${timeoutMs}ms`);
+	if (label) {
+		console.log(`[ollama] label="${label}"`);
+	}
 	console.log(`[ollama] system="${system.slice(0, 80)}" prompt="${prompt.slice(0, 80)}"`);
 
 	try {
@@ -120,8 +125,9 @@ export async function callOllamaLowPriority(
 	prompt: string,
 	timeoutMs = 3000,
 	numPredict?: number,
+	label?: string,
 ): Promise<string | null> {
 	return new Promise((resolve) => {
-		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "low" });
+		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "low", label });
 	});
 }

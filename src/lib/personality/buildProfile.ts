@@ -90,7 +90,15 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 				"Build a detailed personality profile based on these messages.",
 			].join("\n");
 
-	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
+	// Try to resolve the user's display name for logging
+	const client = container.client as BhayanakClient;
+	const guild = client.guilds.cache.get(guildId);
+	const member = guild?.members.cache.get(userId);
+	const user = client.users.cache.get(userId);
+	const displayName = member?.displayName ?? user?.username ?? `id=${userId}`;
+	const label = `${displayName} (id=${userId})`;
+
+	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
 	if (!result) {
 		container.logger.warn(
 			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,
@@ -128,7 +136,6 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	});
 
 	// Invalidate in-memory cache so the next response picks up the fresh profile
-	const client = container.client as BhayanakClient;
 	client.personalityCache.delete(`${userId}:${guildId}`);
 
 	container.logger.debug(

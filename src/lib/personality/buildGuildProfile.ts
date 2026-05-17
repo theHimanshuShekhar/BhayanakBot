@@ -89,7 +89,12 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 				"\n",
 			);
 
-	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
+	// Try to resolve the guild name for logging
+	const client = container.client as BhayanakClient;
+	const guild = client.guilds.cache.get(guildId);
+	const label = guild ? `${guild.name} (id=${guildId})` : `guild id=${guildId}`;
+
+	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
 	if (!result) {
 		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
 		// Self-heal: reset messageCount to actual recent message count so we don't keep retrying with stale inflated count
@@ -101,7 +106,6 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 	await updateGuildPersonalityProfile(guildId, result);
 
 	// Invalidate cache
-	const client = container.client as BhayanakClient;
 	client.guildPersonalityCache.delete(guildId);
 
 	container.logger.debug(
