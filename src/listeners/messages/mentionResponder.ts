@@ -7,6 +7,8 @@ import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 const HISTORY_LIMIT = 20;
 const OLLAMA_TIMEOUT_MS = 60_000;
+const MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds per user
+const mentionCooldown = new Map<string, number>();
 
 const SYSTEM_PROMPT = [
 	"You are a sarcastic, condescending, mildly contemptuous Discord bot who finds humans amusing but exhausting.",
@@ -29,6 +31,12 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		// Skip if personality profiling is enabled — messageCreate.ts handles smart mentions instead
 		const settings = await getOrCreateSettings(message.guildId!);
 		if (settings.personalityEnabled) return;
+
+		// Per-user cooldown to prevent Ollama spam
+		const cooldownKey = `${message.guildId!}:${message.author.id}`;
+		const lastFired = mentionCooldown.get(cooldownKey) ?? 0;
+		if (Date.now() - lastFired < MENTION_COOLDOWN_MS) return;
+		mentionCooldown.set(cooldownKey, Date.now());
 
 		// Strip the bot mention tag and check there's actual conversational content
 		const contentWithoutMention = message.content
