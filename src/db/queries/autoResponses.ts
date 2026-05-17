@@ -47,7 +47,12 @@ export interface MatchResult {
 	captured?: Record<string, string>;
 }
 
-export async function findMatchingResponse(guildId: string, content: string, channelId: string, botMentioned: boolean): Promise<MatchResult | undefined> {
+export async function findMatchingResponse(
+	guildId: string,
+	content: string,
+	channelId: string,
+	botMentioned: boolean,
+): Promise<MatchResult | undefined> {
 	const responses = await getGuildAutoResponses(guildId);
 	const lower = content.toLowerCase();
 

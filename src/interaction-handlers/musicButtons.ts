@@ -1,11 +1,15 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
-import { MessageFlags, PermissionFlagsBits } from "discord.js";
 import type { ButtonInteraction, GuildMember } from "discord.js";
-import { useQueue, QueueRepeatMode } from "discord-player";
+import { MessageFlags, PermissionFlagsBits } from "discord.js";
 import type { GuildQueue } from "discord-player";
-import { getGuildSettingsCached } from "../lib/music/guildSettingsCache.js";
+import { QueueRepeatMode, useQueue } from "discord-player";
+import {
+	buildDisabledNowPlayingButtons,
+	buildNowPlayingButtons,
+	buildQueuePageButtons,
+} from "../lib/music/components.js";
 import { buildNowPlayingEmbed, buildQueueEmbed, QUEUE_PAGE_SIZE } from "../lib/music/embeds.js";
-import { buildNowPlayingButtons, buildDisabledNowPlayingButtons, buildQueuePageButtons } from "../lib/music/components.js";
+import { getGuildSettingsCached } from "../lib/music/guildSettingsCache.js";
 
 async function checkDJ(interaction: ButtonInteraction): Promise<boolean> {
 	const member = interaction.member as GuildMember;
@@ -67,7 +71,10 @@ export class MusicButtonsHandler extends InteractionHandler {
 		}
 		const track = queue.currentTrack;
 		if (track) {
-			return interaction.update({ embeds: [buildNowPlayingEmbed(queue, track)], components: [buildNowPlayingButtons(queue)] });
+			return interaction.update({
+				embeds: [buildNowPlayingEmbed(queue, track)],
+				components: [buildNowPlayingButtons(queue)],
+			});
 		}
 		return interaction.deferUpdate();
 	}
@@ -97,7 +104,10 @@ export class MusicButtonsHandler extends InteractionHandler {
 		queue.setRepeatMode(next);
 		const track = queue.currentTrack;
 		if (track) {
-			return interaction.update({ embeds: [buildNowPlayingEmbed(queue, track)], components: [buildNowPlayingButtons(queue)] });
+			return interaction.update({
+				embeds: [buildNowPlayingEmbed(queue, track)],
+				components: [buildNowPlayingButtons(queue)],
+			});
 		}
 		return interaction.deferUpdate();
 	}

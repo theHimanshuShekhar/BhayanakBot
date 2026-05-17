@@ -1,8 +1,8 @@
 import { Command } from "@sapphire/framework";
 import { MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
-import { buildQueueEmbed, QUEUE_PAGE_SIZE } from "../../lib/music/embeds.js";
 import { buildQueuePageButtons } from "../../lib/music/components.js";
+import { buildQueueEmbed, QUEUE_PAGE_SIZE } from "../../lib/music/embeds.js";
 
 export class QueueCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -21,9 +21,7 @@ export class QueueCommand extends Command {
 			builder
 				.setName("queue")
 				.setDescription("Show the current music queue")
-				.addIntegerOption((opt) =>
-					opt.setName("page").setDescription("Page number").setMinValue(1).setRequired(false),
-				),
+				.addIntegerOption((opt) => opt.setName("page").setDescription("Page number").setMinValue(1).setRequired(false)),
 		);
 	}
 

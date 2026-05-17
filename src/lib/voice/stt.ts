@@ -1,8 +1,8 @@
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { writeFile, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
@@ -24,13 +24,7 @@ export async function transcribeAudio(pcmBuffer: Buffer): Promise<string | null>
 		// Run whisper.cpp
 		const { stdout } = await execFileAsync(
 			WHISPER_BINARY,
-			[
-				"-m", WHISPER_MODEL,
-				"-f", tmpWav,
-				"--output-txt",
-				"--no-timestamps",
-				"--language", "en",
-			],
+			["-m", WHISPER_MODEL, "-f", tmpWav, "--output-txt", "--no-timestamps", "--language", "en"],
 			{ timeout: 30_000 },
 		);
 

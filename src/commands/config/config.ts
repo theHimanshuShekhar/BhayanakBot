@@ -2,8 +2,8 @@ import { Subcommand } from "@sapphire/plugin-subcommands";
 import {
 	ApplicationCommandOptionType,
 	ChannelType,
-	EmbedBuilder,
 	type ChatInputCommandInteraction,
+	EmbedBuilder,
 	MessageFlags,
 } from "discord.js";
 import { getOrCreateSettings, updateSettings } from "../../db/queries/guildSettings.js";
@@ -17,12 +17,25 @@ export class ConfigCommand extends Subcommand {
 			preconditions: ["GuildOnly", "IsAdmin"],
 			help: {
 				summary: "Configure server channels, roles, auto-moderation, and anti-raid settings.",
-				examples: ["/config view", "/config set setting:log-channel channel:#mod-log", "/config automod setting:spam-threshold number:5"],
+				examples: [
+					"/config view",
+					"/config set setting:log-channel channel:#mod-log",
+					"/config automod setting:spam-threshold number:5",
+				],
 				subcommands: {
 					view: { summary: "View current server configuration.", examples: ["/config view"] },
-					set: { summary: "Set a configuration value for a specific setting.", examples: ["/config set setting:log-channel channel:#mod-log"] },
-					automod: { summary: "Configure auto-moderation thresholds.", examples: ["/config automod setting:spam-threshold number:5"] },
-					antiraid: { summary: "Configure anti-raid protection (join rate limits).", examples: ["/config antiraid setting:threshold number:10"] },
+					set: {
+						summary: "Set a configuration value for a specific setting.",
+						examples: ["/config set setting:log-channel channel:#mod-log"],
+					},
+					automod: {
+						summary: "Configure auto-moderation thresholds.",
+						examples: ["/config automod setting:spam-threshold number:5"],
+					},
+					antiraid: {
+						summary: "Configure anti-raid protection (join rate limits).",
+						examples: ["/config antiraid setting:threshold number:10"],
+					},
 				},
 			},
 			subcommands: [
@@ -67,15 +80,17 @@ export class ConfigCommand extends Subcommand {
 									{ name: "xp-cooldown", value: "xpCooldownSeconds" },
 									{ name: "welcome-message", value: "welcomeMessage" },
 									{ name: "goodbye-message", value: "goodbyeMessage" },
-								{ name: "level-up-message", value: "levelUpMessage" },
-								{ name: "personality-profiling", value: "personalityEnabled" },
-								{ name: "random-response-channel", value: "randomResponseChannelId" },
-								{ name: "random-response-chance", value: "randomResponseChance" },
-							),
+									{ name: "level-up-message", value: "levelUpMessage" },
+									{ name: "personality-profiling", value: "personalityEnabled" },
+									{ name: "random-response-channel", value: "randomResponseChannelId" },
+									{ name: "random-response-chance", value: "randomResponseChance" },
+								),
 						)
 						.addChannelOption((opt) => opt.setName("channel").setDescription("Channel to set"))
 						.addRoleOption((opt) => opt.setName("role").setDescription("Role to set"))
-						.addIntegerOption((opt) => opt.setName("number").setDescription("Number value").setMinValue(1).setMaxValue(1000))
+						.addIntegerOption((opt) =>
+							opt.setName("number").setDescription("Number value").setMinValue(1).setMaxValue(1000),
+						)
 						.addStringOption((opt) => opt.setName("text").setDescription("Text value (for messages)")),
 				)
 				.addSubcommand((sub) =>
@@ -109,7 +124,9 @@ export class ConfigCommand extends Subcommand {
 									{ name: "kick", value: "kick" },
 								),
 						)
-						.addIntegerOption((opt) => opt.setName("number").setDescription("Numeric value").setMinValue(1).setMaxValue(100)),
+						.addIntegerOption((opt) =>
+							opt.setName("number").setDescription("Numeric value").setMinValue(1).setMaxValue(100),
+						),
 				)
 				.addSubcommand((sub) =>
 					sub
@@ -127,7 +144,9 @@ export class ConfigCommand extends Subcommand {
 									{ name: "window", value: "window" },
 								),
 						)
-						.addIntegerOption((opt) => opt.setName("number").setDescription("Numeric value").setMinValue(1).setMaxValue(100)),
+						.addIntegerOption((opt) =>
+							opt.setName("number").setDescription("Numeric value").setMinValue(1).setMaxValue(100),
+						),
 				),
 		);
 	}
@@ -208,8 +227,14 @@ export class ConfigCommand extends Subcommand {
 		const text = interaction.options.getString("text");
 
 		const channelSettings = [
-			"welcomeChannelId", "goodbyeChannelId", "logChannelId", "levelUpChannelId",
-			"musicChannelId", "starboardChannelId", "ticketCategoryId", "randomResponseChannelId",
+			"welcomeChannelId",
+			"goodbyeChannelId",
+			"logChannelId",
+			"levelUpChannelId",
+			"musicChannelId",
+			"starboardChannelId",
+			"ticketCategoryId",
+			"randomResponseChannelId",
 		];
 		const roleSettings = ["autoRole", "mutedRoleId", "ticketSupportRoleId", "djRoleId", "moderatorRoleId"];
 		const numberSettings = ["starThreshold", "xpRate", "xpCooldownSeconds", "randomResponseChance"];
@@ -224,14 +249,12 @@ export class ConfigCommand extends Subcommand {
 				return interaction.editReply("❌ Random response chance must be between 1 and 100.");
 			}
 			value = number;
-		}
-		else if (textSettings.includes(setting) && text) value = text;
+		} else if (textSettings.includes(setting) && text) value = text;
 		else if (booleanSettings.includes(setting) && text) {
 			const lower = text.toLowerCase();
 			if (lower === "true" || lower === "false") value = lower === "true";
 			else return interaction.editReply("❌ Boolean settings require `true` or `false` as the text value.");
-		}
-		else return interaction.editReply("❌ Please provide the correct option type for this setting.");
+		} else return interaction.editReply("❌ Please provide the correct option type for this setting.");
 
 		await updateSettings(interaction.guildId!, { [setting]: value });
 		return interaction.editReply(`✅ Setting **${setting}** updated successfully.`);
@@ -248,13 +271,27 @@ export class ConfigCommand extends Subcommand {
 
 		const updates: Record<string, unknown> = {};
 		switch (setting) {
-			case "enable": updates.autoModEnabled = true; break;
-			case "disable": updates.autoModEnabled = false; break;
-			case "spamThreshold": if (number) updates.autoModSpamThreshold = number; break;
-			case "badLinks": updates.autoModBadLinks = value === "true"; break;
-			case "maxMentions": if (number) updates.autoModMaxMentions = number; break;
-			case "action": if (value && ["warn", "mute", "kick"].includes(value)) updates.autoModAction = value; break;
-			case "muteDuration": if (number) updates.autoModMuteDuration = number * 60000; break; // minutes to ms
+			case "enable":
+				updates.autoModEnabled = true;
+				break;
+			case "disable":
+				updates.autoModEnabled = false;
+				break;
+			case "spamThreshold":
+				if (number) updates.autoModSpamThreshold = number;
+				break;
+			case "badLinks":
+				updates.autoModBadLinks = value === "true";
+				break;
+			case "maxMentions":
+				if (number) updates.autoModMaxMentions = number;
+				break;
+			case "action":
+				if (value && ["warn", "mute", "kick"].includes(value)) updates.autoModAction = value;
+				break;
+			case "muteDuration":
+				if (number) updates.autoModMuteDuration = number * 60000;
+				break; // minutes to ms
 		}
 
 		await updateSettings(interaction.guildId!, updates);
@@ -268,10 +305,18 @@ export class ConfigCommand extends Subcommand {
 
 		const updates: Record<string, unknown> = {};
 		switch (setting) {
-			case "enable": updates.antiRaidEnabled = true; break;
-			case "disable": updates.antiRaidEnabled = false; break;
-			case "threshold": if (number) updates.antiRaidJoinThreshold = number; break;
-			case "window": if (number) updates.antiRaidJoinWindow = number; break;
+			case "enable":
+				updates.antiRaidEnabled = true;
+				break;
+			case "disable":
+				updates.antiRaidEnabled = false;
+				break;
+			case "threshold":
+				if (number) updates.antiRaidJoinThreshold = number;
+				break;
+			case "window":
+				if (number) updates.antiRaidJoinWindow = number;
+				break;
 		}
 
 		await updateSettings(interaction.guildId!, updates);

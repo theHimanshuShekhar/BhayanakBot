@@ -1,5 +1,10 @@
 import { AllFlowsPrecondition } from "@sapphire/framework";
-import { PermissionFlagsBits, type CommandInteraction, type ContextMenuCommandInteraction, type Message } from "discord.js";
+import {
+	type CommandInteraction,
+	type ContextMenuCommandInteraction,
+	type Message,
+	PermissionFlagsBits,
+} from "discord.js";
 import { BOT_OWNER_ID } from "../lib/constants.js";
 
 export class IsAdminPrecondition extends AllFlowsPrecondition {

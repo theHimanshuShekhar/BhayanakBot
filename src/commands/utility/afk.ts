@@ -1,6 +1,6 @@
-import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { setAfk, clearAfk } from "../../db/queries/afk.js";
+import { MessageFlags } from "discord.js";
+import { clearAfk, setAfk } from "../../db/queries/afk.js";
 
 export class AfkCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -31,9 +31,7 @@ export class AfkCommand extends Subcommand {
 					sub
 						.setName("set")
 						.setDescription("Set yourself as AFK")
-						.addStringOption((opt) =>
-							opt.setName("reason").setDescription("AFK reason").setRequired(false),
-						),
+						.addStringOption((opt) => opt.setName("reason").setDescription("AFK reason").setRequired(false)),
 				)
 				.addSubcommand((sub) => sub.setName("clear").setDescription("Clear your AFK status manually")),
 		);

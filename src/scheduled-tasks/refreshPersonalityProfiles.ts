@@ -18,7 +18,10 @@ export class RefreshPersonalityProfilesTask extends ScheduledTask {
 			try {
 				await buildPersonalityProfile(userId, guildId);
 			} catch (err) {
-				this.container.logger.error(`[personality] Failed to build profile for userId=${userId} guildId=${guildId}:`, err);
+				this.container.logger.error(
+					`[personality] Failed to build profile for userId=${userId} guildId=${guildId}:`,
+					err,
+				);
 			}
 		}
 	}

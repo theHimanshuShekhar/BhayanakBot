@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 
 export class EditSnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {

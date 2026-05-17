@@ -1,16 +1,16 @@
 import { container } from "@sapphire/framework";
 import { eq } from "drizzle-orm";
-import { callOllama } from "../ollama.js";
 import {
+	getGuildMessageCount,
 	getGuildPersonalityProfile,
 	getRecentGuildMessages,
-	updateGuildPersonalityProfile,
-	getGuildMessageCount,
 	resetGuildMessageCount,
+	updateGuildPersonalityProfile,
 } from "../../db/queries/guildPersonality.js";
-import { db } from "../database.js";
 import { guildPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
+import { db } from "../database.js";
+import { callOllama } from "../ollama.js";
 
 const OLLAMA_TIMEOUT_MS = 120_000;
 const MAX_MESSAGES_PER_BUILD = 500;
@@ -47,7 +47,9 @@ export async function buildGuildPersonalityProfile(guildId: string): Promise<voi
 async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<void> {
 	const messageCount = await getGuildMessageCount(guildId);
 	if (messageCount < BUILD_THRESHOLD) {
-		container.logger.debug(`[guild-personality] Skipping build for ${guildId}: only ${messageCount} messages (threshold: ${BUILD_THRESHOLD})`);
+		container.logger.debug(
+			`[guild-personality] Skipping build for ${guildId}: only ${messageCount} messages (threshold: ${BUILD_THRESHOLD})`,
+		);
 		return;
 	}
 
@@ -83,12 +85,9 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 				"",
 				"Refine and expand the server culture profile. Keep previous observations that still hold true and deepen them.",
 			].join("\n")
-		: [
-				"Messages from this Discord server:",
-				messageBlock,
-				"",
-				"Build a detailed culture profile of this server.",
-			].join("\n");
+		: ["Messages from this Discord server:", messageBlock, "", "Build a detailed culture profile of this server."].join(
+				"\n",
+			);
 
 	const result = await callOllama(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
 	if (!result) {
@@ -105,5 +104,7 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 	const client = container.client as BhayanakClient;
 	client.guildPersonalityCache.delete(guildId);
 
-	container.logger.debug(`[guild-personality] Profile updated for guildId=${guildId} (${messages.length} messages analyzed)`);
+	container.logger.debug(
+		`[guild-personality] Profile updated for guildId=${guildId} (${messages.length} messages analyzed)`,
+	);
 }

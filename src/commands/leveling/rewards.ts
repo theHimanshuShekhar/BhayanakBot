@@ -1,6 +1,6 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder , MessageFlags } from "discord.js";
-import { getLevelRewards, addLevelReward, removeLevelReward } from "../../db/queries/users.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
+import { addLevelReward, getLevelRewards, removeLevelReward } from "../../db/queries/users.js";
 
 export class RewardsCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -17,7 +17,10 @@ export class RewardsCommand extends Subcommand {
 				examples: ["/rewards list", "/rewards add level:10 role:@Veteran"],
 				subcommands: {
 					list: { summary: "List all configured level rewards.", examples: ["/rewards list"] },
-					add: { summary: "Add a role reward for reaching a level.", examples: ["/rewards add level:10 role:@Veteran"] },
+					add: {
+						summary: "Add a role reward for reaching a level.",
+						examples: ["/rewards add level:10 role:@Veteran"],
+					},
 					remove: { summary: "Remove a level reward.", examples: ["/rewards remove level:10"] },
 				},
 			},
@@ -59,10 +62,7 @@ export class RewardsCommand extends Subcommand {
 		const sorted = [...rewards].sort((a, b) => a.level - b.level);
 		const lines = sorted.map((r) => `Level **${r.level}** → <@&${r.roleId}>`);
 
-		const embed = new EmbedBuilder()
-			.setTitle("Level Rewards")
-			.setDescription(lines.join("\n"))
-			.setColor(0x5865f2);
+		const embed = new EmbedBuilder().setTitle("Level Rewards").setDescription(lines.join("\n")).setColor(0x5865f2);
 
 		return interaction.reply({ embeds: [embed] });
 	}

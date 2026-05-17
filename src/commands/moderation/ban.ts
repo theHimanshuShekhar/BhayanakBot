@@ -1,8 +1,8 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionFlagsBits } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
+import ms from "ms";
 import { createCase } from "../../db/queries/modCases.js";
 import { logToChannel } from "./warn.js";
-import ms from "ms";
 
 export class BanCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -61,9 +61,11 @@ export class BanCommand extends Command {
 		}
 
 		try {
-			await targetUser.send(
-				`You have been **${durationStr ? `temporarily banned` : "banned"}** from **${interaction.guild!.name}**. Reason: ${reason}${durationStr ? `\nExpires: ${expiresAt!.toUTCString()}` : ""}`,
-			).catch(() => null);
+			await targetUser
+				.send(
+					`You have been **${durationStr ? `temporarily banned` : "banned"}** from **${interaction.guild!.name}**. Reason: ${reason}${durationStr ? `\nExpires: ${expiresAt!.toUTCString()}` : ""}`,
+				)
+				.catch(() => null);
 			await interaction.guild!.members.ban(targetUser, { reason });
 		} catch {
 			return interaction.editReply("❌ I don't have permission to ban this user.");

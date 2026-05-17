@@ -1,4 +1,17 @@
-import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, unique, varchar } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	primaryKey,
+	serial,
+	text,
+	timestamp,
+	unique,
+	varchar,
+} from "drizzle-orm/pg-core";
 
 // --- Enums ---
 
@@ -347,5 +360,3 @@ export const questProgress = pgTable(
 	},
 	(t) => [primaryKey({ columns: [t.questId, t.userId] })],
 );
-
-

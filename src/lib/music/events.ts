@@ -1,8 +1,8 @@
 import { container } from "@sapphire/framework";
 import type { GuildTextBasedChannel, TextChannel } from "discord.js";
-import type { Player, GuildQueue, Track } from "discord-player";
+import type { GuildQueue, Player, Track } from "discord-player";
+import { buildDisabledNowPlayingButtons, buildNowPlayingButtons } from "./components.js";
 import { buildNowPlayingEmbed } from "./embeds.js";
-import { buildNowPlayingButtons, buildDisabledNowPlayingButtons } from "./components.js";
 import { formatPlayerError } from "./errors.js";
 
 export interface MusicQueueMetadata {
@@ -64,7 +64,9 @@ export function registerPlayerEvents(player: Player): void {
 		const meta = getMeta(queue);
 		if (!meta?.channel) return;
 		try {
-			await meta.channel.send({ content: `Playback error on **${track?.title ?? "unknown track"}**: ${formatPlayerError(error)}` });
+			await meta.channel.send({
+				content: `Playback error on **${track?.title ?? "unknown track"}**: ${formatPlayerError(error)}`,
+			});
 		} catch (err) {
 			container.logger.error("[Music:playerError] Failed to send error message:", err);
 		}

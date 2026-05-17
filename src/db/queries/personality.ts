@@ -8,7 +8,10 @@ export async function storeUserMessage(userId: string, guildId: string, content:
 	await db.insert(userMessages).values({ userId, guildId, content });
 }
 
-export async function getUnabsorbedMessages(userId: string, guildId: string): Promise<{ id: number; content: string }[]> {
+export async function getUnabsorbedMessages(
+	userId: string,
+	guildId: string,
+): Promise<{ id: number; content: string }[]> {
 	return db.query.userMessages.findMany({
 		where: and(eq(userMessages.userId, userId), eq(userMessages.guildId, guildId)),
 		columns: { id: true, content: true },

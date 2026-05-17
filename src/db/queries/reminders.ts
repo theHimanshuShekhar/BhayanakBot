@@ -4,7 +4,13 @@ import { reminders } from "../schema.js";
 
 export type Reminder = typeof reminders.$inferSelect;
 
-export async function createReminder(data: { userId: string; channelId: string; guildId: string; message: string; remindAt: Date }): Promise<Reminder> {
+export async function createReminder(data: {
+	userId: string;
+	channelId: string;
+	guildId: string;
+	message: string;
+	remindAt: Date;
+}): Promise<Reminder> {
 	const [reminder] = await db.insert(reminders).values(data).returning();
 	return reminder;
 }

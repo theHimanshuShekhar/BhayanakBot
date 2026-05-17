@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder , MessageFlags } from "discord.js";
-import { getOrCreateProfile, tryDebitCoins, updateCoins, addItem, removeItem } from "../../db/queries/rpg.js";
-import { ITEMS, getBuyableItems, getItem } from "../../lib/rpg/catalogs/items.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from "discord.js";
+import { addItem, getOrCreateProfile, removeItem, tryDebitCoins, updateCoins } from "../../db/queries/rpg.js";
+import { getBuyableItems, getItem, ITEMS } from "../../lib/rpg/catalogs/items.js";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -17,7 +17,11 @@ function getSellPrice(itemId: string): number | null {
 	return Math.floor(item.price * 0.5);
 }
 
-export function buildShopPage(page: number): { embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder>; totalPages: number } {
+export function buildShopPage(page: number): {
+	embed: EmbedBuilder;
+	row: ActionRowBuilder<ButtonBuilder>;
+	totalPages: number;
+} {
 	const allItems = getBuyableItems();
 	const totalPages = Math.max(1, Math.ceil(allItems.length / ITEMS_PER_PAGE));
 	const safePage = Math.max(0, Math.min(page, totalPages - 1));
@@ -82,9 +86,7 @@ export class ShopCommand extends Command {
 					sub
 						.setName("sell")
 						.setDescription("Sell an item from your inventory")
-						.addStringOption((opt) =>
-							opt.setName("item").setDescription("Item ID to sell").setRequired(true),
-						)
+						.addStringOption((opt) => opt.setName("item").setDescription("Item ID to sell").setRequired(true))
 						.addIntegerOption((opt) =>
 							opt.setName("quantity").setDescription("How many to sell (default 1)").setMinValue(1).setRequired(false),
 						),
@@ -115,7 +117,9 @@ export class ShopCommand extends Command {
 					embeds: [
 						new EmbedBuilder()
 							.setColor(0xed4245)
-							.setDescription(`❌ You need **${item.price.toLocaleString()} coins** but only have **${profile.coins.toLocaleString()}**.`),
+							.setDescription(
+								`❌ You need **${item.price.toLocaleString()} coins** but only have **${profile.coins.toLocaleString()}**.`,
+							),
 					],
 				});
 			}

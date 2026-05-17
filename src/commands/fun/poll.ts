@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from "discord.js";
-import { db } from "../../lib/database.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, type TextChannel } from "discord.js";
 import { polls } from "../../db/schema.js";
+import { db } from "../../lib/database.js";
 
 export class PollCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -20,9 +20,7 @@ export class PollCommand extends Command {
 			builder
 				.setName("poll")
 				.setDescription("Create a poll with up to 4 options")
-				.addStringOption((opt) =>
-					opt.setName("question").setDescription("Poll question").setRequired(true),
-				)
+				.addStringOption((opt) => opt.setName("question").setDescription("Poll question").setRequired(true))
 				.addStringOption((opt) => opt.setName("option1").setDescription("Option 1").setRequired(true))
 				.addStringOption((opt) => opt.setName("option2").setDescription("Option 2").setRequired(true))
 				.addStringOption((opt) => opt.setName("option3").setDescription("Option 3").setRequired(false))

@@ -1,25 +1,25 @@
-import { Listener } from "@sapphire/framework";
-import { Events, type VoiceState } from "discord.js";
 import {
-	joinVoiceChannel,
-	getVoiceConnection,
-	createAudioPlayer,
 	AudioPlayerStatus,
+	createAudioPlayer,
+	getVoiceConnection,
+	joinVoiceChannel,
 	VoiceConnectionStatus,
 } from "@discordjs/voice";
+import { Listener } from "@sapphire/framework";
+import { Events, type VoiceState } from "discord.js";
+import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import {
 	TARGET_GUILD_ID,
-	VOICE_MIN_HUMANS_TO_JOIN,
 	VOICE_COOLDOWN_MS,
 	VOICE_LISTEN_DURATION_MS,
+	VOICE_MIN_HUMANS_TO_JOIN,
 } from "../../lib/constants.js";
-import { subscribeToAudio, type AudioChunk } from "../../lib/voice/audioReceiver.js";
+import { callOllama } from "../../lib/ollama.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import { playAudio } from "../../lib/voice/audioPlayer.js";
+import { type AudioChunk, subscribeToAudio } from "../../lib/voice/audioReceiver.js";
 import { transcribeAudio } from "../../lib/voice/stt.js";
 import { generateSpeech } from "../../lib/voice/tts.js";
-import { playAudio } from "../../lib/voice/audioPlayer.js";
-import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
-import { callOllama } from "../../lib/ollama.js";
-import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceStateUpdate> {
 	private lastResponseTime = 0;
@@ -129,9 +129,7 @@ export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceSta
 		connection.destroy();
 	}
 
-	private async generateAndSpeakResponse(
-		connection: ReturnType<typeof joinVoiceChannel>,
-	): Promise<void> {
+	private async generateAndSpeakResponse(connection: ReturnType<typeof joinVoiceChannel>): Promise<void> {
 		const guild = this.container.client.guilds.cache.get(TARGET_GUILD_ID);
 		if (!guild) return;
 

@@ -6,12 +6,42 @@ export const Route = createFileRoute("/")({
 });
 
 const FEATURES = [
-	{ icon: "⚔️", title: "RPG Economy", description: "Full RPG system with jobs, crime, pets, properties, jail, and AI-narrated outcomes via Ollama.", accentClass: "bg-violet-500/10" },
-	{ icon: "🎵", title: "Music Player", description: "YouTube, Spotify, and SoundCloud playback with queue management, shuffle, loop, and volume control.", accentClass: "bg-indigo-500/10" },
-	{ icon: "🛡️", title: "Moderation", description: "Ban, kick, mute, and warn with per-guild case tracking, history, and anti-spam auto-mod.", accentClass: "bg-cyan-500/10" },
-	{ icon: "📈", title: "Leveling", description: "XP progression, rank cards, server leaderboard, and configurable role rewards per level.", accentClass: "bg-emerald-500/10" },
-	{ icon: "🎉", title: "Giveaways & Polls", description: "Run timed giveaways with reroll support and interactive polls with live participation tracking.", accentClass: "bg-pink-500/10" },
-	{ icon: "🎫", title: "Tickets & Roles", description: "Support ticket panels, reaction roles, and dropdown role menus — all fully configurable per server.", accentClass: "bg-orange-500/10" },
+	{
+		icon: "⚔️",
+		title: "RPG Economy",
+		description: "Full RPG system with jobs, crime, pets, properties, jail, and AI-narrated outcomes via Ollama.",
+		accentClass: "bg-violet-500/10",
+	},
+	{
+		icon: "🎵",
+		title: "Music Player",
+		description: "YouTube, Spotify, and SoundCloud playback with queue management, shuffle, loop, and volume control.",
+		accentClass: "bg-indigo-500/10",
+	},
+	{
+		icon: "🛡️",
+		title: "Moderation",
+		description: "Ban, kick, mute, and warn with per-guild case tracking, history, and anti-spam auto-mod.",
+		accentClass: "bg-cyan-500/10",
+	},
+	{
+		icon: "📈",
+		title: "Leveling",
+		description: "XP progression, rank cards, server leaderboard, and configurable role rewards per level.",
+		accentClass: "bg-emerald-500/10",
+	},
+	{
+		icon: "🎉",
+		title: "Giveaways & Polls",
+		description: "Run timed giveaways with reroll support and interactive polls with live participation tracking.",
+		accentClass: "bg-pink-500/10",
+	},
+	{
+		icon: "🎫",
+		title: "Tickets & Roles",
+		description: "Support ticket panels, reaction roles, and dropdown role menus — all fully configurable per server.",
+		accentClass: "bg-orange-500/10",
+	},
 ];
 
 function LandingPage() {

@@ -1,7 +1,7 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { callOllama } from "../lib/ollama.js";
 import { getAllActiveGuildIds } from "../db/queries/guildSettings.js";
 import { getTodayQuests, insertDailyQuests } from "../db/queries/rpg.js";
+import { callOllama } from "../lib/ollama.js";
 import { QUEST_TEMPLATES, type QuestTemplate } from "../lib/rpg/catalogs/questTemplates.js";
 
 const VALID_OBJECTIVE_TYPES = new Set(["work", "crime", "train"]);
@@ -40,7 +40,8 @@ function isValidQuestArray(data: unknown): data is QuestTemplate[] {
 }
 
 async function generateQuestsWithOllama(guildId: string, date: string): Promise<QuestTemplate[]> {
-	const system = "You are a quest designer for a Discord RPG bot. Respond ONLY with valid JSON array, no explanation, no markdown.";
+	const system =
+		"You are a quest designer for a Discord RPG bot. Respond ONLY with valid JSON array, no explanation, no markdown.";
 	const prompt = `Generate 3 daily quests as a JSON array. Each quest object must have exactly these fields:
 - title: string (max 60 chars, witty)
 - description: string (max 120 chars, witty tone)
@@ -57,7 +58,10 @@ Make the 3 quests varied — different objectiveTypes if possible. Respond with 
 
 	try {
 		// Strip markdown code fences if present
-		const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+		const cleaned = raw
+			.replace(/^```(?:json)?\s*/i, "")
+			.replace(/\s*```$/i, "")
+			.trim();
 		const parsed: unknown = JSON.parse(cleaned);
 		if (isValidQuestArray(parsed)) return parsed.slice(0, 3);
 	} catch {

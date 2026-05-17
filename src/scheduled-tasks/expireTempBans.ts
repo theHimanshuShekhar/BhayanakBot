@@ -1,5 +1,5 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { getExpiredActiveCases, deactivateCase, createCase } from "../db/queries/modCases.js";
+import { createCase, deactivateCase, getExpiredActiveCases } from "../db/queries/modCases.js";
 
 export class ExpireTempBansTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {

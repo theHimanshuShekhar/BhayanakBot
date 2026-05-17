@@ -1,10 +1,10 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
+import { and, eq } from "drizzle-orm";
 import ms from "ms";
-import { db } from "../../lib/database.js";
-import { reminders } from "../../db/schema.js";
-import { eq, and } from "drizzle-orm";
 import { markReminderSent } from "../../db/queries/reminders.js";
+import { reminders } from "../../db/schema.js";
+import { db } from "../../lib/database.js";
 
 export class RemindCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -63,7 +63,10 @@ export class RemindCommand extends Subcommand {
 
 		const duration = ms(timeStr as any) as unknown as number;
 		if (!duration || duration <= 0) {
-			return interaction.reply({ content: "Invalid time format. Use e.g. `10m`, `2h`, `1d`.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "Invalid time format. Use e.g. `10m`, `2h`, `1d`.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		const remindAt = new Date(Date.now() + duration);
@@ -97,10 +100,7 @@ export class RemindCommand extends Subcommand {
 			(r) => `\`${r.id}\` — <t:${Math.floor(r.remindAt.getTime() / 1000)}:R> — ${r.message.slice(0, 80)}`,
 		);
 
-		const embed = new EmbedBuilder()
-			.setTitle("Your Reminders")
-			.setDescription(lines.join("\n"))
-			.setColor(0x5865f2);
+		const embed = new EmbedBuilder().setTitle("Your Reminders").setDescription(lines.join("\n")).setColor(0x5865f2);
 
 		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}

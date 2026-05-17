@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel , MessageFlags } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
 
 export class TicketPanelCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -21,12 +21,8 @@ export class TicketPanelCommand extends Command {
 				.addChannelOption((opt) =>
 					opt.setName("channel").setDescription("Channel to post the panel in").setRequired(true),
 				)
-				.addStringOption((opt) =>
-					opt.setName("title").setDescription("Panel title").setRequired(false),
-				)
-				.addStringOption((opt) =>
-					opt.setName("description").setDescription("Panel description").setRequired(false),
-				),
+				.addStringOption((opt) => opt.setName("title").setDescription("Panel title").setRequired(false))
+				.addStringOption((opt) => opt.setName("description").setDescription("Panel description").setRequired(false)),
 		);
 	}
 

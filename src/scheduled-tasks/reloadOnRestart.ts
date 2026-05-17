@@ -1,8 +1,8 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { getUnsentReminders } from "../db/queries/reminders.js";
-import { db } from "../lib/database.js";
-import { giveaways, polls, modCases } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
+import { getUnsentReminders } from "../db/queries/reminders.js";
+import { giveaways, modCases, polls } from "../db/schema.js";
+import { db } from "../lib/database.js";
 
 /**
  * Runs once on bot startup to re-queue any active scheduled items
@@ -32,8 +32,8 @@ export class ReloadOnRestartTask extends ScheduledTask {
 
 		this.container.logger.info(
 			`[ReloadOnRestart] Found: ${unsentReminders.length} reminders, ` +
-			`${activeGiveaways.length} giveaways, ${activePolls.length} polls, ` +
-			`${expiredMutes.length} mutes, ${expiredBans.length} tempbans`,
+				`${activeGiveaways.length} giveaways, ${activePolls.length} polls, ` +
+				`${expiredMutes.length} mutes, ${expiredBans.length} tempbans`,
 		);
 
 		// The polling tasks run on intervals and will pick these up automatically.

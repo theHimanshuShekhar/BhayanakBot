@@ -1,9 +1,9 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
-import { callOllama } from "../../lib/ollama.js";
-import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { callOllama } from "../../lib/ollama.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 
 const HISTORY_LIMIT = 20;
 const OLLAMA_TIMEOUT_MS = 60_000;
@@ -39,9 +39,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		mentionCooldown.set(cooldownKey, Date.now());
 
 		// Strip the bot mention tag and check there's actual conversational content
-		const contentWithoutMention = message.content
-			.replace(/<@!?\d+>/g, "")
-			.trim();
+		const contentWithoutMention = message.content.replace(/<@!?\d+>/g, "").trim();
 		if (!contentWithoutMention) return;
 
 		const channel = message.channel;
@@ -79,8 +77,8 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 				`[mentionResponder] reply truncated from ${response.length} to ${safeResponse.length} chars`,
 			);
 		}
-		await message.reply(safeResponse).catch((err) =>
-			this.container.logger.warn(`[mentionResponder] reply send failed:`, err),
-		);
+		await message
+			.reply(safeResponse)
+			.catch((err) => this.container.logger.warn(`[mentionResponder] reply send failed:`, err));
 	}
 }

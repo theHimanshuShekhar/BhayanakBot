@@ -7,7 +7,7 @@ export async function generateAutoResponse(
 	conversationContext?: string,
 	numPredict = 160,
 ): Promise<string | null> {
-	let prompt = conversationContext
+	const prompt = conversationContext
 		? `Recent conversation in this channel:\n${conversationContext}\n\n${authorName} just said: "${triggerMessage}"`
 		: `${authorName} said: "${triggerMessage}"`;
 	return callOllama(systemPrompt, prompt, 120_000, numPredict);

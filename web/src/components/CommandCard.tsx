@@ -30,12 +30,8 @@ export function CommandCard({ command, highlighted, dimmed }: CommandCardProps) 
 					))}
 				</div>
 			)}
-			{command.examples[0] && (
-				<span className="font-mono text-base text-slate-600">{command.examples[0]}</span>
-			)}
-			{command.usageNotes && (
-				<span className="text-base italic text-slate-500">{command.usageNotes}</span>
-			)}
+			{command.examples[0] && <span className="font-mono text-base text-slate-600">{command.examples[0]}</span>}
+			{command.usageNotes && <span className="text-base italic text-slate-500">{command.usageNotes}</span>}
 		</div>
 	);
 }

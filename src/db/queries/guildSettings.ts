@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../lib/database.js";
-import { guildSettings } from "../schema.js";
 import { invalidateGuildSettings } from "../../lib/music/guildSettingsCache.js";
+import { guildSettings } from "../schema.js";
 
 export type GuildSettings = typeof guildSettings.$inferSelect;
 export type GuildSettingsInsert = typeof guildSettings.$inferInsert;

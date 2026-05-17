@@ -41,9 +41,7 @@ export class EightBallCommand extends Command {
 			builder
 				.setName("8ball")
 				.setDescription("Ask the magic 8-ball a yes/no question")
-				.addStringOption((opt) =>
-					opt.setName("question").setDescription("Your question").setRequired(true),
-				),
+				.addStringOption((opt) => opt.setName("question").setDescription("Your question").setRequired(true)),
 		);
 	}
 
@@ -53,10 +51,7 @@ export class EightBallCommand extends Command {
 
 		const embed = new EmbedBuilder()
 			.setTitle("🎱 Magic 8-Ball")
-			.addFields(
-				{ name: "Question", value: question },
-				{ name: "Answer", value: answer },
-			)
+			.addFields({ name: "Question", value: question }, { name: "Answer", value: answer })
 			.setColor(0x000000);
 
 		return interaction.reply({ embeds: [embed] });

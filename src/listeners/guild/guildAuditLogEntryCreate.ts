@@ -1,14 +1,8 @@
 import { Listener } from "@sapphire/framework";
-import {
-	AuditLogEvent,
-	EmbedBuilder,
-	Guild,
-	GuildAuditLogsEntry,
-	TextChannel,
-} from "discord.js";
+import { AuditLogEvent, EmbedBuilder, type Guild, type GuildAuditLogsEntry, type TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { createCase, findRecentCase } from "../../db/queries/modCases.js";
 import type { ModCase } from "../../db/queries/modCases.js";
+import { createCase, findRecentCase } from "../../db/queries/modCases.js";
 
 const ACTION_COLOR: Record<string, number> = {
 	ban: 0xed4245,
@@ -156,12 +150,7 @@ export class GuildAuditLogsEntryCreateListener extends Listener {
 		}
 	}
 
-	private buildEmbed(
-		action: string,
-		entry: GuildAuditLogsEntry,
-		targetId?: string,
-		extra?: string,
-	): EmbedBuilder {
+	private buildEmbed(action: string, entry: GuildAuditLogsEntry, targetId?: string, extra?: string): EmbedBuilder {
 		const executor = entry.executorId ? `<@${entry.executorId}>` : "System";
 		const target = targetId ? `<@${targetId}>` : "Unknown";
 		const reason = entry.reason ? entry.reason.slice(0, 1024) : "No reason provided";

@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
-import { getOrCreateProfile, canClaimDaily, claimDaily } from "../../db/queries/rpg.js";
+import { canClaimDaily, claimDaily, getOrCreateProfile } from "../../db/queries/rpg.js";
 import { formatDuration } from "../../lib/rpg/helpers/cooldown.js";
 
 export class DailyCommand extends Command {
@@ -30,7 +30,9 @@ export class DailyCommand extends Command {
 					new EmbedBuilder()
 						.setColor(0xfee75c)
 						.setTitle("⏳ Daily Reward on Cooldown")
-						.setDescription(`You can claim your next daily reward in **${formatDuration(remainingMs)}**.\n\nCurrent streak: **${profile.dailyStreak}** 🔥`),
+						.setDescription(
+							`You can claim your next daily reward in **${formatDuration(remainingMs)}**.\n\nCurrent streak: **${profile.dailyStreak}** 🔥`,
+						),
 				],
 			});
 		}

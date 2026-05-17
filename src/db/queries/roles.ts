@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../lib/database.js";
-import { reactionRoles, roleMenus, roleMenuOptions } from "../schema.js";
+import { reactionRoles, roleMenuOptions, roleMenus } from "../schema.js";
 
 export type ReactionRole = typeof reactionRoles.$inferSelect;
 export type RoleMenu = typeof roleMenus.$inferSelect;
@@ -20,9 +20,7 @@ export async function addReactionRole(data: {
 }
 
 export async function removeReactionRole(messageId: string, emoji: string): Promise<void> {
-	await db
-		.delete(reactionRoles)
-		.where(and(eq(reactionRoles.messageId, messageId), eq(reactionRoles.emoji, emoji)));
+	await db.delete(reactionRoles).where(and(eq(reactionRoles.messageId, messageId), eq(reactionRoles.emoji, emoji)));
 }
 
 export async function getReactionRole(messageId: string, emoji: string): Promise<ReactionRole | undefined> {

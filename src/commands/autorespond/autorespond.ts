@@ -1,6 +1,6 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { EmbedBuilder, MessageFlags } from "discord.js";
-import { addAutoResponse, removeAutoResponse, getGuildAutoResponses } from "../../db/queries/autoResponses.js";
+import { addAutoResponse, getGuildAutoResponses, removeAutoResponse } from "../../db/queries/autoResponses.js";
 
 export class AutoRespondCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -44,11 +44,15 @@ export class AutoRespondCommand extends Subcommand {
 					sub
 						.setName("add")
 						.setDescription("Add an auto-response trigger")
-						.addStringOption((opt) => opt.setName("trigger").setDescription("Trigger text or regex pattern").setRequired(true))
+						.addStringOption((opt) =>
+							opt.setName("trigger").setDescription("Trigger text or regex pattern").setRequired(true),
+						)
 						.addStringOption((opt) =>
 							opt
 								.setName("response")
-								.setDescription("Static reply, or Ollama system prompt if use-llm is enabled. Use {var} for regex captures.")
+								.setDescription(
+									"Static reply, or Ollama system prompt if use-llm is enabled. Use {var} for regex captures.",
+								)
 								.setRequired(true),
 						)
 						.addStringOption((opt) =>
@@ -114,7 +118,10 @@ export class AutoRespondCommand extends Subcommand {
 	public async runAdd(interaction: Subcommand.ChatInputCommandInteraction) {
 		const trigger = interaction.options.getString("trigger", true);
 		const response = interaction.options.getString("response", true);
-		const matchType = (interaction.options.getString("match-type") ?? "contains") as "exact" | "contains" | "startsWith";
+		const matchType = (interaction.options.getString("match-type") ?? "contains") as
+			| "exact"
+			| "contains"
+			| "startsWith";
 		const useLlm = interaction.options.getBoolean("use-llm") ?? false;
 		const useRegex = interaction.options.getBoolean("use-regex") ?? false;
 		const channelsRaw = interaction.options.getString("channels");
@@ -197,10 +204,7 @@ export class AutoRespondCommand extends Subcommand {
 			return `[${tags}] \`${r.trigger}\` → ${r.response.slice(0, 50)}${r.response.length > 50 ? "…" : ""}`;
 		});
 
-		const embed = new EmbedBuilder()
-			.setTitle("Auto-Responses")
-			.setDescription(lines.join("\n"))
-			.setColor(0x5865f2);
+		const embed = new EmbedBuilder().setTitle("Auto-Responses").setDescription(lines.join("\n")).setColor(0x5865f2);
 
 		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}

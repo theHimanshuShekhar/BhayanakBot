@@ -24,8 +24,9 @@ export class UserInfoCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const target = interaction.options.getUser("user") ?? interaction.user;
-		const member = interaction.guild!.members.cache.get(target.id) ??
-			await interaction.guild!.members.fetch(target.id).catch(() => null);
+		const member =
+			interaction.guild!.members.cache.get(target.id) ??
+			(await interaction.guild!.members.fetch(target.id).catch(() => null));
 
 		const embed = new EmbedBuilder()
 			.setTitle(`${target.tag}`)
@@ -40,7 +41,11 @@ export class UserInfoCommand extends Command {
 
 		if (member) {
 			if (member.joinedTimestamp) {
-				embed.addFields({ name: "Joined Server", value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true });
+				embed.addFields({
+					name: "Joined Server",
+					value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`,
+					inline: true,
+				});
 			}
 			if (member.nickname) {
 				embed.addFields({ name: "Nickname", value: member.nickname, inline: true });

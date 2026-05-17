@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
-import { getOrCreateUser, getLeaderboard } from "../../db/queries/users.js";
+import { getLeaderboard, getOrCreateUser } from "../../db/queries/users.js";
 
 export class RankCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -33,8 +33,8 @@ export class RankCommand extends Command {
 		]);
 
 		const rank = leaderboard.findIndex((u) => u.userId === target.id) + 1;
-		const xpForNextLevel = Math.pow((userData.level + 1) / 0.1, 2);
-		const xpForCurrentLevel = Math.pow(userData.level / 0.1, 2);
+		const xpForNextLevel = ((userData.level + 1) / 0.1) ** 2;
+		const xpForCurrentLevel = (userData.level / 0.1) ** 2;
 		const progress = userData.xp - xpForCurrentLevel;
 		const needed = xpForNextLevel - xpForCurrentLevel;
 		const barFilled = Math.round((progress / needed) * 20);

@@ -1,5 +1,5 @@
-import { container } from "@sapphire/framework";
 import type { Command } from "@sapphire/framework";
+import { container } from "@sapphire/framework";
 import { CATEGORIES } from "./categories.js";
 import type { CategoryMeta, CommandHelp } from "./types.js";
 

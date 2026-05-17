@@ -1,8 +1,7 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import { createCase } from "../../db/queries/modCases.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, type TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { TextChannel } from "discord.js";
+import { createCase } from "../../db/queries/modCases.js";
 
 export class WarnCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {

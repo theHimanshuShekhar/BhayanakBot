@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "../database.js";
 import { guildSettings } from "../../db/schema.js";
 import { BoundedMap } from "../BhayanakClient.js";
+import { db } from "../database.js";
 
 type GuildSettingsRow = typeof guildSettings.$inferSelect;
 

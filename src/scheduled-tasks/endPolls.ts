@@ -1,8 +1,8 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel } from "discord.js";
-import { and, eq, lte, isNotNull } from "drizzle-orm";
-import { db } from "../lib/database.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, type TextChannel } from "discord.js";
+import { and, eq, isNotNull, lte } from "drizzle-orm";
 import { polls } from "../db/schema.js";
+import { db } from "../lib/database.js";
 
 export class EndPollsTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
@@ -36,7 +36,9 @@ export class EndPollsTask extends ScheduledTask {
 							.join("\n"),
 					)
 					.setColor(0x57f287)
-					.setFooter({ text: `Winner: ${winner?.label ?? "Tie"} · ${totalVotes} total vote${totalVotes !== 1 ? "s" : ""}` });
+					.setFooter({
+						text: `Winner: ${winner?.label ?? "Tie"} · ${totalVotes} total vote${totalVotes !== 1 ? "s" : ""}`,
+					});
 
 				const channel = await this.container.client.channels.fetch(poll.channelId).catch(() => null);
 				if (channel && "send" in channel) {

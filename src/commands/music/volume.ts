@@ -1,5 +1,5 @@
-import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
+import { MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
 
 export class VolumeCommand extends Command {

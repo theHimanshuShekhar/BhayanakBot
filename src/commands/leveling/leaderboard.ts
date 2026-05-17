@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import { getLeaderboard } from "../../db/queries/users.js";
 
 export class LeaderboardCommand extends Command {
@@ -19,9 +19,7 @@ export class LeaderboardCommand extends Command {
 			builder
 				.setName("leaderboard")
 				.setDescription("View the top XP earners in this server")
-				.addIntegerOption((opt) =>
-					opt.setName("page").setDescription("Page number").setMinValue(1).setRequired(false),
-				),
+				.addIntegerOption((opt) => opt.setName("page").setDescription("Page number").setMinValue(1).setRequired(false)),
 		);
 	}
 

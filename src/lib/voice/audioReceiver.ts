@@ -1,6 +1,6 @@
-import { VoiceConnection, EndBehaviorType } from "@discordjs/voice";
-import { type User, type GuildMember } from "discord.js";
-import { Transform } from "node:stream";
+import type { Transform } from "node:stream";
+import { EndBehaviorType, type VoiceConnection } from "@discordjs/voice";
+import type { GuildMember, User } from "discord.js";
 import prism from "prism-media";
 
 export interface AudioChunk {

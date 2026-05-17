@@ -1,6 +1,6 @@
+import { getVoiceConnection, joinVoiceChannel } from "@discordjs/voice";
 import { Command } from "@sapphire/framework";
-import { ApplicationCommandType, PermissionFlagsBits, ChannelType } from "discord.js";
-import { joinVoiceChannel, getVoiceConnection } from "@discordjs/voice";
+import { ApplicationCommandType, ChannelType, PermissionFlagsBits } from "discord.js";
 import { TARGET_GUILD_ID } from "../../lib/constants.js";
 
 export class VoiceResponderCommand extends Command {
@@ -30,7 +30,7 @@ export class VoiceResponderCommand extends Command {
 									.setDescription("Voice channel to join (defaults to your current channel)")
 									.addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice)
 									.setRequired(false),
-						),
+							),
 					)
 					.addSubcommand((sub) =>
 						sub.setName("leave").setDescription("Force the bot to leave the current voice channel"),
@@ -64,9 +64,10 @@ export class VoiceResponderCommand extends Command {
 
 		const channel = interaction.options.getChannel("channel");
 		const memberChannel = interaction.guild?.members.cache.get(interaction.user.id)?.voice.channel;
-		const voiceChannel = channel?.type === ChannelType.GuildVoice || channel?.type === ChannelType.GuildStageVoice
-			? channel
-			: memberChannel;
+		const voiceChannel =
+			channel?.type === ChannelType.GuildVoice || channel?.type === ChannelType.GuildStageVoice
+				? channel
+				: memberChannel;
 
 		if (!voiceChannel) {
 			return interaction.reply({

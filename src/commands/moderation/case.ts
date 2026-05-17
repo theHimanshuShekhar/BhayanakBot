@@ -1,9 +1,15 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { type ChatInputCommandInteraction, EmbedBuilder , MessageFlags } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
 import { getCase, updateCaseReason } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
-	warn: "⚠️", mute: "🔇", unmute: "🔊", kick: "👢", ban: "🔨", unban: "✅", tempban: "⏱️",
+	warn: "⚠️",
+	mute: "🔇",
+	unmute: "🔊",
+	kick: "👢",
+	ban: "🔨",
+	unban: "✅",
+	tempban: "⏱️",
 };
 
 export class CaseCommand extends Subcommand {
@@ -22,7 +28,10 @@ export class CaseCommand extends Subcommand {
 				examples: ["/case view number:12", '/case edit number:12 reason:"updated context"'],
 				subcommands: {
 					view: { summary: "View a specific case by its number.", examples: ["/case view number:5"] },
-					edit: { summary: "Edit the reason for an existing case.", examples: ['/case edit number:5 reason:"typo fix"'] },
+					edit: {
+						summary: "Edit the reason for an existing case.",
+						examples: ['/case edit number:5 reason:"typo fix"'],
+					},
 				},
 			},
 		});
@@ -64,7 +73,9 @@ export class CaseCommand extends Subcommand {
 				{ name: "Moderator", value: `<@${modCase.moderatorId}>`, inline: true },
 				{ name: "Active", value: modCase.active ? "Yes" : "No", inline: true },
 				{ name: "Reason", value: modCase.reason ?? "No reason provided" },
-				...(modCase.expiresAt ? [{ name: "Expires", value: `<t:${Math.floor(modCase.expiresAt.getTime() / 1000)}:R>` }] : []),
+				...(modCase.expiresAt
+					? [{ name: "Expires", value: `<t:${Math.floor(modCase.expiresAt.getTime() / 1000)}:R>` }]
+					: []),
 			)
 			.setTimestamp(modCase.createdAt);
 

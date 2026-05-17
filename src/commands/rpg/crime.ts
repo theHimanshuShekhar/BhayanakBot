@@ -1,29 +1,29 @@
 import { Command } from "@sapphire/framework";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from "discord.js";
-import { db } from "../../lib/database.js";
-import { rpgProfiles } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 import {
-	getOrCreateProfile,
-	isInJail,
-	setCooldown,
-	getCooldown,
+	addXpToProfile,
+	checkAndAdvanceQuestProgress,
 	clearCooldown,
 	getActivePet,
-	addXpToProfile,
-	updateCoins,
-	tryDebitCoins,
-	checkAndAdvanceQuestProgress,
+	getCooldown,
+	getOrCreateProfile,
+	isInJail,
 	type StatKey,
+	setCooldown,
+	tryDebitCoins,
+	updateCoins,
 } from "../../db/queries/rpg.js";
-import { rollOutcome, randomPay } from "../../lib/rpg/helpers/outcome.js";
-import { applyJobRewards } from "../../lib/rpg/helpers/rewards.js";
-import { getRemainingCooldown, formatDuration } from "../../lib/rpg/helpers/cooldown.js";
-import { JOBS, getJob } from "../../lib/rpg/catalogs/jobs.js";
-import { ITEMS } from "../../lib/rpg/catalogs/items.js";
-import { generateFlavorText } from "../../lib/rpg/helpers/flavorText.js";
-import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import { rpgProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { db } from "../../lib/database.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import { ITEMS } from "../../lib/rpg/catalogs/items.js";
+import { getJob, JOBS } from "../../lib/rpg/catalogs/jobs.js";
+import { formatDuration, getRemainingCooldown } from "../../lib/rpg/helpers/cooldown.js";
+import { generateFlavorText } from "../../lib/rpg/helpers/flavorText.js";
+import { randomPay, rollOutcome } from "../../lib/rpg/helpers/outcome.js";
+import { applyJobRewards } from "../../lib/rpg/helpers/rewards.js";
 
 const CRIME_CHOICES = Object.values(JOBS)
 	.filter((j) => j.category === "crime")
@@ -35,10 +35,7 @@ function buildJailRow(bailCost: number): ActionRowBuilder<ButtonBuilder> {
 			.setCustomId("rpgjail:bail")
 			.setLabel(`Bail Out (${bailCost.toLocaleString()} coins)`)
 			.setStyle(ButtonStyle.Primary),
-		new ButtonBuilder()
-			.setCustomId("rpgjail:escape")
-			.setLabel("Attempt Escape")
-			.setStyle(ButtonStyle.Secondary),
+		new ButtonBuilder().setCustomId("rpgjail:escape").setLabel("Attempt Escape").setStyle(ButtonStyle.Secondary),
 	);
 }
 
@@ -207,7 +204,9 @@ export class CrimeCommand extends Command {
 						.setDescription(
 							`*${flavor}*\n\nYou earned **${pay.toLocaleString()} coins** and **${job.xpReward} XP**.${dropText}${levelText}${charmText}`,
 						)
-						.setFooter({ text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}` }),
+						.setFooter({
+							text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}`,
+						}),
 				],
 			});
 
@@ -268,7 +267,9 @@ export class CrimeCommand extends Command {
 						.setDescription(
 							`*${flavor}*\n\nYou've been thrown in jail until <t:${until}:R>.${compensationText}${charmText}`,
 						)
-						.setFooter({ text: `Success chance was ${Math.round(finalChance * 100)}% • Bail: ${bailCost.toLocaleString()} coins` }),
+						.setFooter({
+							text: `Success chance was ${Math.round(finalChance * 100)}% • Bail: ${bailCost.toLocaleString()} coins`,
+						}),
 				],
 				components: [buildJailRow(bailCost)],
 			});

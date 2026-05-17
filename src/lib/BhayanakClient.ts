@@ -48,7 +48,7 @@ export class BhayanakClient extends SapphireClient {
 	public constructor() {
 		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
 		super({
-				rest: { timeout: 60_000 },
+			rest: { timeout: 60_000 },
 			intents: [
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.GuildMembers,

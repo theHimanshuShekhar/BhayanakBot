@@ -1,7 +1,13 @@
 import { AllFlowsPrecondition } from "@sapphire/framework";
-import { PermissionFlagsBits, type CommandInteraction, type ContextMenuCommandInteraction, type GuildMember, type Message } from "discord.js";
-import { getGuildSettingsCached } from "../lib/music/guildSettingsCache.js";
+import {
+	type CommandInteraction,
+	type ContextMenuCommandInteraction,
+	type GuildMember,
+	type Message,
+	PermissionFlagsBits,
+} from "discord.js";
 import { BOT_OWNER_ID } from "../lib/constants.js";
+import { getGuildSettingsCached } from "../lib/music/guildSettingsCache.js";
 
 export async function isDJ(member: GuildMember, guildId: string): Promise<boolean> {
 	if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;

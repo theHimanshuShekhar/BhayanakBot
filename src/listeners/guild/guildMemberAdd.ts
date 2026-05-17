@@ -1,5 +1,5 @@
 import { Listener } from "@sapphire/framework";
-import { type GuildMember, EmbedBuilder, TextChannel } from "discord.js";
+import { EmbedBuilder, type GuildMember, type TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
@@ -33,7 +33,9 @@ export class GuildMemberAddListener extends Listener {
 					await member.kick("Anti-raid: mass join detected");
 					if (settings.logChannelId) {
 						const logChannel = member.guild.channels.cache.get(settings.logChannelId) as TextChannel | undefined;
-						await logChannel?.send(`🚨 **Anti-Raid:** Kicked ${member.user.tag} during mass join event (${recentJoins.length} joins in ${settings.antiRaidJoinWindow}s).`);
+						await logChannel?.send(
+							`🚨 **Anti-Raid:** Kicked ${member.user.tag} during mass join event (${recentJoins.length} joins in ${settings.antiRaidJoinWindow}s).`,
+						);
 					}
 				} catch {
 					// Insufficient permissions — log and continue

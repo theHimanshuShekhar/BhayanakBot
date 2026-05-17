@@ -7,3 +7,5 @@ web/src/routeTree.gen.ts
 *.js.map
 .superpowers/
 .worktrees/
+coverage/
+thoughts/ledgers/

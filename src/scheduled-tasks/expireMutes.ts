@@ -1,8 +1,8 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { getExpiredActiveCases, deactivateCase, createCase } from "../db/queries/modCases.js";
-import { db } from "../lib/database.js";
-import { guildSettings } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import { createCase, deactivateCase, getExpiredActiveCases } from "../db/queries/modCases.js";
+import { guildSettings } from "../db/schema.js";
+import { db } from "../lib/database.js";
 
 export class ExpireMutesTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {

@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
-import { users, levelRewards } from "../schema.js";
+import { levelRewards, users } from "../schema.js";
 
 export type User = typeof users.$inferSelect;
 
@@ -13,7 +13,11 @@ export async function getOrCreateUser(userId: string, guildId: string): Promise<
 	return created;
 }
 
-export async function addXp(userId: string, guildId: string, amount: number): Promise<{ user: User; leveledUp: boolean; newLevel: number }> {
+export async function addXp(
+	userId: string,
+	guildId: string,
+	amount: number,
+): Promise<{ user: User; leveledUp: boolean; newLevel: number }> {
 	const user = await getOrCreateUser(userId, guildId);
 
 	if (amount === 0) {

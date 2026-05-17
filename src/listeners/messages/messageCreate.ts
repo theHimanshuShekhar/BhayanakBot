@@ -1,18 +1,18 @@
 import { Listener } from "@sapphire/framework";
-import { type Message, EmbedBuilder, PermissionFlagsBits, TextChannel } from "discord.js";
-import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { addXp } from "../../db/queries/users.js";
-import { createCase } from "../../db/queries/modCases.js";
-import { getAfk, clearAfk } from "../../db/queries/afk.js";
+import { EmbedBuilder, type Message, PermissionFlagsBits, type TextChannel } from "discord.js";
+import { clearAfk, getAfk } from "../../db/queries/afk.js";
 import { findMatchingResponse } from "../../db/queries/autoResponses.js";
-import { storeUserMessage, incrementMessageCount } from "../../db/queries/personality.js";
 import { incrementGuildMessageCount } from "../../db/queries/guildPersonality.js";
-import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { createCase } from "../../db/queries/modCases.js";
+import { incrementMessageCount, storeUserMessage } from "../../db/queries/personality.js";
+import { addXp } from "../../db/queries/users.js";
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
+import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
+import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
-import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
-import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
@@ -85,10 +85,7 @@ export class MessageCreateListener extends Listener {
 			const guildCount = await incrementGuildMessageCount(guildId);
 			if (guildCount >= 200) {
 				void buildGuildPersonalityProfile(guildId).catch((err) =>
-					this.container.logger.error(
-						`[guild-personality] Inline build failed for guildId=${guildId}:`,
-						err,
-					),
+					this.container.logger.error(`[guild-personality] Inline build failed for guildId=${guildId}:`, err),
 				);
 			}
 		}
@@ -97,9 +94,9 @@ export class MessageCreateListener extends Listener {
 		const afk = await getAfk(message.author.id, message.guild.id);
 		if (afk) {
 			await clearAfk(message.author.id, message.guild.id);
-			await message.reply(`Welcome back, <@${message.author.id}>! I removed your AFK status.`).then((m) =>
-				setTimeout(() => m.delete().catch(() => null), 5000),
-			);
+			await message
+				.reply(`Welcome back, <@${message.author.id}>! I removed your AFK status.`)
+				.then((m) => setTimeout(() => m.delete().catch(() => null), 5000));
 		}
 
 		// --- Notify AFK users who are mentioned ---
@@ -244,19 +241,17 @@ export class MessageCreateListener extends Listener {
 	private async sendReply(message: Message, content: string, deletedTrigger: boolean) {
 		const safeReply = content.length > 1990 ? `${content.slice(0, 1989)}…` : content;
 		if (safeReply.length !== content.length) {
-			this.container.logger.warn(
-				`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`,
-			);
+			this.container.logger.warn(`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`);
 		}
 		// If trigger was deleted, send as regular message instead of reply
 		if (deletedTrigger) {
-			await (message.channel as TextChannel).send(safeReply).catch((err) =>
-				this.container.logger.warn(`[autoresponder] send failed:`, err),
-			);
+			await (message.channel as TextChannel)
+				.send(safeReply)
+				.catch((err) => this.container.logger.warn(`[autoresponder] send failed:`, err));
 		} else {
-			await message.reply(safeReply).catch((err) =>
-				this.container.logger.warn(`[autoresponder] reply send failed:`, err),
-			);
+			await message
+				.reply(safeReply)
+				.catch((err) => this.container.logger.warn(`[autoresponder] reply send failed:`, err));
 		}
 	}
 
@@ -298,16 +293,13 @@ export class MessageCreateListener extends Listener {
 
 		if (reply) {
 			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
-			await message.reply(safeReply).catch((err) =>
-				this.container.logger.warn(`[smart-mention] reply send failed:`, err),
-			);
+			await message
+				.reply(safeReply)
+				.catch((err) => this.container.logger.warn(`[smart-mention] reply send failed:`, err));
 		}
 	}
 
-	private async handleRandomResponse(
-		message: Message,
-		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
-	) {
+	private async handleRandomResponse(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
 		// Must have a configured channel and non-zero chance
 		if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) return;
 		if (message.channel.id !== settings.randomResponseChannelId) return;
@@ -346,9 +338,7 @@ export class MessageCreateListener extends Listener {
 
 		const conversationContext = this.getConversationContext(message.channel.id, 10);
 
-		this.container.logger.debug(
-			`[random-response] triggered roll=${roll.toFixed(2)}% channel=${message.channel.id}`,
-		);
+		this.container.logger.debug(`[random-response] triggered roll=${roll.toFixed(2)}% channel=${message.channel.id}`);
 
 		const reply = await generateMentionReply(
 			systemPrompt,
@@ -359,9 +349,9 @@ export class MessageCreateListener extends Listener {
 
 		if (reply) {
 			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
-			await (message.channel as TextChannel).send(safeReply).catch((err) =>
-				this.container.logger.warn(`[random-response] send failed:`, err),
-			);
+			await (message.channel as TextChannel)
+				.send(safeReply)
+				.catch((err) => this.container.logger.warn(`[random-response] send failed:`, err));
 		}
 	}
 
@@ -452,7 +442,9 @@ export class MessageCreateListener extends Listener {
 		// Log
 		if (settings.logChannelId) {
 			const logChannel = message.guild!.channels.cache.get(settings.logChannelId) as TextChannel | undefined;
-			await logChannel?.send(`🤖 **Auto-Mod** | ${action} applied to <@${message.author.id}>. Reason: ${reason}`).catch(() => null);
+			await logChannel
+				?.send(`🤖 **Auto-Mod** | ${action} applied to <@${message.author.id}>. Reason: ${reason}`)
+				.catch(() => null);
 		}
 	}
 

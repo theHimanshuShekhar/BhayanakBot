@@ -67,12 +67,18 @@ export async function tryDebitCoins(userId: string, amount: number): Promise<num
 // --- Stats & Training ---
 
 export async function updateStat(userId: string, stat: StatKey, newValue: number): Promise<void> {
-	await db.update(rpgStats).set({ [stat]: newValue }).where(eq(rpgStats.userId, userId));
+	await db
+		.update(rpgStats)
+		.set({ [stat]: newValue })
+		.where(eq(rpgStats.userId, userId));
 }
 
 export async function setTrainingCooldown(userId: string, stat: StatKey, trainedAt: Date): Promise<void> {
 	const col = STAT_COOLDOWN_COL[stat];
-	await db.update(rpgStats).set({ [col]: trainedAt }).where(eq(rpgStats.userId, userId));
+	await db
+		.update(rpgStats)
+		.set({ [col]: trainedAt })
+		.where(eq(rpgStats.userId, userId));
 }
 
 export function getTrainingCooldownDate(stats: RpgStats, stat: StatKey): Date | null {
@@ -98,9 +104,7 @@ export async function setCooldown(userId: string, action: string, durationMs: nu
 }
 
 export async function clearCooldown(userId: string, action: string): Promise<void> {
-	await db
-		.delete(rpgCooldowns)
-		.where(and(eq(rpgCooldowns.userId, userId), eq(rpgCooldowns.action, action)));
+	await db.delete(rpgCooldowns).where(and(eq(rpgCooldowns.userId, userId), eq(rpgCooldowns.action, action)));
 }
 
 // --- Jail ---
@@ -145,7 +149,10 @@ export async function removeItem(userId: string, itemId: string, quantity = 1): 
 	if (existing.quantity === quantity) {
 		await db.delete(rpgInventory).where(eq(rpgInventory.id, existing.id));
 	} else {
-		await db.update(rpgInventory).set({ quantity: existing.quantity - quantity }).where(eq(rpgInventory.id, existing.id));
+		await db
+			.update(rpgInventory)
+			.set({ quantity: existing.quantity - quantity })
+			.where(eq(rpgInventory.id, existing.id));
 	}
 	return true;
 }
@@ -263,7 +270,10 @@ export async function checkAndAdvanceQuestProgress(opts: {
 	);
 	if (matching.length === 0) return;
 
-	const progressRows = await getUserQuestProgress(opts.userId, matching.map((q) => q.id));
+	const progressRows = await getUserQuestProgress(
+		opts.userId,
+		matching.map((q) => q.id),
+	);
 	const progressMap = new Map(progressRows.map((p) => [p.questId, p]));
 
 	for (const quest of matching) {

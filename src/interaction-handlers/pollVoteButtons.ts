@@ -1,10 +1,10 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
 import type { ButtonInteraction } from "discord.js";
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from "discord.js";
 import { eq } from "drizzle-orm";
-import { db } from "../lib/database.js";
-import { polls } from "../db/schema.js";
 import { vote } from "../db/queries/polls.js";
+import { polls } from "../db/schema.js";
+import { db } from "../lib/database.js";
 
 export class PollVoteButtonsHandler extends InteractionHandler {
 	public constructor(context: InteractionHandler.LoaderContext, options: InteractionHandler.Options) {
@@ -52,7 +52,9 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 					.join("\n"),
 			)
 			.setColor(0x5865f2)
-			.setFooter({ text: `${totalVotes} total vote${totalVotes !== 1 ? "s" : ""}${updatedPoll.expiresAt ? ` · Ends ${updatedPoll.expiresAt.toUTCString()}` : ""}` });
+			.setFooter({
+				text: `${totalVotes} total vote${totalVotes !== 1 ? "s" : ""}${updatedPoll.expiresAt ? ` · Ends ${updatedPoll.expiresAt.toUTCString()}` : ""}`,
+			});
 
 		const buttons = updatedOptionData.map((o, i) =>
 			new ButtonBuilder()
@@ -65,6 +67,9 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
 
 		await interaction.update({ embeds: [embed], components: [row] });
-		return interaction.followUp({ content: `Voted for **${updatedOptionData[optionIndex]?.label}**!`, flags: MessageFlags.Ephemeral });
+		return interaction.followUp({
+			content: `Voted for **${updatedOptionData[optionIndex]?.label}**!`,
+			flags: MessageFlags.Ephemeral,
+		});
 	}
 }

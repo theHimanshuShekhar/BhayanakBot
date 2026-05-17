@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, PermissionFlagsBits, TextChannel , MessageFlags } from "discord.js";
+import { type ChatInputCommandInteraction, MessageFlags, PermissionFlagsBits, type TextChannel } from "discord.js";
 
 export class PurgeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -22,7 +22,12 @@ export class PurgeCommand extends Command {
 				.setDescription("Bulk delete messages from a channel")
 				.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 				.addIntegerOption((opt) =>
-					opt.setName("amount").setDescription("Number of messages to delete (1-100)").setRequired(true).setMinValue(1).setMaxValue(100),
+					opt
+						.setName("amount")
+						.setDescription("Number of messages to delete (1-100)")
+						.setRequired(true)
+						.setMinValue(1)
+						.setMaxValue(100),
 				)
 				.addUserOption((opt) => opt.setName("user").setDescription("Only delete messages from this user")),
 		);

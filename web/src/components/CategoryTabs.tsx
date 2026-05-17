@@ -4,8 +4,7 @@ import { CATEGORIES, COMMANDS } from "../data/commands.js";
 export function CategoryTabs() {
 	const { category: activeCategory } = useParams({ from: "/commands/$category" });
 
-	const countFor = (id: string) =>
-		id === "all" ? COMMANDS.length : COMMANDS.filter((c) => c.category === id).length;
+	const countFor = (id: string) => (id === "all" ? COMMANDS.length : COMMANDS.filter((c) => c.category === id).length);
 
 	return (
 		<div className="sticky top-14 z-40 border-b border-white/[0.06] bg-[#0d0d1a]">

@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import { getSuggestion, updateSuggestionStatus } from "../../db/queries/suggestions.js";
 
 export class SuggestionCommand extends Subcommand {
@@ -15,8 +15,14 @@ export class SuggestionCommand extends Subcommand {
 				summary: "Approve or deny a submitted suggestion.",
 				examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 response:Out of scope"],
 				subcommands: {
-					approve: { summary: "Approve a suggestion with an optional response.", examples: ["/suggestion approve id:5"] },
-					deny: { summary: "Deny a suggestion with an optional response.", examples: ["/suggestion deny id:3 response:Out of scope"] },
+					approve: {
+						summary: "Approve a suggestion with an optional response.",
+						examples: ["/suggestion approve id:5"],
+					},
+					deny: {
+						summary: "Deny a suggestion with an optional response.",
+						examples: ["/suggestion deny id:3 response:Out of scope"],
+					},
 				},
 			},
 		});
@@ -41,9 +47,7 @@ export class SuggestionCommand extends Subcommand {
 						.setName("deny")
 						.setDescription("Deny a suggestion")
 						.addIntegerOption((opt) => opt.setName("id").setDescription("Suggestion ID").setRequired(true))
-						.addStringOption((opt) =>
-							opt.setName("reason").setDescription("Reason for denial").setRequired(false),
-						),
+						.addStringOption((opt) => opt.setName("reason").setDescription("Reason for denial").setRequired(false)),
 				),
 		);
 	}

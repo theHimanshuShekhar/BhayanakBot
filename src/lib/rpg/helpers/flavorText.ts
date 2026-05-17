@@ -372,7 +372,9 @@ export async function generateFlavorText(context: {
 			: "";
 	const prompt = `${context.playerName}${levelClause} just ${outcomeWord} at ${context.action}${payClause}${detailsClause}.${petClause}${itemClause}${streakClause} Narrate in 1–2 witty sentences. Be brief.`;
 
-	const narratorSystem = (context.personalityContext ?? "") + "You are a witty RPG narrator. Write 1–2 short sentences, under 75 words total. No quotation marks.";
+	const narratorSystem =
+		(context.personalityContext ?? "") +
+		"You are a witty RPG narrator. Write 1–2 short sentences, under 75 words total. No quotation marks.";
 	const text = await callOllama(narratorSystem, prompt, 2000, 120);
 	return text ?? fallback(context.success, context.action);
 }

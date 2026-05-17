@@ -1,13 +1,13 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import {
+	checkAndAdvanceQuestProgress,
 	getOrCreateProfile,
 	getTrainingCooldownDate,
+	type StatKey,
 	setTrainingCooldown,
 	tryDebitCoins,
 	updateStat,
-	checkAndAdvanceQuestProgress,
-	type StatKey,
 } from "../../db/queries/rpg.js";
 import { formatDuration } from "../../lib/rpg/helpers/cooldown.js";
 

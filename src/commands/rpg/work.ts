@@ -1,25 +1,25 @@
 import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
 import {
-	getOrCreateProfile,
-	isInJail,
-	setCooldown,
-	getCooldown,
-	clearCooldown,
-	getEquippedTool,
-	getActivePet,
 	addXpToProfile,
 	checkAndAdvanceQuestProgress,
+	clearCooldown,
+	getActivePet,
+	getCooldown,
+	getEquippedTool,
+	getOrCreateProfile,
+	isInJail,
 	type StatKey,
+	setCooldown,
 } from "../../db/queries/rpg.js";
-import { rollOutcome, randomPay } from "../../lib/rpg/helpers/outcome.js";
-import { applyJobRewards } from "../../lib/rpg/helpers/rewards.js";
-import { getRemainingCooldown, formatDuration } from "../../lib/rpg/helpers/cooldown.js";
-import { JOBS, getJob } from "../../lib/rpg/catalogs/jobs.js";
-import { ITEMS } from "../../lib/rpg/catalogs/items.js";
-import { generateFlavorText } from "../../lib/rpg/helpers/flavorText.js";
-import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import { ITEMS } from "../../lib/rpg/catalogs/items.js";
+import { getJob, JOBS } from "../../lib/rpg/catalogs/jobs.js";
+import { formatDuration, getRemainingCooldown } from "../../lib/rpg/helpers/cooldown.js";
+import { generateFlavorText } from "../../lib/rpg/helpers/flavorText.js";
+import { randomPay, rollOutcome } from "../../lib/rpg/helpers/outcome.js";
+import { applyJobRewards } from "../../lib/rpg/helpers/rewards.js";
 
 const JOB_CHOICES = Object.values(JOBS)
 	.filter((j) => j.category !== "crime")
@@ -162,7 +162,9 @@ export class WorkCommand extends Command {
 						.setDescription(
 							`*${flavor}*\n\nYou earned **${pay.toLocaleString()} coins** and **${job.xpReward} XP**.${dropText}${levelText}${charmText}`,
 						)
-						.setFooter({ text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}` }),
+						.setFooter({
+							text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}`,
+						}),
 				],
 			});
 
@@ -196,7 +198,9 @@ export class WorkCommand extends Command {
 						.setColor(0xed4245)
 						.setTitle(`❌ ${job.name} — Failed`)
 						.setDescription(`*${flavor}*\n\nBetter luck next time. No coins lost.`)
-						.setFooter({ text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}` }),
+						.setFooter({
+							text: `Success chance was ${Math.round(finalChance * 100)}% • Next available in ${formatDuration(job.cooldownMs)}`,
+						}),
 				],
 			});
 		}

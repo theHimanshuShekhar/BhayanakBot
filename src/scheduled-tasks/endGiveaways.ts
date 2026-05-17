@@ -1,6 +1,6 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, TextChannel } from "discord.js";
-import { getActiveExpiredGiveaways, endGiveaway } from "../db/queries/giveaways.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type TextChannel } from "discord.js";
+import { endGiveaway, getActiveExpiredGiveaways } from "../db/queries/giveaways.js";
 
 function shuffled<T>(arr: T[]): T[] {
 	const a = [...arr];
@@ -31,9 +31,11 @@ export class EndGiveawaysTask extends ScheduledTask {
 				if (channel && "send" in channel) {
 					const winnerText = winners.length > 0 ? winners.map((w) => `<@${w}>`).join(", ") : "No valid entries";
 
-					await (channel as TextChannel).send({
-						content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,
-					}).catch(() => null);
+					await (channel as TextChannel)
+						.send({
+							content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,
+						})
+						.catch(() => null);
 
 					const msg = await (channel as TextChannel).messages.fetch(giveaway.messageId).catch(() => null);
 					if (msg) {

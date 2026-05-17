@@ -11,9 +11,12 @@ export async function generateSpeech(text: string): Promise<Buffer | null> {
 	return new Promise((resolve) => {
 		const chunks: Buffer[] = [];
 		const child = spawn(PIPER_BINARY, [
-			"--model", PIPER_MODEL,
-			"--output_file", "-", // stdout
-			"--sentence_silence", "0.2",
+			"--model",
+			PIPER_MODEL,
+			"--output_file",
+			"-", // stdout
+			"--sentence_silence",
+			"0.2",
 		]);
 
 		child.stdout.on("data", (chunk: Buffer) => {

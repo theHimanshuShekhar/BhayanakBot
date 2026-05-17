@@ -1,7 +1,7 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, TextChannel , MessageFlags } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
 import ms from "ms";
-import { createGiveaway, getGiveawayByMessage, endGiveaway } from "../../db/queries/giveaways.js";
+import { createGiveaway, endGiveaway, getGiveawayByMessage } from "../../db/queries/giveaways.js";
 
 export class GiveawayCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -15,11 +15,21 @@ export class GiveawayCommand extends Subcommand {
 			preconditions: ["GuildOnly", "IsModerator"],
 			help: {
 				summary: "Start, end, or reroll a giveaway.",
-				examples: ["/giveaway start duration:1h prize:Nitro winners:2", "/giveaway end message-id:123456", "/giveaway reroll message-id:123456"],
+				examples: [
+					"/giveaway start duration:1h prize:Nitro winners:2",
+					"/giveaway end message-id:123456",
+					"/giveaway reroll message-id:123456",
+				],
 				subcommands: {
-					start: { summary: "Start a timed giveaway in the current channel.", examples: ["/giveaway start duration:1h prize:Nitro winners:2"] },
+					start: {
+						summary: "Start a timed giveaway in the current channel.",
+						examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
+					},
 					end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
-					reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
+					reroll: {
+						summary: "Reroll winners for an ended giveaway.",
+						examples: ["/giveaway reroll message-id:123456"],
+					},
 				},
 			},
 		});
@@ -37,7 +47,9 @@ export class GiveawayCommand extends Subcommand {
 						.addStringOption((opt) =>
 							opt.setName("duration").setDescription("Duration (e.g. 10m, 1h, 1d)").setRequired(true),
 						)
-						.addStringOption((opt) => opt.setName("prize").setDescription("What are you giving away?").setRequired(true))
+						.addStringOption((opt) =>
+							opt.setName("prize").setDescription("What are you giving away?").setRequired(true),
+						)
 						.addIntegerOption((opt) =>
 							opt.setName("winners").setDescription("Number of winners (default 1)").setMinValue(1).setRequired(false),
 						),
@@ -68,14 +80,19 @@ export class GiveawayCommand extends Subcommand {
 
 		const duration = ms(durationStr as any) as unknown as number;
 		if (!duration || duration <= 0) {
-			return interaction.reply({ content: "Invalid duration. Use e.g. `10m`, `1h`, `1d`.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "Invalid duration. Use e.g. `10m`, `1h`, `1d`.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		const endsAt = new Date(Date.now() + duration);
 
 		const embed = new EmbedBuilder()
 			.setTitle("🎉 Giveaway!")
-			.setDescription(`**Prize:** ${prize}\n**Winners:** ${winnerCount}\n**Ends:** <t:${Math.floor(endsAt.getTime() / 1000)}:R>`)
+			.setDescription(
+				`**Prize:** ${prize}\n**Winners:** ${winnerCount}\n**Ends:** <t:${Math.floor(endsAt.getTime() / 1000)}:R>`,
+			)
 			.setColor(0xff73fa)
 			.setFooter({ text: `Hosted by ${interaction.user.tag}` })
 			.setTimestamp(endsAt);
@@ -151,9 +168,7 @@ export class GiveawayCommand extends Subcommand {
 
 		const channel = interaction.guild!.channels.cache.get(giveaway.channelId);
 		if (channel && "send" in channel) {
-			const winnerText = winners.length > 0
-				? winners.map((w) => `<@${w}>`).join(", ")
-				: "No valid entries";
+			const winnerText = winners.length > 0 ? winners.map((w) => `<@${w}>`).join(", ") : "No valid entries";
 
 			await (channel as TextChannel).send({
 				content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,

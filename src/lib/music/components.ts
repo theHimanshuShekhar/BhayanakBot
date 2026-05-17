@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { QueueRepeatMode } from "discord-player";
 import type { GuildQueue } from "discord-player";
+import { QueueRepeatMode } from "discord-player";
 import { QUEUE_PAGE_SIZE } from "./embeds.js";
 
 const LOOP_LABELS: Partial<Record<QueueRepeatMode, string>> = {
@@ -32,16 +32,8 @@ export function buildNowPlayingButtons(queue: GuildQueue): ActionRowBuilder<Butt
 
 export function buildDisabledNowPlayingButtons(): ActionRowBuilder<ButtonBuilder> {
 	return new ActionRowBuilder<ButtonBuilder>().addComponents(
-		new ButtonBuilder()
-			.setCustomId("music:previous")
-			.setEmoji("⏮")
-			.setStyle(ButtonStyle.Secondary)
-			.setDisabled(true),
-		new ButtonBuilder()
-			.setCustomId("music:playpause")
-			.setEmoji("▶️")
-			.setStyle(ButtonStyle.Primary)
-			.setDisabled(true),
+		new ButtonBuilder().setCustomId("music:previous").setEmoji("⏮").setStyle(ButtonStyle.Secondary).setDisabled(true),
+		new ButtonBuilder().setCustomId("music:playpause").setEmoji("▶️").setStyle(ButtonStyle.Primary).setDisabled(true),
 		new ButtonBuilder().setCustomId("music:skip").setEmoji("⏭").setStyle(ButtonStyle.Secondary).setDisabled(true),
 		new ButtonBuilder()
 			.setCustomId("music:loop")

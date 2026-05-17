@@ -1,5 +1,5 @@
-import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
+import { MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
 import { formatPlayerError } from "../../lib/music/errors.js";
 
@@ -54,7 +54,10 @@ export class MusicControlsCommand extends Subcommand {
 			queue.node.pause();
 			return interaction.reply({ content: "Paused." });
 		} catch (err) {
-			return interaction.reply({ content: `Failed to pause: ${formatPlayerError(err)}`, flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: `Failed to pause: ${formatPlayerError(err)}`,
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 	}
 
@@ -70,7 +73,10 @@ export class MusicControlsCommand extends Subcommand {
 			queue.node.resume();
 			return interaction.reply({ content: "Resumed." });
 		} catch (err) {
-			return interaction.reply({ content: `Failed to resume: ${formatPlayerError(err)}`, flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: `Failed to resume: ${formatPlayerError(err)}`,
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 	}
 

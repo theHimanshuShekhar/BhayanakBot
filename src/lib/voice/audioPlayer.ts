@@ -1,11 +1,11 @@
+import { Readable } from "node:stream";
 import {
+	AudioPlayerStatus,
 	createAudioPlayer,
 	createAudioResource,
-	AudioPlayerStatus,
-	VoiceConnection,
 	StreamType,
+	type VoiceConnection,
 } from "@discordjs/voice";
-import { Readable } from "node:stream";
 
 /**
  * Play audio buffer (WAV or MP3) through a Discord voice connection.

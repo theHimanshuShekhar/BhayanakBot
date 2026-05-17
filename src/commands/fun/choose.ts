@@ -1,5 +1,5 @@
-import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
+import { MessageFlags } from "discord.js";
 
 export class ChooseCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -19,7 +19,10 @@ export class ChooseCommand extends Command {
 				.setName("choose")
 				.setDescription("Let the bot choose from a list of options (separate with commas)")
 				.addStringOption((opt) =>
-					opt.setName("options").setDescription("Options separated by commas (e.g. pizza, sushi, tacos)").setRequired(true),
+					opt
+						.setName("options")
+						.setDescription("Options separated by commas (e.g. pizza, sushi, tacos)")
+						.setRequired(true),
 				),
 		);
 	}

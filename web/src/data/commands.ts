@@ -21,18 +21,43 @@ export interface Category {
 
 export const CATEGORIES: Category[] = [
 	{ id: "all", label: "All", icon: "⚡", description: "All 55 commands" },
-	{ id: "rpg", label: "RPG & Economy", icon: "⚔️", description: "Profile, jobs, crime, training, shop, pets, properties, quests." },
-	{ id: "moderation", label: "Moderation", icon: "🛡️", description: "Mute, kick, ban, warn, purge, and case management." },
+	{
+		id: "rpg",
+		label: "RPG & Economy",
+		icon: "⚔️",
+		description: "Profile, jobs, crime, training, shop, pets, properties, quests.",
+	},
+	{
+		id: "moderation",
+		label: "Moderation",
+		icon: "🛡️",
+		description: "Mute, kick, ban, warn, purge, and case management.",
+	},
 	{ id: "music", label: "Music", icon: "🎵", description: "Play, queue, and control music in voice channels." },
-	{ id: "utility", label: "Utility", icon: "🔧", description: "General-purpose tools: info, avatars, AFK, reminders, summaries." },
+	{
+		id: "utility",
+		label: "Utility",
+		icon: "🔧",
+		description: "General-purpose tools: info, avatars, AFK, reminders, summaries.",
+	},
 	{ id: "fun", label: "Fun", icon: "🎲", description: "Memes, polls, 8-ball, coin flips, and avatar effects." },
 	{ id: "leveling", label: "Leveling", icon: "📈", description: "XP ranks, leaderboards, and role rewards." },
 	{ id: "tickets", label: "Tickets", icon: "🎫", description: "Open, claim, and manage support tickets." },
 	{ id: "roles", label: "Roles", icon: "🏷️", description: "Reaction roles and role select menus." },
 	{ id: "giveaway", label: "Giveaways", icon: "🎉", description: "Start, end, and reroll giveaways." },
 	{ id: "suggestions", label: "Suggestions", icon: "💡", description: "Submit and manage community suggestions." },
-	{ id: "config", label: "Server Config", icon: "⚙️", description: "Configure channels, roles, auto-mod, and anti-raid settings." },
-	{ id: "autorespond", label: "Autoresponders", icon: "🤖", description: "Configure automatic message responses (static or LLM-generated)." },
+	{
+		id: "config",
+		label: "Server Config",
+		icon: "⚙️",
+		description: "Configure channels, roles, auto-mod, and anti-raid settings.",
+	},
+	{
+		id: "autorespond",
+		label: "Autoresponders",
+		icon: "🤖",
+		description: "Configure automatic message responses (static or LLM-generated).",
+	},
 	{ id: "minecraft", label: "Minecraft", icon: "⛏️", description: "Minecraft server status and recommended mods." },
 ];
 
@@ -254,7 +279,10 @@ export const COMMANDS: Command[] = [
 		examples: ['/remind set time:2h message:"stretch"', "/remind list", "/remind cancel id:3"],
 		category: "utility",
 		subcommands: {
-			set: { summary: "Set a reminder after a duration (e.g. 10m, 2h, 1d).", examples: ['/remind set time:30m message:"check oven"'] },
+			set: {
+				summary: "Set a reminder after a duration (e.g. 10m, 2h, 1d).",
+				examples: ['/remind set time:30m message:"check oven"'],
+			},
 			list: { summary: "List your active reminders.", examples: ["/remind list"] },
 			cancel: { summary: "Cancel a reminder by its ID.", examples: ["/remind cancel id:7"] },
 		},
@@ -364,11 +392,20 @@ export const COMMANDS: Command[] = [
 	{
 		name: "/reactionrole",
 		description: "Add or remove reaction roles on messages.",
-		examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member", "/reactionrole remove message-id:123456 emoji:👍"],
+		examples: [
+			"/reactionrole add message-id:123456 emoji:👍 role:@Member",
+			"/reactionrole remove message-id:123456 emoji:👍",
+		],
 		category: "roles",
 		subcommands: {
-			add: { summary: "Attach a reaction role to a message.", examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"] },
-			remove: { summary: "Remove a reaction role from a message.", examples: ["/reactionrole remove message-id:123456 emoji:👍"] },
+			add: {
+				summary: "Attach a reaction role to a message.",
+				examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"],
+			},
+			remove: {
+				summary: "Remove a reaction role from a message.",
+				examples: ["/reactionrole remove message-id:123456 emoji:👍"],
+			},
 		},
 	},
 	{
@@ -379,17 +416,27 @@ export const COMMANDS: Command[] = [
 		subcommands: {
 			create: { summary: "Create a role selection menu in a channel.", examples: ["/rolemenu create channel:#roles"] },
 			delete: { summary: "Delete an existing role menu.", examples: ["/rolemenu delete id:abc123"] },
-			"add-option": { summary: "Add a role option to an existing menu.", examples: ["/rolemenu add-option id:abc123 role:@Gamer label:Gamer"] },
+			"add-option": {
+				summary: "Add a role option to an existing menu.",
+				examples: ["/rolemenu add-option id:abc123 role:@Gamer label:Gamer"],
+			},
 		},
 	},
 	// Giveaway (1)
 	{
 		name: "/giveaway",
 		description: "Start, end, or reroll a giveaway.",
-		examples: ["/giveaway start duration:1h prize:Nitro winners:2", "/giveaway end message-id:123456", "/giveaway reroll message-id:123456"],
+		examples: [
+			"/giveaway start duration:1h prize:Nitro winners:2",
+			"/giveaway end message-id:123456",
+			"/giveaway reroll message-id:123456",
+		],
 		category: "giveaway",
 		subcommands: {
-			start: { summary: "Start a timed giveaway in the current channel.", examples: ["/giveaway start duration:1h prize:Nitro winners:2"] },
+			start: {
+				summary: "Start a timed giveaway in the current channel.",
+				examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
+			},
 			end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
 			reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
 		},
@@ -408,30 +455,53 @@ export const COMMANDS: Command[] = [
 		category: "suggestions",
 		subcommands: {
 			approve: { summary: "Approve a suggestion with an optional response.", examples: ["/suggestion approve id:5"] },
-			deny: { summary: "Deny a suggestion with an optional response.", examples: ["/suggestion deny id:3 response:Out of scope"] },
+			deny: {
+				summary: "Deny a suggestion with an optional response.",
+				examples: ["/suggestion deny id:3 response:Out of scope"],
+			},
 		},
 	},
 	// Config (1)
 	{
 		name: "/config",
 		description: "Configure server channels, roles, auto-moderation, and anti-raid settings.",
-		examples: ["/config view", "/config set setting:log-channel channel:#mod-log", "/config automod setting:spam-threshold number:5"],
+		examples: [
+			"/config view",
+			"/config set setting:log-channel channel:#mod-log",
+			"/config automod setting:spam-threshold number:5",
+		],
 		category: "config",
 		subcommands: {
 			view: { summary: "View current server configuration.", examples: ["/config view"] },
-			set: { summary: "Set a configuration value for a specific setting.", examples: ["/config set setting:log-channel channel:#mod-log"] },
-			automod: { summary: "Configure auto-moderation thresholds.", examples: ["/config automod setting:spam-threshold number:5"] },
-			antiraid: { summary: "Configure anti-raid protection (join rate limits).", examples: ["/config antiraid setting:threshold number:10"] },
+			set: {
+				summary: "Set a configuration value for a specific setting.",
+				examples: ["/config set setting:log-channel channel:#mod-log"],
+			},
+			automod: {
+				summary: "Configure auto-moderation thresholds.",
+				examples: ["/config automod setting:spam-threshold number:5"],
+			},
+			antiraid: {
+				summary: "Configure anti-raid protection (join rate limits).",
+				examples: ["/config antiraid setting:threshold number:10"],
+			},
 		},
 	},
 	// Autorespond (1)
 	{
 		name: "/autorespond",
 		description: "Add, remove, and list automatic keyword response triggers.",
-		examples: ['/autorespond add trigger:"hello" response:"Hi there!"', "/autorespond list", "/autorespond remove trigger:hello"],
+		examples: [
+			'/autorespond add trigger:"hello" response:"Hi there!"',
+			"/autorespond list",
+			"/autorespond remove trigger:hello",
+		],
 		category: "autorespond",
 		subcommands: {
-			add: { summary: "Add a new auto-response trigger.", examples: ['/autorespond add trigger:"hello" response:"Hi there!"'] },
+			add: {
+				summary: "Add a new auto-response trigger.",
+				examples: ['/autorespond add trigger:"hello" response:"Hi there!"'],
+			},
 			remove: { summary: "Remove an auto-response trigger.", examples: ["/autorespond remove trigger:hello"] },
 			list: { summary: "List all configured auto-responses.", examples: ["/autorespond list"] },
 		},

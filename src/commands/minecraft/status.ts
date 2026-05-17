@@ -45,7 +45,8 @@ const REQUIRED_MODS: ModEntry[] = [
 	{
 		name: "Extra FTB Mods",
 		url: "https://discord.com/channels/199168135935295488/199168135935295488/1504511226003329315",
-		summary: "Extra FTB utility mods (Teams, Quests, Essentials, Library, Filter System, XMod Compat, Quests Additions). Download the zip and extract into your mods folder.",
+		summary:
+			"Extra FTB utility mods (Teams, Quests, Essentials, Library, Filter System, XMod Compat, Quests Additions). Download the zip and extract into your mods folder.",
 	},
 ];
 
@@ -93,19 +94,14 @@ export class MinecraftStatusCommand extends Command {
 
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder) =>
-			builder
-				.setName("minecraft")
-				.setDescription("Show the status of our Minecraft server and recommended mods"),
+			builder.setName("minecraft").setDescription("Show the status of our Minecraft server and recommended mods"),
 		);
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		await interaction.deferReply();
 
-		const embed = new EmbedBuilder()
-			.setTitle("⛏️ Bhayanak Minecraft — Homestead")
-			.setColor(0x3fb67b)
-			.setTimestamp();
+		const embed = new EmbedBuilder().setTitle("⛏️ Bhayanak Minecraft — Homestead").setColor(0x3fb67b).setTimestamp();
 
 		try {
 			const response = await fetch(MC_STATUS_API);

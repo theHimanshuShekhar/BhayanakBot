@@ -1,8 +1,8 @@
 import { AllFlowsPrecondition } from "@sapphire/framework";
 import type { CommandInteraction, ContextMenuCommandInteraction, Message } from "discord.js";
-import { db } from "../lib/database.js";
-import { tickets } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
+import { tickets } from "../db/schema.js";
+import { db } from "../lib/database.js";
 
 async function isTicketChannel(channelId: string): Promise<boolean> {
 	const ticket = await db.query.tickets.findFirst({

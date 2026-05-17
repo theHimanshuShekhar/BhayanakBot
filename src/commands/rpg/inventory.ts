@@ -1,17 +1,17 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
+import { and, asc, eq, like } from "drizzle-orm";
 import {
-	getOrCreateProfile,
-	getInventory,
-	removeItem,
-	equipItem,
 	clearCooldown,
 	clearJail,
+	equipItem,
+	getInventory,
+	getOrCreateProfile,
+	removeItem,
 	setCooldown,
 } from "../../db/queries/rpg.js";
-import { db } from "../../lib/database.js";
 import { rpgCooldowns } from "../../db/schema.js";
-import { and, asc, eq, like } from "drizzle-orm";
+import { db } from "../../lib/database.js";
 import { getItem } from "../../lib/rpg/catalogs/items.js";
 
 export class InventoryCommand extends Command {
@@ -35,17 +35,13 @@ export class InventoryCommand extends Command {
 					sub
 						.setName("use")
 						.setDescription("Use a consumable item")
-						.addStringOption((opt) =>
-							opt.setName("item").setDescription("Item ID to use").setRequired(true),
-						),
+						.addStringOption((opt) => opt.setName("item").setDescription("Item ID to use").setRequired(true)),
 				)
 				.addSubcommand((sub) =>
 					sub
 						.setName("equip")
 						.setDescription("Equip a tool item")
-						.addStringOption((opt) =>
-							opt.setName("item").setDescription("Item ID to equip").setRequired(true),
-						),
+						.addStringOption((opt) => opt.setName("item").setDescription("Item ID to equip").setRequired(true)),
 				),
 		);
 	}
@@ -71,10 +67,7 @@ export class InventoryCommand extends Command {
 
 			return interaction.editReply({
 				embeds: [
-					new EmbedBuilder()
-						.setTitle("🎒 Your Inventory")
-						.setColor(0x5865f2)
-						.setDescription(lines.join("\n\n")),
+					new EmbedBuilder().setTitle("🎒 Your Inventory").setColor(0x5865f2).setDescription(lines.join("\n\n")),
 				],
 			});
 		}
@@ -95,10 +88,7 @@ export class InventoryCommand extends Command {
 
 			if (itemId === "energy_drink") {
 				const soonest = await db.query.rpgCooldowns.findFirst({
-					where: and(
-						eq(rpgCooldowns.userId, interaction.user.id),
-						like(rpgCooldowns.action, "job:%"),
-					),
+					where: and(eq(rpgCooldowns.userId, interaction.user.id), like(rpgCooldowns.action, "job:%")),
 					orderBy: [asc(rpgCooldowns.expiresAt)],
 				});
 				if (soonest) {
@@ -107,7 +97,9 @@ export class InventoryCommand extends Command {
 						embeds: [
 							new EmbedBuilder()
 								.setColor(0x57f287)
-								.setDescription(`⚡ Used **Energy Drink** — cooldown on **${soonest.action.replace("job:", "")}** cleared!`),
+								.setDescription(
+									`⚡ Used **Energy Drink** — cooldown on **${soonest.action.replace("job:", "")}** cleared!`,
+								),
 						],
 					});
 				}
@@ -126,7 +118,9 @@ export class InventoryCommand extends Command {
 					embeds: [
 						new EmbedBuilder()
 							.setColor(0x57f287)
-							.setDescription("🍀 Used **Lucky Charm** — your next action has +10% success chance. *(Effect active until your next `/work` or `/crime`)*"),
+							.setDescription(
+								"🍀 Used **Lucky Charm** — your next action has +10% success chance. *(Effect active until your next `/work` or `/crime`)*",
+							),
 					],
 				});
 			}
@@ -168,9 +162,7 @@ export class InventoryCommand extends Command {
 
 			return interaction.editReply({
 				embeds: [
-					new EmbedBuilder()
-						.setColor(0x57f287)
-						.setDescription(`🔧 **${item.name}** equipped to your tool slot.`),
+					new EmbedBuilder().setColor(0x57f287).setDescription(`🔧 **${item.name}** equipped to your tool slot.`),
 				],
 			});
 		}

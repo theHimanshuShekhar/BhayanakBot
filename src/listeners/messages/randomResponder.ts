@@ -1,7 +1,8 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
-import { callOllama } from "../../lib/ollama.js";
 import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
+import { callOllama } from "../../lib/ollama.js";
+
 const HISTORY_LIMIT = 20;
 const OLLAMA_TIMEOUT_MS = 60_000;
 
@@ -81,8 +82,6 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 				`[randomResponder] reply truncated from ${response.length} to ${safeResponse.length} chars`,
 			);
 		}
-		await channel.send(safeResponse).catch((err) =>
-			this.container.logger.warn(`[randomResponder] send failed:`, err),
-		);
+		await channel.send(safeResponse).catch((err) => this.container.logger.warn(`[randomResponder] send failed:`, err));
 	}
 }

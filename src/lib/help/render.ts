@@ -1,3 +1,4 @@
+import type { APIEmbedField } from "discord.js";
 import {
 	ActionRowBuilder,
 	ButtonBuilder,
@@ -6,7 +7,6 @@ import {
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder,
 } from "discord.js";
-import type { APIEmbedField } from "discord.js";
 import type { CollectedCommand, HelpSnapshot } from "./collect.js";
 
 export const PAGE_SIZE = 8;
@@ -152,9 +152,7 @@ export function buildCommandDetail(
 	if (entry.help.subcommands) {
 		for (const [subName, sub] of Object.entries(entry.help.subcommands)) {
 			const value =
-				sub.examples.length > 0
-					? truncate(`${sub.summary}\n${codeBlock(sub.examples.join("\n"))}`, 1024)
-					: sub.summary;
+				sub.examples.length > 0 ? truncate(`${sub.summary}\n${codeBlock(sub.examples.join("\n"))}`, 1024) : sub.summary;
 			embed.addFields({ name: `/${entry.name} ${subName}`, value });
 		}
 	}

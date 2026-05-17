@@ -1,16 +1,17 @@
 import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type ButtonInteraction, EmbedBuilder , MessageFlags } from "discord.js";
 import {
-	getOrCreateProfile,
-	tryDebitCoins,
-	clearJail,
-	setCooldown,
-	getCooldown,
-} from "../db/queries/rpg.js";
-import { rollOutcome } from "../lib/rpg/helpers/outcome.js";
-import { db } from "../lib/database.js";
-import { rpgProfiles } from "../db/schema.js";
+	ActionRowBuilder,
+	ButtonBuilder,
+	type ButtonInteraction,
+	ButtonStyle,
+	EmbedBuilder,
+	MessageFlags,
+} from "discord.js";
 import { eq } from "drizzle-orm";
+import { clearJail, getCooldown, getOrCreateProfile, setCooldown, tryDebitCoins } from "../db/queries/rpg.js";
+import { rpgProfiles } from "../db/schema.js";
+import { db } from "../lib/database.js";
+import { rollOutcome } from "../lib/rpg/helpers/outcome.js";
 
 function buildDisabledRow(bailCost: number): ActionRowBuilder<ButtonBuilder> {
 	return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -51,17 +52,16 @@ export class RpgJailActionsHandler extends InteractionHandler {
 					embeds: [
 						new EmbedBuilder()
 							.setColor(0xed4245)
-							.setDescription(`❌ You need **${bailCost.toLocaleString()} coins** to bail out, but you only have **${fresh.coins.toLocaleString()}**.`),
+							.setDescription(
+								`❌ You need **${bailCost.toLocaleString()} coins** to bail out, but you only have **${fresh.coins.toLocaleString()}**.`,
+							),
 					],
 					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
 
-			await db
-				.update(rpgProfiles)
-				.set({ jailUntil: null, jailBailCost: 0 })
-				.where(eq(rpgProfiles.userId, userId));
+			await db.update(rpgProfiles).set({ jailUntil: null, jailBailCost: 0 }).where(eq(rpgProfiles.userId, userId));
 
 			await interaction.update({
 				embeds: [
@@ -73,11 +73,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 				components: [],
 			});
 			await interaction.followUp({
-				embeds: [
-					new EmbedBuilder()
-						.setColor(0x57f287)
-						.setDescription("✅ Bail paid — you're free to go."),
-				],
+				embeds: [new EmbedBuilder().setColor(0x57f287).setDescription("✅ Bail paid — you're free to go.")],
 				flags: MessageFlags.Ephemeral,
 			});
 			return;
@@ -88,9 +84,7 @@ export class RpgJailActionsHandler extends InteractionHandler {
 			if (escapeUsed !== null && escapeUsed > new Date()) {
 				await interaction.reply({
 					embeds: [
-						new EmbedBuilder()
-							.setColor(0xed4245)
-							.setDescription("❌ You already attempted to escape this sentence."),
+						new EmbedBuilder().setColor(0xed4245).setDescription("❌ You already attempted to escape this sentence."),
 					],
 					flags: MessageFlags.Ephemeral,
 				});
@@ -126,20 +120,13 @@ export class RpgJailActionsHandler extends InteractionHandler {
 					components: [],
 				});
 				await interaction.followUp({
-					embeds: [
-						new EmbedBuilder()
-							.setColor(0x57f287)
-							.setDescription("✅ You escaped! Lay low for a while."),
-					],
+					embeds: [new EmbedBuilder().setColor(0x57f287).setDescription("✅ You escaped! Lay low for a while.")],
 					flags: MessageFlags.Ephemeral,
 				});
 			} else {
 				const newUntil = new Date(jailUntil.getTime() + remainingMs);
 				await setCooldown(userId, "jail:escape", Math.max(0, newUntil.getTime() - Date.now()));
-				await db
-					.update(rpgProfiles)
-					.set({ jailUntil: newUntil })
-					.where(eq(rpgProfiles.userId, userId));
+				await db.update(rpgProfiles).set({ jailUntil: newUntil }).where(eq(rpgProfiles.userId, userId));
 
 				const until = Math.floor(newUntil.getTime() / 1000);
 				await interaction.update({

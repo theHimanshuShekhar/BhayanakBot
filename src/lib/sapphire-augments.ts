@@ -5,5 +5,3 @@ declare module "@sapphire/framework" {
 		help?: CommandHelp;
 	}
 }
-
-export {};

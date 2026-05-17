@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionFlagsBits } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { logToChannel } from "./warn.js";
 
@@ -47,7 +47,9 @@ export class KickCommand extends Command {
 		}
 
 		try {
-			await target.send(`You have been **kicked** from **${interaction.guild!.name}**. Reason: ${reason}`).catch(() => null);
+			await target
+				.send(`You have been **kicked** from **${interaction.guild!.name}**. Reason: ${reason}`)
+				.catch(() => null);
 			await target.kick(reason);
 		} catch {
 			return interaction.editReply("❌ I don't have permission to kick this member.");

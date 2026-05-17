@@ -1,6 +1,6 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder , MessageFlags } from "discord.js";
-import { createRoleMenu, deleteRoleMenu, addRoleMenuOption, getRoleMenu } from "../../db/queries/roles.js";
+import { ActionRowBuilder, MessageFlags, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from "discord.js";
+import { addRoleMenuOption, createRoleMenu, deleteRoleMenu, getRoleMenu } from "../../db/queries/roles.js";
 
 export class RoleMenuCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -16,9 +16,15 @@ export class RoleMenuCommand extends Subcommand {
 				summary: "Create and manage self-assignable role select menus.",
 				examples: ["/rolemenu create channel:#roles", "/rolemenu add-option id:abc role:@Gamer label:Gamer"],
 				subcommands: {
-					create: { summary: "Create a role selection menu in a channel.", examples: ["/rolemenu create channel:#roles"] },
+					create: {
+						summary: "Create a role selection menu in a channel.",
+						examples: ["/rolemenu create channel:#roles"],
+					},
 					delete: { summary: "Delete an existing role menu.", examples: ["/rolemenu delete id:abc123"] },
-					"add-option": { summary: "Add a role option to an existing menu.", examples: ["/rolemenu add-option id:abc123 role:@Gamer label:Gamer"] },
+					"add-option": {
+						summary: "Add a role option to an existing menu.",
+						examples: ["/rolemenu add-option id:abc123 role:@Gamer label:Gamer"],
+					},
 				},
 			},
 		});
@@ -40,7 +46,11 @@ export class RoleMenuCommand extends Subcommand {
 							opt.setName("placeholder").setDescription("Placeholder text for the menu").setRequired(false),
 						)
 						.addIntegerOption((opt) =>
-							opt.setName("max-values").setDescription("Max roles selectable at once (default 1)").setMinValue(1).setRequired(false),
+							opt
+								.setName("max-values")
+								.setDescription("Max roles selectable at once (default 1)")
+								.setMinValue(1)
+								.setRequired(false),
 						),
 				)
 				.addSubcommand((sub) =>
@@ -147,9 +157,7 @@ export class RoleMenuCommand extends Subcommand {
 			.setMaxValues(Math.min(menu.maxValues, options.length))
 			.addOptions(
 				options.map((opt) => {
-					const builder = new StringSelectMenuOptionBuilder()
-						.setLabel(opt.label)
-						.setValue(opt.roleId);
+					const builder = new StringSelectMenuOptionBuilder().setLabel(opt.label).setValue(opt.roleId);
 					if (opt.description) builder.setDescription(opt.description);
 					if (opt.emoji) builder.setEmoji(opt.emoji);
 					return builder;
@@ -165,6 +173,9 @@ export class RoleMenuCommand extends Subcommand {
 			}
 		}
 
-		return interaction.reply({ content: `Added **${label}** (<@&${role.id}>) to the role menu.`, flags: MessageFlags.Ephemeral });
+		return interaction.reply({
+			content: `Added **${label}** (<@&${role.id}>) to the role menu.`,
+			flags: MessageFlags.Ephemeral,
+		});
 	}
 }

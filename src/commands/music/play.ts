@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
-import { GuildMember, MessageFlags, PermissionFlagsBits } from "discord.js";
 import type { GuildTextBasedChannel } from "discord.js";
-import { useMainPlayer, QueryType } from "discord-player";
+import { type GuildMember, MessageFlags, PermissionFlagsBits } from "discord.js";
+import { QueryType, useMainPlayer } from "discord-player";
 import { formatPlayerError } from "../../lib/music/errors.js";
 import type { MusicQueueMetadata } from "../../lib/music/events.js";
 
@@ -28,9 +28,7 @@ export class PlayCommand extends Command {
 			builder
 				.setName("play")
 				.setDescription("Play a song or playlist from a URL or search query")
-				.addStringOption((opt) =>
-					opt.setName("query").setDescription("Song name or URL").setRequired(true),
-				),
+				.addStringOption((opt) => opt.setName("query").setDescription("Song name or URL").setRequired(true)),
 		);
 	}
 
@@ -39,16 +37,25 @@ export class PlayCommand extends Command {
 		const voiceChannel = member.voice.channel;
 
 		if (!voiceChannel) {
-			return interaction.reply({ content: "You need to be in a voice channel to play music.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "You need to be in a voice channel to play music.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		// Check bot has permission to join and speak
 		const botPermissions = voiceChannel.permissionsFor(interaction.guild!.members.me!);
 		if (!botPermissions?.has(PermissionFlagsBits.Connect)) {
-			return interaction.reply({ content: "I don't have permission to join your voice channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "I don't have permission to join your voice channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 		if (!botPermissions.has(PermissionFlagsBits.Speak)) {
-			return interaction.reply({ content: "I don't have permission to speak in your voice channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "I don't have permission to speak in your voice channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		const query = interaction.options.getString("query", true);
@@ -65,7 +72,9 @@ export class PlayCommand extends Command {
 			if (isYTVideo) {
 				const ytResult = await player.search(query, { requestedBy: interaction.user });
 				if (!ytResult.hasTracks()) {
-					return interaction.editReply({ content: "Could not retrieve YouTube video info. Try searching by song name instead." });
+					return interaction.editReply({
+						content: "Could not retrieve YouTube video info. Try searching by song name instead.",
+					});
 				}
 				const ytTrack = ytResult.tracks[0];
 				finalQuery = `${ytTrack.title} ${ytTrack.author}`;

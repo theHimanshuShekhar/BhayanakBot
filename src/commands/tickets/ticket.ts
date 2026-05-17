@@ -1,23 +1,23 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import {
-	ChannelType,
-	OverwriteType,
-	PermissionFlagsBits,
-	EmbedBuilder,
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	TextChannel,
+	ChannelType,
+	EmbedBuilder,
 	MessageFlags,
+	OverwriteType,
+	PermissionFlagsBits,
+	type TextChannel,
 } from "discord.js";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import {
-	createTicket,
-	getTicketByChannel,
 	claimTicket,
 	closeTicket,
+	createTicket,
+	getTicketByChannel,
 	getUserOpenTickets,
 } from "../../db/queries/tickets.js";
-import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 
 export class TicketCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -104,7 +104,11 @@ export class TicketCommand extends Subcommand {
 				{ id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
 				{
 					id: interaction.user.id,
-					allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+					allow: [
+						PermissionFlagsBits.ViewChannel,
+						PermissionFlagsBits.SendMessages,
+						PermissionFlagsBits.ReadMessageHistory,
+					],
 				},
 				{
 					id: guild.members.me!.id,
@@ -116,12 +120,21 @@ export class TicketCommand extends Subcommand {
 					],
 				},
 				...(settings.ticketSupportRoleId
-					? [{ id: settings.ticketSupportRoleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] }]
+					? [
+							{
+								id: settings.ticketSupportRoleId,
+								allow: [
+									PermissionFlagsBits.ViewChannel,
+									PermissionFlagsBits.SendMessages,
+									PermissionFlagsBits.ReadMessageHistory,
+								],
+							},
+						]
 					: []),
 			],
 		};
 
-		const channel = await guild.channels.create(channelOptions) as TextChannel;
+		const channel = (await guild.channels.create(channelOptions)) as TextChannel;
 		await createTicket({ channelId: channel.id, userId: interaction.user.id, guildId: guild.id, subject });
 
 		const embed = new EmbedBuilder()
@@ -136,11 +149,23 @@ export class TicketCommand extends Subcommand {
 			.setTimestamp();
 
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-			new ButtonBuilder().setCustomId("ticket:close").setLabel("Close Ticket").setStyle(ButtonStyle.Danger).setEmoji("🔒"),
-			new ButtonBuilder().setCustomId("ticket:claim").setLabel("Claim Ticket").setStyle(ButtonStyle.Secondary).setEmoji("✋"),
+			new ButtonBuilder()
+				.setCustomId("ticket:close")
+				.setLabel("Close Ticket")
+				.setStyle(ButtonStyle.Danger)
+				.setEmoji("🔒"),
+			new ButtonBuilder()
+				.setCustomId("ticket:claim")
+				.setLabel("Claim Ticket")
+				.setStyle(ButtonStyle.Secondary)
+				.setEmoji("✋"),
 		);
 
-		await channel.send({ content: `${interaction.user} ${settings.ticketSupportRoleId ? `<@&${settings.ticketSupportRoleId}>` : ""}`, embeds: [embed], components: [row] });
+		await channel.send({
+			content: `${interaction.user} ${settings.ticketSupportRoleId ? `<@&${settings.ticketSupportRoleId}>` : ""}`,
+			embeds: [embed],
+			components: [row],
+		});
 
 		return interaction.editReply({ content: `Your ticket has been created: ${channel}` });
 	}
@@ -148,7 +173,10 @@ export class TicketCommand extends Subcommand {
 	public async runClose(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "This command must be run inside an open ticket channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		await interaction.deferReply();
@@ -156,10 +184,13 @@ export class TicketCommand extends Subcommand {
 		let transcriptUrl: string | undefined;
 		try {
 			const { createTranscript } = await import("discord-html-transcripts");
-			const attachment = await createTranscript(interaction.channel as TextChannel, {
-				returnType: "attachment",
-				filename: `ticket-${ticket.id}.html`,
-			} as any);
+			const attachment = await createTranscript(
+				interaction.channel as TextChannel,
+				{
+					returnType: "attachment",
+					filename: `ticket-${ticket.id}.html`,
+				} as any,
+			);
 
 			// Save transcript to log channel if configured
 			const settings = await getOrCreateSettings(interaction.guildId!);
@@ -188,11 +219,17 @@ export class TicketCommand extends Subcommand {
 	public async runClaim(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "This command must be run inside an open ticket channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		if (ticket.claimedBy) {
-			return interaction.reply({ content: `This ticket is already claimed by <@${ticket.claimedBy}>.`, flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: `This ticket is already claimed by <@${ticket.claimedBy}>.`,
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		await claimTicket(interaction.channelId, interaction.user.id);
@@ -202,7 +239,10 @@ export class TicketCommand extends Subcommand {
 	public async runAdd(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "This command must be run inside an open ticket channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		const target = interaction.options.getUser("user", true);
@@ -218,7 +258,10 @@ export class TicketCommand extends Subcommand {
 	public async runRemove(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket || ticket.status === "closed") {
-			return interaction.reply({ content: "This command must be run inside an open ticket channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "This command must be run inside an open ticket channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		const target = interaction.options.getUser("user", true);
@@ -233,17 +276,23 @@ export class TicketCommand extends Subcommand {
 	public async runTranscript(interaction: Subcommand.ChatInputCommandInteraction) {
 		const ticket = await getTicketByChannel(interaction.channelId);
 		if (!ticket) {
-			return interaction.reply({ content: "This command must be run inside a ticket channel.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "This command must be run inside a ticket channel.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
 			const { createTranscript } = await import("discord-html-transcripts");
-			const attachment = await createTranscript(interaction.channel as TextChannel, {
-				returnType: "attachment",
-				filename: `ticket-${ticket.id}.html`,
-			} as any);
+			const attachment = await createTranscript(
+				interaction.channel as TextChannel,
+				{
+					returnType: "attachment",
+					filename: `ticket-${ticket.id}.html`,
+				} as any,
+			);
 
 			return interaction.editReply({
 				content: "Transcript generated:",

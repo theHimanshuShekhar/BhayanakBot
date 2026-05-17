@@ -1,10 +1,10 @@
 import { container } from "@sapphire/framework";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { callOllama } from "../ollama.js";
-import { getPersonalityProfile, getUnabsorbedMessages, cleanupOldMessages } from "../../db/queries/personality.js";
-import { db } from "../database.js";
+import { cleanupOldMessages, getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
 import { userMessages, userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
+import { db } from "../database.js";
+import { callOllama } from "../ollama.js";
 
 const OLLAMA_TIMEOUT_MS = 120_000;
 // Prevent runaway prompts: absorb at most 500 messages or 40 000 chars per build pass.
@@ -92,7 +92,9 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 
 	const result = await callOllama(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS);
 	if (!result) {
-		container.logger.warn(`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`);
+		container.logger.warn(
+			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,
+		);
 		// Self-heal: reset newMessageCount to actual unabsorbed count so we don't keep retrying with a stale inflated count
 		const remaining = await getUnabsorbedMessages(userId, guildId);
 		await db
@@ -117,7 +119,12 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 					lastRefreshedAt: new Date(),
 				},
 			});
-		await tx.delete(userMessages).where(inArray(userMessages.id, absorbed.map((m) => m.id)));
+		await tx.delete(userMessages).where(
+			inArray(
+				userMessages.id,
+				absorbed.map((m) => m.id),
+			),
+		);
 	});
 
 	// Invalidate in-memory cache so the next response picks up the fresh profile

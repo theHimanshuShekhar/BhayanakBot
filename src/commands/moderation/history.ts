@@ -1,9 +1,15 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder , MessageFlags } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
 import { getUserCases } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
-	warn: "⚠️", mute: "🔇", unmute: "🔊", kick: "👢", ban: "🔨", unban: "✅", tempban: "⏱️",
+	warn: "⚠️",
+	mute: "🔇",
+	unmute: "🔊",
+	kick: "👢",
+	ban: "🔨",
+	unban: "✅",
+	tempban: "⏱️",
 };
 
 export class HistoryCommand extends Command {
@@ -45,7 +51,10 @@ export class HistoryCommand extends Command {
 			.setDescription(
 				cases
 					.slice(0, 20)
-					.map((c) => `${typeEmoji[c.type] ?? "❓"} **Case #${c.caseNumber}** (${c.type}) — ${c.reason ?? "No reason"} — <t:${Math.floor(c.createdAt.getTime() / 1000)}:d>`)
+					.map(
+						(c) =>
+							`${typeEmoji[c.type] ?? "❓"} **Case #${c.caseNumber}** (${c.type}) — ${c.reason ?? "No reason"} — <t:${Math.floor(c.createdAt.getTime() / 1000)}:d>`,
+					)
 					.join("\n"),
 			)
 			.setFooter({ text: `Total: ${cases.length} cases` })

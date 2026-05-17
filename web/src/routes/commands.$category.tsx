@@ -66,8 +66,7 @@ function CommandsPage() {
 						<svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
 							<path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 						</svg>
-						Showing {commandsToShow.length} result{commandsToShow.length !== 1 ? "s" : ""} for{" "}
-						<strong>"{q}"</strong>
+						Showing {commandsToShow.length} result{commandsToShow.length !== 1 ? "s" : ""} for <strong>"{q}"</strong>
 					</div>
 				)}
 
@@ -75,7 +74,9 @@ function CommandsPage() {
 				{commandsToShow.length === 0 && (
 					<div className="py-16 text-center text-slate-500">
 						<div className="mb-2 text-5xl">🔍</div>
-						<p>No commands matched <strong className="text-slate-400">"{q}"</strong></p>
+						<p>
+							No commands matched <strong className="text-slate-400">"{q}"</strong>
+						</p>
 					</div>
 				)}
 
@@ -86,7 +87,10 @@ function CommandsPage() {
 					const isDimmed = query && !hasMatch;
 
 					return (
-						<section key={cat.id} className={`mb-10 transition-opacity duration-150 ${isDimmed ? "opacity-25 pointer-events-none" : ""}`}>
+						<section
+							key={cat.id}
+							className={`mb-10 transition-opacity duration-150 ${isDimmed ? "opacity-25 pointer-events-none" : ""}`}
+						>
 							<div className="mb-4 flex items-center gap-3">
 								<span className="text-3xl">{cat.icon}</span>
 								<div>

@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder, TextChannel , MessageFlags } from "discord.js";
-import { createSuggestion } from "../../db/queries/suggestions.js";
+import { EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { createSuggestion } from "../../db/queries/suggestions.js";
 
 export class SuggestCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -20,9 +20,7 @@ export class SuggestCommand extends Command {
 			builder
 				.setName("suggest")
 				.setDescription("Submit a suggestion for the server")
-				.addStringOption((opt) =>
-					opt.setName("idea").setDescription("Your suggestion").setRequired(true),
-				),
+				.addStringOption((opt) => opt.setName("idea").setDescription("Your suggestion").setRequired(true)),
 		);
 	}
 
@@ -31,7 +29,10 @@ export class SuggestCommand extends Command {
 		const settings = await getOrCreateSettings(interaction.guildId!);
 
 		if (!settings.logChannelId) {
-			return interaction.reply({ content: "Suggestions channel is not configured. Ask an admin to set it up.", flags: MessageFlags.Ephemeral });
+			return interaction.reply({
+				content: "Suggestions channel is not configured. Ask an admin to set it up.",
+				flags: MessageFlags.Ephemeral,
+			});
 		}
 
 		// For suggestions we reuse logChannelId as a fallback; ideally you'd add a `suggestionsChannelId`

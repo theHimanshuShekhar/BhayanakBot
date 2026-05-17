@@ -1,12 +1,12 @@
 import { Command } from "@sapphire/framework";
-import { EmbedBuilder , MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags } from "discord.js";
 import {
+	addProperty,
 	getOrCreateProfile,
 	getOwnedProperties,
-	addProperty,
-	updateLastCollectedAt,
-	updateCoins,
 	tryDebitCoins,
+	updateCoins,
+	updateLastCollectedAt,
 } from "../../db/queries/rpg.js";
 import { getBuyableProperties, getProperty } from "../../lib/rpg/catalogs/properties.js";
 
@@ -70,8 +70,7 @@ export class PropertyCommand extends Command {
 			const lines = owned.map((op) => {
 				const prop = getProperty(op.propertyId);
 				const hoursHeld = (Date.now() - op.lastCollectedAt.getTime()) / (1000 * 60 * 60);
-				const pending =
-					prop && prop.incomePerHour > 0 ? Math.floor(hoursHeld * prop.incomePerHour) : 0;
+				const pending = prop && prop.incomePerHour > 0 ? Math.floor(hoursHeld * prop.incomePerHour) : 0;
 				const incomeText =
 					prop && prop.incomePerHour > 0
 						? ` • **${prop.incomePerHour}/hr** *(pending: **${pending.toLocaleString()} coins**)*`
@@ -82,10 +81,7 @@ export class PropertyCommand extends Command {
 
 			return interaction.editReply({
 				embeds: [
-					new EmbedBuilder()
-						.setTitle("🏠 Your Properties")
-						.setColor(0x5865f2)
-						.setDescription(lines.join("\n\n")),
+					new EmbedBuilder().setTitle("🏠 Your Properties").setColor(0x5865f2).setDescription(lines.join("\n\n")),
 				],
 			});
 		}
@@ -181,9 +177,7 @@ export class PropertyCommand extends Command {
 			if (total === 0) {
 				return interaction.editReply({
 					embeds: [
-						new EmbedBuilder()
-							.setColor(0xfee75c)
-							.setDescription("No income to collect yet. Check back in a bit."),
+						new EmbedBuilder().setColor(0xfee75c).setDescription("No income to collect yet. Check back in a bit."),
 					],
 				});
 			}

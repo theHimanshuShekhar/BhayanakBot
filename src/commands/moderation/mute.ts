@@ -1,9 +1,9 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, GuildMember, PermissionFlagsBits } from "discord.js";
-import { createCase } from "../../db/queries/modCases.js";
-import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { logToChannel } from "./warn.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
 import ms from "ms";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { createCase } from "../../db/queries/modCases.js";
+import { logToChannel } from "./warn.js";
 
 export class MuteCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -26,7 +26,9 @@ export class MuteCommand extends Command {
 				.setDescription("Mute a member")
 				.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
 				.addUserOption((opt) => opt.setName("user").setDescription("Member to mute").setRequired(true))
-				.addStringOption((opt) => opt.setName("duration").setDescription("Duration (e.g. 10m, 1h, 1d)").setRequired(true))
+				.addStringOption((opt) =>
+					opt.setName("duration").setDescription("Duration (e.g. 10m, 1h, 1d)").setRequired(true),
+				)
 				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for the mute")),
 		);
 	}
@@ -54,7 +56,8 @@ export class MuteCommand extends Command {
 		}
 
 		const settings = await getOrCreateSettings(interaction.guildId!);
-		if (!settings.mutedRoleId) return interaction.editReply("❌ No muted role configured. Use `/config set muted-role` first.");
+		if (!settings.mutedRoleId)
+			return interaction.editReply("❌ No muted role configured. Use `/config set muted-role` first.");
 
 		const mutedRole = interaction.guild!.roles.cache.get(settings.mutedRoleId);
 		if (!mutedRole) return interaction.editReply("❌ Muted role not found.");

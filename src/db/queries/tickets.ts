@@ -4,7 +4,12 @@ import { tickets } from "../schema.js";
 
 export type Ticket = typeof tickets.$inferSelect;
 
-export async function createTicket(data: { channelId: string; userId: string; guildId: string; subject?: string }): Promise<Ticket> {
+export async function createTicket(data: {
+	channelId: string;
+	userId: string;
+	guildId: string;
+	subject?: string;
+}): Promise<Ticket> {
 	const [ticket] = await db.insert(tickets).values(data).returning();
 	return ticket;
 }
@@ -14,7 +19,10 @@ export async function getTicketByChannel(channelId: string): Promise<Ticket | un
 }
 
 export async function claimTicket(channelId: string, moderatorId: string): Promise<void> {
-	await db.update(tickets).set({ claimedBy: moderatorId, claimedAt: new Date() }).where(eq(tickets.channelId, channelId));
+	await db
+		.update(tickets)
+		.set({ claimedBy: moderatorId, claimedAt: new Date() })
+		.where(eq(tickets.channelId, channelId));
 }
 
 export async function closeTicket(channelId: string, closedBy: string, transcriptUrl?: string): Promise<void> {

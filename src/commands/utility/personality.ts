@@ -2,9 +2,9 @@ import { Command } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
-import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
-import { db } from "../../lib/database.js";
 import { userPersonalityProfiles } from "../../db/schema.js";
+import { db } from "../../lib/database.js";
+import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 
 const EXCERPT_LIMIT = 300;
 

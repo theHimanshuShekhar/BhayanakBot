@@ -1,6 +1,6 @@
-import { MessageFlags } from "discord.js";
 import { Command } from "@sapphire/framework";
-import { useQueue, QueueRepeatMode } from "discord-player";
+import { MessageFlags } from "discord.js";
+import { QueueRepeatMode, useQueue } from "discord-player";
 
 const modeMap: Record<string, QueueRepeatMode> = {
 	off: QueueRepeatMode.OFF,

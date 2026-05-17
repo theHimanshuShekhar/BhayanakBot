@@ -19,9 +19,7 @@ export class ProfileCommand extends Command {
 			builder
 				.setName("profile")
 				.setDescription("View your RPG profile or another player's")
-				.addUserOption((opt) =>
-					opt.setName("user").setDescription("Player to view").setRequired(false),
-				),
+				.addUserOption((opt) => opt.setName("user").setDescription("Player to view").setRequired(false)),
 		);
 	}
 
@@ -43,8 +41,8 @@ export class ProfileCommand extends Command {
 				? `🔒 In jail until <t:${Math.floor(profile.jailUntil.getTime() / 1000)}:R>`
 				: "🆓 Free";
 
-		const xpForNextLevel = Math.pow((profile.level + 1) / 0.05, 2);
-		const xpForCurrentLevel = Math.pow(profile.level / 0.05, 2);
+		const xpForNextLevel = ((profile.level + 1) / 0.05) ** 2;
+		const xpForCurrentLevel = (profile.level / 0.05) ** 2;
 		const progress = profile.xp - xpForCurrentLevel;
 		const needed = xpForNextLevel - xpForCurrentLevel;
 		const barFilled = Math.min(15, Math.max(0, Math.round((progress / needed) * 15)));

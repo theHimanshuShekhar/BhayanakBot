@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
-import { MessageFlags } from "discord.js";
 import type { AutocompleteInteraction } from "discord.js";
+import { MessageFlags } from "discord.js";
 import { getHelpSnapshot } from "../../lib/help/collect.js";
 import { buildCategoryPage, buildNotFoundFallback, buildOverview } from "../../lib/help/render.js";
 

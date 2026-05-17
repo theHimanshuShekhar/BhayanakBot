@@ -1,9 +1,9 @@
 import { Listener } from "@sapphire/framework";
 import type { MessageReaction, User } from "discord.js";
-import { getReactionRole, getMessageReactionRoles } from "../../db/queries/roles.js";
+import { and, eq } from "drizzle-orm";
+import { getMessageReactionRoles, getReactionRole } from "../../db/queries/roles.js";
+import { guildSettings, starredMessages } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
-import { starredMessages, guildSettings } from "../../db/schema.js";
-import { eq, and } from "drizzle-orm";
 
 export class MessageReactionAddListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -31,7 +31,9 @@ export class MessageReactionAddListener extends Listener {
 			if (reactionRole.type === "unique" && reactionRole.groupId) {
 				// Remove other roles in the same group
 				const groupRoles = await getMessageReactionRoles(reaction.message.id);
-				const sameGroup = groupRoles.filter((r) => r.groupId === reactionRole.groupId && r.roleId !== reactionRole.roleId);
+				const sameGroup = groupRoles.filter(
+					(r) => r.groupId === reactionRole.groupId && r.roleId !== reactionRole.roleId,
+				);
 				for (const r of sameGroup) {
 					await member.roles.remove(r.roleId).catch(() => null);
 				}
@@ -69,10 +71,7 @@ export class MessageReactionAddListener extends Listener {
 		const starboardChannel = guild.channels.cache.get(settings.starboardChannelId);
 		if (!starboardChannel || !("send" in starboardChannel)) return;
 
-		const content = [
-			`⭐ **${starCount}** | <#${message.channelId}>`,
-			message.content ? `\n${message.content}` : "",
-		]
+		const content = [`⭐ **${starCount}** | <#${message.channelId}>`, message.content ? `\n${message.content}` : ""]
 			.join("")
 			.trim();
 
@@ -96,10 +95,7 @@ export class MessageReactionAddListener extends Listener {
 			if (sbMsg) {
 				await sbMsg.edit({ content, embeds: [embed] }).catch(() => null);
 			}
-			await db
-				.update(starredMessages)
-				.set({ starCount })
-				.where(eq(starredMessages.messageId, message.id));
+			await db.update(starredMessages).set({ starCount }).where(eq(starredMessages.messageId, message.id));
 		} else {
 			const sbMsg = await (starboardChannel as any).send({ content, embeds: [embed] }).catch(() => null);
 			if (sbMsg) {

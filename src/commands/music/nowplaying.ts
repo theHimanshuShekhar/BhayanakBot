@@ -1,8 +1,8 @@
 import { Command } from "@sapphire/framework";
 import { MessageFlags } from "discord.js";
 import { useQueue } from "discord-player";
-import { buildNowPlayingEmbed } from "../../lib/music/embeds.js";
 import { buildNowPlayingButtons } from "../../lib/music/components.js";
+import { buildNowPlayingEmbed } from "../../lib/music/embeds.js";
 
 export class NowPlayingCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {

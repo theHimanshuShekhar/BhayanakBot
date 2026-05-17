@@ -31,7 +31,13 @@ export class MemeCommand extends Command {
 			const res = await fetch(url, { headers: { "User-Agent": "BhayanakBot/1.0" } });
 			if (!res.ok) throw new Error(`Reddit returned ${res.status}`);
 
-			const data = (await res.json()) as { data: { children: Array<{ data: { over_18: boolean; is_video: boolean; url: string; title: string; score: number; subreddit: string } }> } };
+			const data = (await res.json()) as {
+				data: {
+					children: Array<{
+						data: { over_18: boolean; is_video: boolean; url: string; title: string; score: number; subreddit: string };
+					}>;
+				};
+			};
 			const posts = data.data.children
 				.map((c) => c.data)
 				.filter((p) => !p.over_18 && !p.is_video && /\.(jpg|jpeg|png|gif)$/i.test(p.url));

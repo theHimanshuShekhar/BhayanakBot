@@ -1,5 +1,5 @@
-import { MessageFlags } from "discord.js";
 import { Subcommand } from "@sapphire/plugin-subcommands";
+import { MessageFlags } from "discord.js";
 import { addReactionRole, removeReactionRole } from "../../db/queries/roles.js";
 
 export class ReactionRolesCommand extends Subcommand {
@@ -13,10 +13,19 @@ export class ReactionRolesCommand extends Subcommand {
 			preconditions: ["GuildOnly", "IsAdmin"],
 			help: {
 				summary: "Add or remove reaction roles on messages.",
-				examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member", "/reactionrole remove message-id:123456 emoji:👍"],
+				examples: [
+					"/reactionrole add message-id:123456 emoji:👍 role:@Member",
+					"/reactionrole remove message-id:123456 emoji:👍",
+				],
 				subcommands: {
-					add: { summary: "Attach a reaction role to a message.", examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"] },
-					remove: { summary: "Remove a reaction role from a message.", examples: ["/reactionrole remove message-id:123456 emoji:👍"] },
+					add: {
+						summary: "Attach a reaction role to a message.",
+						examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"],
+					},
+					remove: {
+						summary: "Remove a reaction role from a message.",
+						examples: ["/reactionrole remove message-id:123456 emoji:👍"],
+					},
 				},
 			},
 		});
@@ -52,12 +61,8 @@ export class ReactionRolesCommand extends Subcommand {
 					sub
 						.setName("remove")
 						.setDescription("Remove a reaction role from a message")
-						.addStringOption((opt) =>
-							opt.setName("message-id").setDescription("Message ID").setRequired(true),
-						)
-						.addStringOption((opt) =>
-							opt.setName("emoji").setDescription("Emoji to remove").setRequired(true),
-						),
+						.addStringOption((opt) => opt.setName("message-id").setDescription("Message ID").setRequired(true))
+						.addStringOption((opt) => opt.setName("emoji").setDescription("Emoji to remove").setRequired(true)),
 				),
 		);
 	}
@@ -87,6 +92,9 @@ export class ReactionRolesCommand extends Subcommand {
 		const emoji = interaction.options.getString("emoji", true);
 
 		await removeReactionRole(messageId, emoji);
-		return interaction.reply({ content: `Removed reaction role for ${emoji} on message \`${messageId}\`.`, flags: MessageFlags.Ephemeral });
+		return interaction.reply({
+			content: `Removed reaction role for ${emoji} on message \`${messageId}\`.`,
+			flags: MessageFlags.Ephemeral,
+		});
 	}
 }

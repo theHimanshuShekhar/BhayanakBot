@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "discord.js";
-import { QueueRepeatMode } from "discord-player";
 import type { GuildQueue, Track } from "discord-player";
+import { QueueRepeatMode } from "discord-player";
 
 const REPEAT_LABELS: Partial<Record<QueueRepeatMode, string>> = {
 	[QueueRepeatMode.OFF]: "Off",

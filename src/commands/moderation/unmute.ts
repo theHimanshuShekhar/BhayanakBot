@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
-import { createCase, getUserCases, deactivateCase } from "../../db/queries/modCases.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { createCase, deactivateCase, getUserCases } from "../../db/queries/modCases.js";
 import { logToChannel } from "./warn.js";
 
 export class UnmuteCommand extends Command {

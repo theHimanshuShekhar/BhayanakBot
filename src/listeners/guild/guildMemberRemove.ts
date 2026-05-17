@@ -1,5 +1,5 @@
 import { Listener } from "@sapphire/framework";
-import { type GuildMember, EmbedBuilder, TextChannel } from "discord.js";
+import { EmbedBuilder, type GuildMember, type TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 
 export class GuildMemberRemoveListener extends Listener {

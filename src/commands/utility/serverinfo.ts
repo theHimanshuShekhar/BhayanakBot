@@ -37,7 +37,11 @@ export class ServerInfoCommand extends Command {
 				{ name: "Members", value: `${guild.memberCount.toLocaleString()}`, inline: true },
 				{ name: "Channels", value: `📝 ${textCount} · 🔊 ${voiceCount}`, inline: true },
 				{ name: "Roles", value: `${guild.roles.cache.size}`, inline: true },
-				{ name: "Boosts", value: `Level ${guild.premiumTier} · ${guild.premiumSubscriptionCount ?? 0} boosts`, inline: true },
+				{
+					name: "Boosts",
+					value: `Level ${guild.premiumTier} · ${guild.premiumSubscriptionCount ?? 0} boosts`,
+					inline: true,
+				},
 			)
 			.setFooter({ text: `ID: ${guild.id}` });
 

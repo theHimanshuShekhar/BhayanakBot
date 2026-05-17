@@ -1,9 +1,15 @@
 import { AllFlowsPrecondition } from "@sapphire/framework";
-import { PermissionFlagsBits, type CommandInteraction, type ContextMenuCommandInteraction, type GuildMember, type Message } from "discord.js";
-import { db } from "../lib/database.js";
-import { guildSettings } from "../db/schema.js";
+import {
+	type CommandInteraction,
+	type ContextMenuCommandInteraction,
+	type GuildMember,
+	type Message,
+	PermissionFlagsBits,
+} from "discord.js";
 import { eq } from "drizzle-orm";
+import { guildSettings } from "../db/schema.js";
 import { BOT_OWNER_ID } from "../lib/constants.js";
+import { db } from "../lib/database.js";
 
 async function isMod(member: GuildMember, guildId: string): Promise<boolean> {
 	if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;

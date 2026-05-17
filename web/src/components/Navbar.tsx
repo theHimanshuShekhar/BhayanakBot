@@ -86,12 +86,16 @@ export function Navbar() {
 			{/* Search */}
 			<div
 				className={`flex w-56 items-center gap-2 rounded-lg border px-3 py-1.5 transition-colors ${
-					isCommandsPage && query
-						? "border-[#7c3aed]/60 bg-[#1e1b4b]/60"
-						: "border-[#7c3aed]/20 bg-[#1e1b4b]/30"
+					isCommandsPage && query ? "border-[#7c3aed]/60 bg-[#1e1b4b]/60" : "border-[#7c3aed]/20 bg-[#1e1b4b]/30"
 				}`}
 			>
-				<svg className="h-3.5 w-3.5 shrink-0 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+				<svg
+					className="h-3.5 w-3.5 shrink-0 text-violet-500"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					strokeWidth={2}
+				>
 					<path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 				</svg>
 				<input
@@ -100,7 +104,7 @@ export function Navbar() {
 					value={query}
 					onChange={(e) => handleSearch(e.target.value)}
 					onKeyDown={handleKeyDown}
-					placeholder='Search commands…'
+					placeholder="Search commands…"
 					className="w-full bg-transparent text-lg text-slate-200 outline-none placeholder:text-slate-600"
 				/>
 				<kbd className="hidden shrink-0 rounded border border-slate-700 bg-slate-800 px-1 py-0.5 text-base text-slate-500 sm:block">
