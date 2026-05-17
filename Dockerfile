@@ -11,7 +11,6 @@ RUN pnpm install --frozen-lockfile
 
 # Copy only source files needed for build (avoid node_modules contamination)
 COPY src/ ./src/
-COPY web/ ./web/
 COPY tsconfig.json ./
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
@@ -33,10 +32,9 @@ COPY drizzle/ ./drizzle/
 
 CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
 
-# build: compiles TypeScript and web frontend on top of base
+# build: compiles TypeScript on top of base
 FROM base AS build
 RUN pnpm build
-RUN pnpm web:build
 
 # production: runtime image with drizzle-kit for startup migration + compiled output
 FROM node:22-alpine AS production
@@ -54,6 +52,5 @@ COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/web/dist ./web/dist
 
 CMD ["sh", "-c", "pnpm db:migrate && node dist/index.js"]
