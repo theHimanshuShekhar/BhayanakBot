@@ -17,14 +17,14 @@ COPY biome.json ./
 COPY vitest.config.ts ./
 
 # whisper: compile whisper.cpp binary + download model for voice STT
-FROM alpine:latest AS whisper-builder
-RUN apk add --no-cache git build-base cmake curl
+FROM debian:bookworm-slim AS whisper-builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git build-essential cmake curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 RUN git clone --depth 1 https://github.com/ggerganov/whisper.cpp.git /whisper && \
     cd /whisper && \
     cmake -B build -DWHISPER_BUILD_EXAMPLES=ON && \
     cmake --build build --config Release -j$(nproc)
-# Verify binary exists and show path
-RUN ls -la /whisper/build/bin/whisper-cli || ls -la /whisper/build/bin/
 # Download base.en model (~75MB, fast on CPU)
 RUN curl -fsSL -o /whisper/ggml-base.en.bin \
     https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
@@ -56,10 +56,12 @@ COPY drizzle/ ./drizzle/
 
 CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
 
-# production: runtime image with drizzle-kit for startup migration + source
-FROM node:22-alpine AS production
+# production: Debian-based runtime (glibc) so Piper works natively
+FROM node:22 AS production
 
-RUN apk add --no-cache ffmpeg python3 make g++ gcompat libgomp which
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg python3 make g++ libgomp1 which && \
+    rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm
 
 WORKDIR /app
@@ -71,7 +73,7 @@ RUN pnpm install --frozen-lockfile
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 
-# Copy voice binaries, shared libs (preserving symlinks), and models
+# Copy whisper binary + shared libs (with symlinks preserved)
 COPY --from=whisper-builder /whisper/build/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=whisper-builder /whisper/build/src/libwhisper.so /usr/local/lib/
 COPY --from=whisper-builder /whisper/build/src/libwhisper.so.1 /usr/local/lib/
@@ -85,9 +87,12 @@ COPY --from=whisper-builder /whisper/build/ggml/src/libggml-base.so.0.11.1 /usr/
 COPY --from=whisper-builder /whisper/build/ggml/src/libggml-cpu.so /usr/local/lib/
 COPY --from=whisper-builder /whisper/build/ggml/src/libggml-cpu.so.0 /usr/local/lib/
 COPY --from=whisper-builder /whisper/build/ggml/src/libggml-cpu.so.0.11.1 /usr/local/lib/
+RUN ldconfig
+
 # Model goes where the bot expects it
 RUN mkdir -p /app/models
 COPY --from=whisper-builder /whisper/ggml-base.en.bin /app/models/ggml-base.en.bin
+
 # Piper needs its libs + espeak-ng-data at runtime — copy entire directory
 COPY --from=piper-downloader /piper /usr/local/lib/piper
 RUN ln -s /usr/local/lib/piper/piper /usr/local/bin/piper
