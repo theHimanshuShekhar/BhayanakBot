@@ -34,9 +34,7 @@ FROM alpine:latest AS piper-downloader
 RUN apk add --no-cache curl tar
 RUN curl -fsSL -o /tmp/piper.tar.gz \
     https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz && \
-    tar -xzf /tmp/piper.tar.gz -C /tmp && \
-    find /tmp -name "piper" -type f -executable -print0 | head -z -n 1 | xargs -0 -I {} cp {} /piper && \
-    chmod +x /piper
+    mkdir -p /piper && tar -xzf /tmp/piper.tar.gz -C /piper --strip-components=1
 # Download voice model
 RUN curl -fsSL -o /piper-model.onnx \
     https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx && \
@@ -73,10 +71,12 @@ RUN pnpm install --frozen-lockfile
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 
-# Copy voice binaries
+# Copy voice binaries and models
 COPY --from=whisper-builder /whisper/build/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=whisper-builder /whisper/ggml-base.en.bin /usr/local/share/whisper/ggml-base.en.bin
-COPY --from=piper-downloader /piper /usr/local/bin/piper
+# Piper needs its libs + espeak-ng-data at runtime — copy entire directory
+COPY --from=piper-downloader /piper /usr/local/lib/piper
+RUN ln -s /usr/local/lib/piper/piper /usr/local/bin/piper
 COPY --from=piper-downloader /piper-model.onnx /usr/local/share/piper/en_US-lessac-medium.onnx
 COPY --from=piper-downloader /piper-model.onnx.json /usr/local/share/piper/en_US-lessac-medium.onnx.json
 RUN chmod +x /usr/local/bin/whisper-cli /usr/local/bin/piper
