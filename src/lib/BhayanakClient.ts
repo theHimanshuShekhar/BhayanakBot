@@ -1,6 +1,20 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { LogLevel, SapphireClient } from "@sapphire/framework";
+import { LoaderStrategy, Store } from "@sapphire/pieces";
 import { GatewayIntentBits, Message, Partials } from "discord.js";
 import { Player } from "discord-player";
+
+class TypeScriptLoaderStrategy extends LoaderStrategy {
+	public constructor() {
+		super();
+		// tsx is not detected by @sapphire/pieces, so we explicitly add TypeScript extensions
+		this.supportedExtensions.push(".ts", ".cts", ".mts");
+		this.filterDtsFiles = true;
+	}
+}
+
+Store.defaultStrategy = new TypeScriptLoaderStrategy();
 
 /** A Map that evicts the oldest entry once `maxSize` is reached. */
 export class BoundedMap<K, V> extends Map<K, V> {
@@ -49,6 +63,7 @@ export class BhayanakClient extends SapphireClient {
 		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
 		super({
 			rest: { timeout: 60_000 },
+			baseUserDirectory: join(dirname(fileURLToPath(import.meta.url)), ".."),
 			intents: [
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.GuildMembers,
