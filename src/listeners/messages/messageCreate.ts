@@ -11,6 +11,7 @@ import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildPr
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
@@ -49,6 +50,7 @@ export class MessageCreateListener extends Listener {
 		if (message.author.bot || !message.guild) return;
 
 		const settings = await getOrCreateSettings(message.guild.id);
+		const isTargetTextChannel = message.channelId === TARGET_TEXT_CHANNEL_ID;
 
 		// --- Store conversation history ---
 		this.addToConversationHistory(message);
@@ -65,7 +67,7 @@ export class MessageCreateListener extends Listener {
 			!trimmedContent.startsWith("!") &&
 			alphaCount >= 5 &&
 			contentWithoutUrls.length >= 10;
-		if (settings.personalityEnabled && isMeaningfulForPersonality) {
+		if (isTargetTextChannel && settings.personalityEnabled && isMeaningfulForPersonality) {
 			await storeUserMessage(message.author.id, message.guild.id, trimmedContent);
 			const count = await incrementMessageCount(message.author.id, message.guild.id);
 			if (count >= 100) {
@@ -196,7 +198,7 @@ export class MessageCreateListener extends Listener {
 					await message.delete().catch(() => null);
 				}
 
-				if (match.response.responseType === "llm") {
+				if (isTargetTextChannel && match.response.responseType === "llm") {
 					const client = this.container.client as BhayanakClient;
 					const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
 					const systemWithPersonality = personalityCtx + match.response.response;
@@ -219,13 +221,15 @@ export class MessageCreateListener extends Listener {
 					await this.sendReply(message, responseText, match.response.deleteTrigger);
 				}
 			}
-		} else if (botMentioned && !message.content.match(/^\s*<@!?\d+>\s*$/)) {
+		} else if (isTargetTextChannel && botMentioned && !message.content.match(/^\s*<@!?\d+>\s*$/)) {
 			// Smart mention reply when bot is @mentioned but no autoresponder matched
 			await this.handleSmartMention(message, settings);
 		}
 
 		// --- Random contextual chat responder ---
-		await this.handleRandomResponse(message, settings);
+		if (isTargetTextChannel) {
+			await this.handleRandomResponse(message, settings);
+		}
 	}
 
 	private substituteVariables(response: string, captured?: Record<string, string>): string {

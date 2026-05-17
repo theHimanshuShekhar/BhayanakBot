@@ -1,8 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { callOllama } from "../../lib/ollama.js";
-
-const TARGET_CHANNEL_ID = "199168135935295488";
+import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 const HISTORY_LIMIT = 20;
 const OLLAMA_TIMEOUT_MS = 60_000;
 
@@ -31,7 +30,7 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 	public async run(message: Message): Promise<void> {
 		if (message.author.bot) return;
-		if (message.channelId !== TARGET_CHANNEL_ID) return;
+		if (message.channelId !== TARGET_TEXT_CHANNEL_ID) return;
 
 		// Variable ~1% average chance: P(X < Y * 0.02) = 1% for uniform X, Y
 		const chance = Math.random() * 0.02;
