@@ -48,11 +48,21 @@ export function subscribeToAudio(
 			pcmBuffer.push(chunk);
 		});
 
+		opusDecoder.on("error", (err: Error) => {
+			console.warn(`[Voice] Opus decoder error for user ${userId}:`, err.message);
+			userStreams.delete(userId);
+		});
+
 		const userStream = receiver.subscribe(userId, {
 			end: {
 				behavior: EndBehaviorType.AfterSilence,
 				duration: 100,
 			},
+		});
+
+		userStream.on("error", (err: Error) => {
+			console.warn(`[Voice] Audio stream error for user ${userId}:`, err.message);
+			userStreams.delete(userId);
 		});
 
 		userStream.pipe(opusDecoder);

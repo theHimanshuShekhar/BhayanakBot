@@ -12,7 +12,7 @@ import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
 import { callOllama } from "../ollama.js";
 
-const OLLAMA_TIMEOUT_MS = 120_000;
+const OLLAMA_TIMEOUT_MS = 30_000;
 const MAX_MESSAGES_PER_BUILD = 500;
 const MAX_CHARS_PER_BUILD = 40_000;
 const BUILD_THRESHOLD = 200; // Build after 200 new messages

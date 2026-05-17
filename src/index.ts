@@ -7,7 +7,7 @@ import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
-import { ensureOllamaModel } from "./lib/ollama.js";
+import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
 
 const client = new BhayanakClient();
 
@@ -30,6 +30,11 @@ function formatDuration(ms: number): string {
 async function main() {
 	try {
 		await ensureOllamaModel();
+		// Warm up Ollama model so first real request doesn't timeout during lazy load
+		const warmup = await callOllama("", "hi", 10_000, 1);
+		if (warmup !== null) {
+			client.logger.info("[ollama] Model warmed up");
+		}
 		await client.player.extractors.loadMulti(DefaultExtractors);
 		await client.player.extractors.register(YoutubeExtractor, {
 			cookie: process.env.YOUTUBE_COOKIE,

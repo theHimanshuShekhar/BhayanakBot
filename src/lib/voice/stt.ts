@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { unlink, writeFile } from "node:fs/promises";
+import { access, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -9,11 +9,27 @@ const execFileAsync = promisify(execFile);
 const WHISPER_BINARY = process.env.WHISPER_BINARY ?? "whisper-cli";
 const WHISPER_MODEL = process.env.WHISPER_MODEL ?? "ggml-base.en.bin";
 
+let whisperAvailable: boolean | undefined;
+
+async function isWhisperAvailable(): Promise<boolean> {
+	if (whisperAvailable !== undefined) return whisperAvailable;
+	try {
+		await access(WHISPER_BINARY);
+		whisperAvailable = true;
+	} catch {
+		console.warn(`[STT] Binary not found: ${WHISPER_BINARY}. Voice transcription disabled.`);
+		whisperAvailable = false;
+	}
+	return whisperAvailable;
+}
+
 /**
  * Transcribe PCM audio buffer using self-hosted whisper.cpp.
  * Converts PCM to WAV, writes to temp file, runs whisper.cpp binary, returns transcript.
  */
 export async function transcribeAudio(pcmBuffer: Buffer): Promise<string | null> {
+	if (!(await isWhisperAvailable())) return null;
+
 	const tmpWav = join(tmpdir(), `bhayanak-stt-${Date.now()}.wav`);
 
 	try {

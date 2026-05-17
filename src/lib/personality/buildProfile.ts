@@ -6,7 +6,7 @@ import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
 import { callOllama } from "../ollama.js";
 
-const OLLAMA_TIMEOUT_MS = 120_000;
+const OLLAMA_TIMEOUT_MS = 30_000;
 // Prevent runaway prompts: absorb at most 500 messages or 40 000 chars per build pass.
 // Any remaining messages stay in user_messages and are picked up in the next cycle.
 const MAX_MESSAGES_PER_BUILD = 500;
