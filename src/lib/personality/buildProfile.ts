@@ -1,5 +1,5 @@
 import { container } from "@sapphire/framework";
-import { inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { callOllama } from "../ollama.js";
 import { getPersonalityProfile, getUnabsorbedMessages, cleanupOldMessages } from "../../db/queries/personality.js";
 import { db } from "../database.js";
@@ -42,12 +42,24 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 	}
 }
 
+const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<void> {
 	// Clean up stale messages before building to keep the table lean
 	await cleanupOldMessages();
 
 	const messages = await getUnabsorbedMessages(userId, guildId);
 	if (messages.length === 0) return;
+
+	// Cooldown: don't hammer Ollama if builds fail or user spams messages
+	const row = await db.query.userPersonalityProfiles.findFirst({
+		where: and(eq(userPersonalityProfiles.userId, userId), eq(userPersonalityProfiles.guildId, guildId)),
+		columns: { lastRefreshedAt: true },
+	});
+	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
+		container.logger.debug(`[personality] Skipping build for userId=${userId} guildId=${guildId}: cooldown active`);
+		return;
+	}
 
 	const existingProfile = await getPersonalityProfile(userId, guildId);
 

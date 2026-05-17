@@ -1,4 +1,5 @@
 import { container } from "@sapphire/framework";
+import { eq } from "drizzle-orm";
 import { callOllama } from "../ollama.js";
 import {
 	getGuildPersonalityProfile,
@@ -7,12 +8,15 @@ import {
 	getGuildMessageCount,
 	resetGuildMessageCount,
 } from "../../db/queries/guildPersonality.js";
+import { db } from "../database.js";
+import { guildPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 
 const OLLAMA_TIMEOUT_MS = 120_000;
 const MAX_MESSAGES_PER_BUILD = 500;
 const MAX_CHARS_PER_BUILD = 40_000;
 const BUILD_THRESHOLD = 200; // Build after 200 new messages
+const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 const rebuildInProgress = new Set<string>();
 
@@ -44,6 +48,16 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 	const messageCount = await getGuildMessageCount(guildId);
 	if (messageCount < BUILD_THRESHOLD) {
 		container.logger.debug(`[guild-personality] Skipping build for ${guildId}: only ${messageCount} messages (threshold: ${BUILD_THRESHOLD})`);
+		return;
+	}
+
+	// Cooldown: don't hammer Ollama if builds fail or server is extremely active
+	const row = await db.query.guildPersonalityProfiles.findFirst({
+		where: eq(guildPersonalityProfiles.guildId, guildId),
+		columns: { lastRefreshedAt: true },
+	});
+	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
+		container.logger.debug(`[guild-personality] Skipping build for guildId=${guildId}: cooldown active`);
 		return;
 	}
 
