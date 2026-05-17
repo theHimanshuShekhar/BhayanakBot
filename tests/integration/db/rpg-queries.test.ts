@@ -1,18 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { db } from "../../../src/lib/database.js";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-	getOrCreateProfile,
-	updateCoins,
-	tryDebitCoins,
 	addItem,
-	getInventory,
-	setCooldown,
-	getCooldown,
 	clearCooldown,
+	getCooldown,
+	getInventory,
+	getOrCreateProfile,
+	setCooldown,
+	tryDebitCoins,
+	updateCoins,
 } from "../../../src/db/queries/rpg.js";
+import { rpgCooldowns, rpgInventory, rpgProfiles, rpgStats } from "../../../src/db/schema.js";
+import { db } from "../../../src/lib/database.js";
 import { getRemainingCooldown } from "../../../src/lib/rpg/helpers/cooldown.js";
-import { rpgProfiles, rpgStats, rpgInventory, rpgCooldowns } from "../../../src/db/schema.js";
 
 const TEST_USER_ID = "test-user-123";
 

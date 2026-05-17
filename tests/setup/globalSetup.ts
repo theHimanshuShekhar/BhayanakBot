@@ -1,9 +1,7 @@
 import { execSync } from "node:child_process";
 import { Pool } from "pg";
 
-const TEST_DB_URL =
-	process.env.TEST_DATABASE_URL ??
-	"postgresql://postgres:postgres@localhost:5432/bhayanakbot_test";
+const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/bhayanakbot_test";
 
 export default async function setup(): Promise<void> {
 	process.env.DATABASE_URL = TEST_DB_URL;
@@ -15,7 +13,9 @@ export default async function setup(): Promise<void> {
 		await pool.end();
 	} catch {
 		await pool.end();
-		console.warn(`[vitest globalSetup] Test database at ${TEST_DB_URL} is not reachable. Skipping migrations — integration tests may fail.`);
+		console.warn(
+			`[vitest globalSetup] Test database at ${TEST_DB_URL} is not reachable. Skipping migrations — integration tests may fail.`,
+		);
 		return;
 	}
 

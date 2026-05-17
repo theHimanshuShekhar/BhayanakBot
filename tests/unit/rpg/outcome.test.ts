@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { rollOutcome, randomPay } from "../../../src/lib/rpg/helpers/outcome.js";
+import { randomPay, rollOutcome } from "../../../src/lib/rpg/helpers/outcome.js";
 
 describe("rollOutcome", () => {
 	it("calculates stat bonus correctly", () => {

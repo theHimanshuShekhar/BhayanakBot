@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { JOBS } from "../../../src/lib/rpg/catalogs/jobs.js";
 import { ITEMS } from "../../../src/lib/rpg/catalogs/items.js";
+import { JOBS } from "../../../src/lib/rpg/catalogs/jobs.js";
 
 describe("jobs catalog consistency", () => {
 	it("has unique job IDs", () => {
