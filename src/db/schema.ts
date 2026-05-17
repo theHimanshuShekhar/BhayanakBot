@@ -67,6 +67,8 @@ export const guildSettings = pgTable("guild_settings", {
 	// Random chat responder
 	randomResponseChannelId: varchar("random_response_channel_id", { length: 20 }),
 	randomResponseChance: integer("random_response_chance").default(0).notNull(),
+	// Voice responder
+	voiceResponderEnabled: boolean("voice_responder_enabled").default(false).notNull(),
 });
 
 export const users = pgTable(

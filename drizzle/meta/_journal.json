@@ -71,6 +71,13 @@
       "when": 1778977086107,
       "tag": "0009_ordinary_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779047484831,
+      "tag": "0010_pretty_sugar_man",
+      "breakpoints": true
     }
   ]
 }

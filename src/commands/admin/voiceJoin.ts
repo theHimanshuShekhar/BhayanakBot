@@ -1,6 +1,7 @@
 import { joinVoiceChannel } from "@discordjs/voice";
 import { Command } from "@sapphire/framework";
 import { ChannelType, PermissionFlagsBits } from "discord.js";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { isConnectedToVoice, runVoiceResponderSession } from "../../lib/voice/responder.js";
 
 export class VoiceJoinCommand extends Command {
@@ -32,6 +33,15 @@ export class VoiceJoinCommand extends Command {
 	}
 
 	public async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		const settings = await getOrCreateSettings(interaction.guildId!);
+		if (!settings.voiceResponderEnabled) {
+			return interaction.reply({
+				content:
+					"❌ Voice responder is disabled for this server. Use `/config set voice-responder-enabled true` to enable it.",
+				ephemeral: true,
+			});
+		}
+
 		const channel = interaction.options.getChannel("channel");
 		const memberChannel = interaction.guild?.members.cache.get(interaction.user.id)?.voice.channel;
 		const voiceChannel =

@@ -1,6 +1,7 @@
 import { getVoiceConnection, joinVoiceChannel } from "@discordjs/voice";
 import { Listener } from "@sapphire/framework";
 import { Events, type VoiceState } from "discord.js";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { TARGET_GUILD_ID, VOICE_COOLDOWN_MS, VOICE_MIN_HUMANS_TO_JOIN } from "../../lib/constants.js";
 import { isConnectedToVoice, runVoiceResponderSession } from "../../lib/voice/responder.js";
@@ -16,6 +17,9 @@ export class VoiceChannelMonitorListener extends Listener<typeof Events.VoiceSta
 	public async run(oldState: VoiceState, newState: VoiceState): Promise<void> {
 		// Only monitor target guild
 		if (newState.guild.id !== TARGET_GUILD_ID && oldState.guild.id !== TARGET_GUILD_ID) return;
+
+		const settings = await getOrCreateSettings(newState.guild.id);
+		if (!settings.voiceResponderEnabled) return;
 
 		const guild = newState.guild;
 		const member = newState.member ?? oldState.member;

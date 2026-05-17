@@ -1,0 +1,1 @@
+ALTER TABLE "guild_settings" ADD COLUMN "voice_responder_enabled" boolean DEFAULT false NOT NULL;
