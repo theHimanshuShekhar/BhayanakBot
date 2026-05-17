@@ -1,4 +1,4 @@
-import { getVoiceConnection, type joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice";
+import { entersState, getVoiceConnection, type joinVoiceChannel, VoiceConnectionStatus } from "@discordjs/voice";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { VOICE_LISTEN_DURATION_MS } from "../constants.js";
 import { callOllama } from "../ollama.js";
@@ -19,18 +19,13 @@ export async function runVoiceResponderSession(
 	const transcriptBuffer: string[] = [];
 	let audioCleanup: (() => void) | null = null;
 
-	// Wait for connection to be ready
-	await new Promise<void>((resolve, reject) => {
-		const timeout = setTimeout(() => reject(new Error("Voice connection timeout")), 10_000);
-		connection.on(VoiceConnectionStatus.Ready, () => {
-			clearTimeout(timeout);
-			resolve();
-		});
-		connection.on(VoiceConnectionStatus.Disconnected, () => {
-			clearTimeout(timeout);
-			reject(new Error("Voice connection disconnected"));
-		});
-	});
+	// Wait for connection to be ready — entersState properly handles intermediate states
+	try {
+		await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+	} catch {
+		connection.destroy();
+		throw new Error("Voice connection timeout");
+	}
 
 	// Subscribe to audio
 	audioCleanup = subscribeToAudio(
