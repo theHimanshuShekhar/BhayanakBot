@@ -95,8 +95,8 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	const guild = client.guilds.cache.get(guildId);
 	const member = guild?.members.cache.get(userId);
 	const user = client.users.cache.get(userId);
-	const displayName = member?.displayName ?? user?.username ?? `id=${userId}`;
-	const label = `${displayName} (id=${userId})`;
+	const displayName = member?.displayName ?? user?.username;
+	const label = displayName ? `${displayName} (id=${userId})` : `user id=${userId}`;
 
 	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
 	if (!result) {
