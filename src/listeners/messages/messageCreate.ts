@@ -24,6 +24,10 @@ const AUTO_RESPONDER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 const userAutoResponderCooldown = new Map<string, number>();
 const USER_AUTO_RESPONDER_COOLDOWN_MS = 30 * 1000; // 30 seconds
 
+// Smart mention cooldown: Map<guildId:userId, lastFiredAt>
+const smartMentionCooldown = new Map<string, number>();
+const SMART_MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds
+
 // Conversation history for LLM context: Map<channelId, messages[]>
 const CONVERSATION_HISTORY_LIMIT = 20;
 const conversationHistory = new Map<string, { author: string; content: string; timestamp: number }[]>();
@@ -248,6 +252,15 @@ export class MessageCreateListener extends Listener {
 	private async handleSmartMention(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
 		// Skip if personality profiling is disabled or not in a guild
 		if (!settings.personalityEnabled || !message.guild) return;
+
+		// Per-user cooldown to prevent Ollama spam
+		const cooldownKey = `${message.guild.id}:${message.author.id}`;
+		const lastFired = smartMentionCooldown.get(cooldownKey) ?? 0;
+		if (Date.now() - lastFired < SMART_MENTION_COOLDOWN_MS) {
+			this.container.logger.debug(`[smart-mention] cooldown active for ${cooldownKey}`);
+			return;
+		}
+		smartMentionCooldown.set(cooldownKey, Date.now());
 
 		const client = this.container.client as BhayanakClient;
 		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
