@@ -95,7 +95,8 @@ export class VoiceResponderCommand extends Command {
 			});
 
 			return interaction.reply({
-				content: `Joined ${voiceChannel.name}. I'll listen and respond when people are talking.`,
+				content: `Joined ${voiceChannel.name}.`,
+				ephemeral: true,
 			});
 		} catch (error) {
 			console.error("[VoiceResponder] Failed to join:", error);
@@ -116,6 +117,6 @@ export class VoiceResponderCommand extends Command {
 		}
 
 		connection.destroy();
-		return interaction.reply({ content: "Left the voice channel." });
+		return interaction.reply({ content: "Left the voice channel.", ephemeral: true });
 	}
 }

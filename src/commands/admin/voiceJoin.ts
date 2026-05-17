@@ -75,7 +75,7 @@ export class VoiceJoinCommand extends Command {
 			});
 
 			await interaction.editReply({
-				content: `Joined ${voiceChannel.name}. Listening and will respond shortly...`,
+				content: `Joined ${voiceChannel.name}.`,
 			});
 
 			// Run the full listen/respond/leave flow
