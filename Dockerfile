@@ -9,7 +9,14 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
-COPY . .
+# Copy only source files needed for build (avoid node_modules contamination)
+COPY src/ ./src/
+COPY web/ ./web/
+COPY tsconfig.json ./
+COPY drizzle.config.ts ./
+COPY drizzle/ ./drizzle/
+COPY biome.json ./
+COPY vitest.config.ts ./
 
 # migration: minimal image to run database migrations (no ffmpeg/python/build deps)
 FROM node:22-alpine AS migration
@@ -28,7 +35,8 @@ CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
 
 # build: compiles TypeScript and web frontend on top of base
 FROM base AS build
-RUN pnpm build && pnpm web:build
+RUN pnpm build
+RUN pnpm web:build
 
 # production: runtime image with drizzle-kit for startup migration + compiled output
 FROM node:22-alpine AS production
