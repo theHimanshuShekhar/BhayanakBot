@@ -3,6 +3,8 @@ import { EmbedBuilder } from "discord.js";
 
 const MC_SERVER_HOST = "mc.bhayanak.net";
 const MC_STATUS_API = `https://api.mcstatus.io/v2/status/java/${MC_SERVER_HOST}`;
+const MC_MAP_URL = "https://map.bhayanak.net";
+const HOMESTEAD_VERSION = "1.3.6";
 
 interface McStatusResponse {
 	online: boolean;
@@ -38,15 +40,9 @@ interface ModEntry {
 
 const REQUIRED_MODS: ModEntry[] = [
 	{
-		name: "Homestead",
+		name: `Homestead v${HOMESTEAD_VERSION}`,
 		url: "https://www.curseforge.com/minecraft/modpacks/homestead-cozy",
-		summary: "The modpack itself. Install from CurseForge or use your preferred launcher.",
-	},
-	{
-		name: "Extra FTB Mods",
-		url: "https://discord.com/channels/199168135935295488/199168135935295488/1504511226003329315",
-		summary:
-			"Extra FTB utility mods (Teams, Quests, Essentials, Library, Filter System, XMod Compat, Quests Additions). Download the zip and extract into your mods folder.",
+		summary: `The modpack itself (version ${HOMESTEAD_VERSION}). Install from CurseForge or use your preferred launcher.`,
 	},
 ];
 
@@ -133,6 +129,10 @@ export class MinecraftStatusCommand extends Command {
 						{
 							name: `👥 Players (${data.players?.online ?? 0}/${data.players?.max ?? "?"})`,
 							value: formatPlayerList(data.players?.list),
+						},
+						{
+							name: "🗺️ Live Map",
+							value: `[${MC_MAP_URL.replace(/^https?:\/\//, "")}](${MC_MAP_URL})`,
 						},
 					);
 			} else {
