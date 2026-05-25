@@ -14,7 +14,6 @@ const listenerFiles = [
 	"../../../src/listeners/reactions/messageReactionAdd.js",
 	"../../../src/listeners/reactions/messageReactionRemove.js",
 	"../../../src/listeners/voice/voiceStateUpdate.js",
-	"../../../src/listeners/voice/voiceChannelMonitor.js",
 ];
 
 describe("listener structure", () => {

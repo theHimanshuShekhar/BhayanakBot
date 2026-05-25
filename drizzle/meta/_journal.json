@@ -78,6 +78,13 @@
       "when": 1779047484831,
       "tag": "0010_pretty_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779744711794,
+      "tag": "0011_cloudy_klaw",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import {
-	ApplicationCommandOptionType,
-	ChannelType,
-	type ChatInputCommandInteraction,
-	EmbedBuilder,
-	MessageFlags,
-} from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
 import { getOrCreateSettings, updateSettings } from "../../db/queries/guildSettings.js";
 
 export class ConfigCommand extends Subcommand {
@@ -84,7 +78,6 @@ export class ConfigCommand extends Subcommand {
 									{ name: "personality-profiling", value: "personalityEnabled" },
 									{ name: "random-response-channel", value: "randomResponseChannelId" },
 									{ name: "random-response-chance", value: "randomResponseChance" },
-									{ name: "voice-responder-enabled", value: "voiceResponderEnabled" },
 								),
 						)
 						.addChannelOption((opt) => opt.setName("channel").setDescription("Channel to set"))
@@ -214,10 +207,6 @@ export class ConfigCommand extends Subcommand {
 						`Response Channel: ${settings.randomResponseChannelId ? `<#${settings.randomResponseChannelId}>` : "Not set"}`,
 					].join("\n"),
 				},
-				{
-					name: "Voice Responder",
-					value: `Enabled: ${settings.voiceResponderEnabled ? "✅" : "❌"}`,
-				},
 			)
 			.setTimestamp();
 
@@ -246,7 +235,7 @@ export class ConfigCommand extends Subcommand {
 		const roleSettings = ["autoRole", "mutedRoleId", "ticketSupportRoleId", "djRoleId", "moderatorRoleId"];
 		const numberSettings = ["starThreshold", "xpRate", "xpCooldownSeconds", "randomResponseChance"];
 		const textSettings = ["welcomeMessage", "goodbyeMessage", "levelUpMessage"];
-		const booleanSettings = ["personalityEnabled", "voiceResponderEnabled"];
+		const booleanSettings = ["personalityEnabled"];
 
 		let value: string | number | boolean | null = null;
 		if (channelSettings.includes(setting) && channel) value = channel.id;

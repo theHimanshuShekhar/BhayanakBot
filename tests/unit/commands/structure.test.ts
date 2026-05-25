@@ -58,7 +58,6 @@ const commandFiles = [
 	"../../../src/commands/suggestions/suggestion.js",
 	"../../../src/commands/autorespond/autorespond.js",
 	"../../../src/commands/config/config.js",
-	"../../../src/commands/voice/voiceResponder.js",
 	"../../../src/commands/minecraft/status.js",
 ];
 

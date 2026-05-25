@@ -1,0 +1,1 @@
+ALTER TABLE "guild_settings" DROP COLUMN "voice_responder_enabled";

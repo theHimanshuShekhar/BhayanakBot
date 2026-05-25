@@ -19,7 +19,6 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Auto-respond** | `/autorespond` |
 | **Config** | `/config` |
 | **AI Personality** | `/personality` |
-| **Voice Responder** | `/voice-responder` |
 
 ### RPG System
 
@@ -51,8 +50,6 @@ The bot builds personality profiles from server conversation to generate context
 - **Cache/Queue**: Valkey (Redis-compatible) via BullMQ
 - **Music**: discord-player v7
 - **AI**: Ollama (local LLM, optional)
-- **Voice STT**: whisper.cpp (self-hosted, optional)
-- **Voice TTS**: Piper (self-hosted, optional)
 
 ## Setup
 
@@ -63,8 +60,6 @@ The bot builds personality profiles from server conversation to generate context
 - PostgreSQL
 - Valkey or Redis
 - Ollama (optional — bot works without it)
-- whisper.cpp (optional — for voice STT)
-- Piper (optional — for voice TTS)
 
 ### Install
 
@@ -85,41 +80,6 @@ VALKEY_URL=redis://localhost:6379
 OLLAMA_URL=http://localhost:11434   # optional
 OLLAMA_MODEL=phi3:mini              # optional
 NODE_ENV=development
-
-# Voice responder (optional)
-WHISPER_BINARY=whisper-cli
-WHISPER_MODEL=ggml-base.en.bin
-PIPER_BINARY=piper
-PIPER_MODEL=en_US-lessac-medium.onnx
-```
-
-#### Voice Responder Setup (Optional)
-
-The bot can join voice channels, listen to conversation, and respond with generated speech. This requires two self-hosted services:
-
-**1. whisper.cpp (STT)**
-
-```bash
-# Clone and build
-git clone https://github.com/ggerganov/whisper.cpp.git
-cd whisper.cpp
-make
-
-# Download a model (base.en is ~75MB, runs fast on CPU)
-bash models/download-ggml-model.sh base.en
-
-# The binary is at ./main or ./build/bin/whisper-cli depending on version
-# Set WHISPER_BINARY and WHISPER_MODEL in your .env
-```
-
-**2. Piper (TTS)**
-
-```bash
-# Download prebuilt binary from https://github.com/rhasspy/piper/releases
-# Also download a voice model, e.g.:
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
-
-# Set PIPER_BINARY and PIPER_MODEL in your .env
 ```
 
 ### Database

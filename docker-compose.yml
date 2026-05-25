@@ -85,10 +85,6 @@ services:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       NODE_ENV: ${NODE_ENV:-production}
-      WHISPER_BINARY: ${WHISPER_BINARY:-whisper-cli}
-      WHISPER_MODEL: ${WHISPER_MODEL:-/app/models/ggml-base.en.bin}
-      PIPER_BINARY: ${PIPER_BINARY:-piper}
-      PIPER_MODEL: ${PIPER_MODEL:-/app/models/en_US-lessac-medium.onnx}
     networks:
       - botnet
 
