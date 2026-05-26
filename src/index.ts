@@ -6,6 +6,7 @@ import "@sapphire/plugin-scheduled-tasks/register";
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
+import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
 
@@ -41,7 +42,6 @@ async function main() {
 		});
 		YTLog.setLevel(YTLog.Level.NONE);
 		registerPlayerEvents(client.player);
-		await client.login(process.env.DISCORD_TOKEN);
 
 		client.once("clientReady", () => {
 			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
@@ -51,7 +51,12 @@ async function main() {
 				const duration = joined ? formatDuration(Date.now() - joined.getTime()) : "unknown";
 				client.logger.info(`  - ${guild.name} (${guild.id}) — member for ${duration}`);
 			}
+
+			void backfillGuessWhoMessages(client)
+				.then((count) => client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`))
+				.catch((err) => client.logger.error("[guess-who] Backfill failed:", err));
 		});
+		await client.login(process.env.DISCORD_TOKEN);
 
 		// Run initial scheduled tasks non-blocking so startup can't hang
 		// If a task fails, it logs but doesn't block the bot from processing events

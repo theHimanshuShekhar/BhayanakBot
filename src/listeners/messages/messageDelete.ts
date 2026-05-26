@@ -1,8 +1,10 @@
 import { Listener } from "@sapphire/framework";
 import type { Message, PartialMessage } from "discord.js";
 import { EmbedBuilder } from "discord.js";
+import { markArchivedChannelMessageDeleted } from "../../db/queries/archivedChannelMessages.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 
 export class MessageDeleteListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -10,6 +12,12 @@ export class MessageDeleteListener extends Listener {
 	}
 
 	public override async run(message: Message | PartialMessage) {
+		if (message.channelId === GUESS_WHO_CHANNEL_ID) {
+			void markArchivedChannelMessageDeleted(message.id).catch((err) =>
+				this.container.logger.error("[guess-who] Failed to mark archived message deleted:", err),
+			);
+		}
+
 		if (message.partial || !message.guild || message.author?.bot) return;
 
 		const client = this.container.client as BhayanakClient;

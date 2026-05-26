@@ -1,0 +1,5 @@
+onlyBuiltDependencies:
+  - "@discordjs/opus"
+  - esbuild
+  - msgpackr-extract
+  - youtube-dl-exec

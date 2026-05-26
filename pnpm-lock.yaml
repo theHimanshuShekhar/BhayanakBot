@@ -26,6 +26,9 @@ importers:
       '@sapphire/framework':
         specifier: ^5.5.0
         version: 5.5.0
+      '@sapphire/pieces':
+        specifier: ^4.4.1
+        version: 4.4.1
       '@sapphire/plugin-logger':
         specifier: ^4.1.0
         version: 4.1.0

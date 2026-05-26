@@ -24,14 +24,6 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.30.1",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@discordjs/opus",
-      "esbuild",
-      "msgpackr-extract",
-      "youtube-dl-exec"
-    ]
-  },
   "dependencies": {
     "@discord-player/extractor": "^7.2.0",
     "@discordjs/opus": "^0.10.0",
@@ -39,6 +31,7 @@
     "@hono/node-server": "^1.19.13",
     "@sapphire/decorators": "^6.2.0",
     "@sapphire/framework": "^5.5.0",
+    "@sapphire/pieces": "^4.4.1",
     "@sapphire/plugin-logger": "^4.1.0",
     "@sapphire/plugin-scheduled-tasks": "^10.0.4",
     "@sapphire/plugin-subcommands": "^7.0.1",

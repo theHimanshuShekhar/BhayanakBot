@@ -1,16 +1,14 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { LogLevel, SapphireClient } from "@sapphire/framework";
 import { LoaderStrategy, Store } from "@sapphire/pieces";
 import { GatewayIntentBits, Message, Partials } from "discord.js";
 import { Player } from "discord-player";
 
-class TypeScriptLoaderStrategy extends LoaderStrategy {
+class TypeScriptLoaderStrategy extends LoaderStrategy<any> {
 	public constructor() {
 		super();
 		// tsx is not detected by @sapphire/pieces, so we explicitly add TypeScript extensions
 		this.supportedExtensions.push(".ts", ".cts", ".mts");
-		this.filterDtsFiles = true;
 	}
 }
 
@@ -61,9 +59,11 @@ export class BhayanakClient extends SapphireClient {
 
 	public constructor() {
 		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
+		const entrypoint = process.argv[1] ?? "";
+		const baseUserDirectory = join(process.cwd(), entrypoint.includes("/dist/") ? "dist" : "src");
 		super({
 			rest: { timeout: 60_000 },
-			baseUserDirectory: join(dirname(fileURLToPath(import.meta.url)), ".."),
+			baseUserDirectory,
 			intents: [
 				GatewayIntentBits.Guilds,
 				GatewayIntentBits.GuildMembers,

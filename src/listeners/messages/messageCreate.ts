@@ -1,6 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { EmbedBuilder, type Message, PermissionFlagsBits, type TextChannel } from "discord.js";
 import { clearAfk, getAfk } from "../../db/queries/afk.js";
+import { upsertArchivedChannelMessage } from "../../db/queries/archivedChannelMessages.js";
 import { findMatchingResponse } from "../../db/queries/autoResponses.js";
 import { incrementGuildMessageCount } from "../../db/queries/guildPersonality.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
@@ -9,7 +10,7 @@ import { incrementMessageCount, storeUserMessage } from "../../db/queries/person
 import { addXp } from "../../db/queries/users.js";
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
-import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
+import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
@@ -48,6 +49,19 @@ export class MessageCreateListener extends Listener {
 
 	public async run(message: Message) {
 		if (message.author.bot || !message.guild) return;
+
+		if (message.channelId === GUESS_WHO_CHANNEL_ID) {
+			void upsertArchivedChannelMessage({
+				messageId: message.id,
+				guildId: message.guild.id,
+				channelId: message.channelId,
+				authorUserId: message.author.id,
+				authorUsername: message.author.username,
+				authorDisplayName: message.member?.displayName ?? message.author.globalName ?? message.author.username,
+				content: message.content,
+				messageCreatedAt: message.createdAt,
+			}).catch((err) => this.container.logger.error("[guess-who] Failed to archive message:", err));
+		}
 
 		const settings = await getOrCreateSettings(message.guild.id);
 		const isTargetTextChannel = message.channelId === TARGET_TEXT_CHANNEL_ID;

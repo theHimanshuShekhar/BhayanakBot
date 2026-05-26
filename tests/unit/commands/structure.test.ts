@@ -1,5 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { beforeAll, describe, expect, it } from "vitest";
+import { GUESS_WHO_MAX_WRONG_GUESSES } from "../../../src/lib/guessWho/session.js";
 import { createCommandContext, loadCommandClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
 
 const commandFiles = [
@@ -59,9 +60,16 @@ const commandFiles = [
 	"../../../src/commands/autorespond/autorespond.js",
 	"../../../src/commands/config/config.js",
 	"../../../src/commands/minecraft/status.js",
+	"../../../src/commands/games/guess-who.js",
 ];
 
 const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "TicketChannel", "Cooldown"];
+
+function getPreconditionName(precondition: unknown): unknown {
+	if (typeof precondition === "string") return precondition;
+	if (precondition && typeof precondition === "object" && "name" in precondition) return precondition.name;
+	return precondition;
+}
 
 describe("command structure", () => {
 	beforeAll(() => {
@@ -113,7 +121,7 @@ describe("command preconditions", () => {
 			const CommandClass = await loadCommandClass(file);
 			const context = createCommandContext(file.replace(/\.\.\/\.\.\/\.\.\//, "src/").replace(".js", ".ts"));
 			const instance = new CommandClass(context, {});
-			const names = instance.preconditions.entries.map((p: any) => p.name ?? p);
+			const names = instance.preconditions.entries.map(getPreconditionName);
 			expect(names).toContain("IsDJ");
 		}
 	});
@@ -134,7 +142,7 @@ describe("command preconditions", () => {
 			const CommandClass = await loadCommandClass(file);
 			const context = createCommandContext(file.replace(/\.\.\/\.\.\/\.\.\//, "src/").replace(".js", ".ts"));
 			const instance = new CommandClass(context, {});
-			const names = instance.preconditions.entries.map((p: any) => p.name ?? p);
+			const names = instance.preconditions.entries.map(getPreconditionName);
 			expect(names).toContain("IsModerator");
 		}
 	});
@@ -144,12 +152,66 @@ describe("command preconditions", () => {
 			const CommandClass = await loadCommandClass(file);
 			const context = createCommandContext(file.replace(/\.\.\/\.\.\/\.\.\//, "src/").replace(".js", ".ts"));
 			const instance = new CommandClass(context, {});
-			const names = instance.preconditions.entries.map((p: any) => p.name ?? p);
+			const names = instance.preconditions.entries.map(getPreconditionName);
 			for (const name of names) {
 				if (typeof name === "string") {
 					expect(knownPreconditions).toContain(name);
 				}
 			}
 		}
+	});
+});
+
+describe("guess who embeds", () => {
+	const archivedMessage = {
+		messageId: "message-1",
+		guildId: "guild-1",
+		channelId: "channel-1",
+		authorUserId: "author-1",
+		authorUsername: "author_name",
+		authorDisplayName: "Author Display",
+		content: "This is the archived message to guess.",
+		messageCreatedAt: new Date("2025-01-01T00:00:00.000Z"),
+		editedAt: null,
+		deletedAt: null,
+		createdAt: new Date("2025-01-01T00:00:00.000Z"),
+		updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+	};
+
+	it("builds a prompt embed with quote and remaining guesses", async () => {
+		const { buildGuessWhoPromptEmbed } = await import("../../../src/lib/guessWho/embeds.js");
+
+		const embed = buildGuessWhoPromptEmbed(archivedMessage).toJSON();
+
+		expect(embed.title).toBe("Guess Who?");
+		expect(embed.description).toBe("> This is the archived message to guess.");
+		expect(embed.fields).toContainEqual({ name: "How to play", value: "Mention the user who sent this message." });
+		expect(embed.footer?.text).toBe(`${GUESS_WHO_MAX_WRONG_GUESSES} guesses remaining`);
+	});
+
+	it("builds a reveal embed with source details and outcome", async () => {
+		const { buildGuessWhoRevealEmbed } = await import("../../../src/lib/guessWho/embeds.js");
+
+		const embed = buildGuessWhoRevealEmbed({
+			message: archivedMessage,
+			outcome: "correct",
+			guessedByUserId: "guesser-1",
+		}).toJSON();
+
+		expect(embed.title).toBe("Correct Guess!");
+		expect(embed.description).toBe("> This is the archived message to guess.");
+		expect(embed.fields).toEqual(
+			expect.arrayContaining([
+				{ name: "Author", value: "<@author-1> (Author Display)", inline: true },
+				{ name: "Sent", value: "<t:1735689600:R>", inline: true },
+				{ name: "Message ID", value: "message-1", inline: false },
+				{
+					name: "Source",
+					value: "[Jump to message](https://discord.com/channels/guild-1/channel-1/message-1)",
+					inline: false,
+				},
+				{ name: "Outcome", value: "<@guesser-1> guessed correctly.", inline: false },
+			]),
+		);
 	});
 });

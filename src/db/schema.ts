@@ -198,6 +198,29 @@ export const starredMessages = pgTable("starred_messages", {
 	starCount: integer("star_count").default(1).notNull(),
 });
 
+export const archivedChannelMessages = pgTable(
+	"archived_channel_messages",
+	{
+		messageId: varchar("message_id", { length: 20 }).primaryKey(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		channelId: varchar("channel_id", { length: 20 }).notNull(),
+		authorUserId: varchar("author_user_id", { length: 20 }).notNull(),
+		authorUsername: varchar("author_username", { length: 100 }).notNull(),
+		authorDisplayName: varchar("author_display_name", { length: 100 }).notNull(),
+		content: text("content").notNull(),
+		messageCreatedAt: timestamp("message_created_at").notNull(),
+		archivedAt: timestamp("archived_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+		editedAt: timestamp("edited_at"),
+		deletedAt: timestamp("deleted_at"),
+	},
+	(t) => [
+		index("archived_messages_timeline_idx").on(t.guildId, t.channelId, t.messageCreatedAt),
+		index("archived_messages_author_timeline_idx").on(t.guildId, t.channelId, t.authorUserId, t.messageCreatedAt),
+		index("archived_messages_game_idx").on(t.guildId, t.channelId, t.deletedAt, t.messageCreatedAt),
+	],
+);
+
 export const suggestions = pgTable("suggestions", {
 	id: serial("id").primaryKey(),
 	messageId: varchar("message_id", { length: 20 }).notNull(),
