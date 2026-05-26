@@ -47,6 +47,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 **Database** (`src/lib/database.ts`): Drizzle ORM over a `pg` connection pool. Schema is in `src/db/schema.ts`. Query helpers live in `src/db/queries/` and are grouped per feature:
 
 - `guildSettings.ts` — per-guild config for channels, roles, XP, auto-mod, anti-raid, personality, and random responses.
+- `archivedChannelMessages.ts` — durable archive of non-bot messages from the Guess Who channel, with edit/delete tracking and filtered random selection for `/guess_who`.
 - `rpg.ts` — profiles, stats, XP, coins, jail, cooldowns, inventory, pets, properties, daily rewards, daily quests, and quest progress.
 - `modCases.ts` — auto-incrementing per-guild case numbers, mutes/tempbans with `expiresAt` and `active` flags.
 - `personality.ts` and `guildPersonality.ts` — stored messages and generated user/guild personality profiles.
@@ -59,6 +60,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 - Moderation: `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history`.
 - Music: `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop`.
 - Utility: `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality`.
+- Games: `/guess_who`.
 - Server systems: `/config`, `/ticket-panel`, `/ticket`, `/suggest`, `/suggestion`, `/autorespond`, `/reaction-roles`, `/role-menu`, `/giveaway`, `/poll`.
 - Minecraft: `/minecraft` shows `mc.bhayanak.net` status, Homestead version, live map link, required mods, and recommended mods.
 
@@ -97,7 +99,17 @@ The web app is not included in the bot TypeScript build because the root `tsconf
 | `NODE_ENV` | unset | Controls log level (`debug` outside production, `info` in production) |
 | `TARGET_GUILD_ID` | `199168135935295488` | Guild gate for some LLM/voice features |
 | `TARGET_TEXT_CHANNEL_ID` | `199168135935295488` | Text-channel gate for personality/random response features |
+| `GUESS_WHO_CHANNEL_ID` | `199168135935295488` | Channel whose messages are archived and where `/guess_who` can run |
+| `GUESS_WHO_BACKFILL_LIMIT` | `1000` | Maximum Discord messages scanned during startup backfill for Guess Who archive |
 | `BOT_OWNER_ID` | `199168135935295488` | Bot owner ID |
+
+## Guess Who Message Archive
+
+`/guess_who` uses a dedicated Postgres archive instead of the personality `user_messages` table. The archive stores non-bot messages from `GUESS_WHO_CHANNEL_ID` with original Discord message ID, guild/channel ID, author user ID, global username, server display name, content, Discord message timestamp, archive/update timestamps, and nullable edit/delete timestamps.
+
+Startup runs `backfillGuessWhoMessages()` after `clientReady` to scan up to `GUESS_WHO_BACKFILL_LIMIT` accessible messages and upsert them by original Discord message ID. Live `messageCreate`, `messageUpdate`, and `messageDelete` listeners keep the archive current. Deleted messages stay in the archive for DBA-side history but are excluded from the game pool.
+
+Game-eligible messages are filtered more strictly than archived messages: deleted rows, too-short/too-long content, command-like content, link-only content, mass mentions, messages from the invoker, and messages newer than one hour are excluded. Active `/guess_who` rounds are in-memory only, one per channel, with 3 wrong guesses total and a 10-minute timeout. The game edits the same embed as guesses are spent and reveals the author, relative age, message ID, and source jump link in that embed.
 
 ## RPG Module
 

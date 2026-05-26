@@ -28,6 +28,7 @@ export const CATEGORIES: readonly CategoryMeta[] = [
 		description: "Profile, jobs, crime, training, shop, pets, properties, quests.",
 	},
 	{ id: "fun", label: "Fun", emoji: "🎲", description: "Memes, polls, 8-ball, coin flips, and avatar effects." },
+	{ id: "games", label: "Games", emoji: "🎮", description: "Interactive channel games backed by server history." },
 	{ id: "music", label: "Music", emoji: "🎵", description: "Play, queue, and control music in voice channels." },
 	{ id: "giveaway", label: "Giveaways", emoji: "🎉", description: "Start, end, and reroll giveaways." },
 	{ id: "suggestions", label: "Suggestions", emoji: "💡", description: "Submit and manage community suggestions." },

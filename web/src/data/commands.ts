@@ -20,7 +20,7 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
-	{ id: "all", label: "All", icon: "⚡", description: "All 55 commands" },
+	{ id: "all", label: "All", icon: "⚡", description: "All 56 commands" },
 	{
 		id: "rpg",
 		label: "RPG & Economy",
@@ -41,6 +41,7 @@ export const CATEGORIES: Category[] = [
 		description: "General-purpose tools: info, avatars, AFK, reminders, summaries.",
 	},
 	{ id: "fun", label: "Fun", icon: "🎲", description: "Memes, polls, 8-ball, coin flips, and avatar effects." },
+	{ id: "games", label: "Games", icon: "🎮", description: "Interactive channel games backed by server history." },
 	{ id: "leveling", label: "Leveling", icon: "📈", description: "XP ranks, leaderboards, and role rewards." },
 	{ id: "tickets", label: "Tickets", icon: "🎫", description: "Open, claim, and manage support tickets." },
 	{ id: "roles", label: "Roles", icon: "🏷️", description: "Reaction roles and role select menus." },
@@ -306,7 +307,7 @@ export const COMMANDS: Command[] = [
 		examples: ["/help", "/help category:rpg"],
 		category: "utility",
 	},
-	// Fun (6)
+	// Fun (5)
 	{
 		name: "/8ball",
 		description: "Ask the magic 8-ball a yes/no question.",
@@ -336,6 +337,15 @@ export const COMMANDS: Command[] = [
 		description: "Create a button-based poll with up to 4 options.",
 		examples: ['/poll question:"Best language?" options:"Python,JS,Go,Rust"'],
 		category: "fun",
+	},
+	// Games (1)
+	{
+		name: "/guess_who",
+		description: "Start a Guess Who round from archived messages in the configured channel.",
+		examples: ["/guess_who"],
+		category: "games",
+		usageNotes:
+			"Only works in `GUESS_WHO_CHANNEL_ID`. Players guess by mentioning users; 3 wrong guesses or a 10-minute timeout reveals the original author and message link.",
 	},
 	// Leveling (4)
 	{

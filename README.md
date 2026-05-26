@@ -1,6 +1,6 @@
 # BhayanakBot
 
-A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, giveaways, tickets, polls, and more.
+A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, message-archive games, giveaways, tickets, polls, and more.
 
 ## Features
 
@@ -12,6 +12,7 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Leveling** | `/rank`, `/leaderboard`, `/rewards`, `/reset` |
 | **Utility** | `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind` |
 | **Fun** | `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll` |
+| **Games** | `/guess_who` |
 | **Tickets** | `/ticket-panel`, `/ticket` |
 | **Roles** | `/reaction-roles`, `/role-menu` |
 | **Giveaways** | `/giveaway` |
@@ -41,6 +42,16 @@ The bot builds personality profiles from server conversation to generate context
 - **Smart Mentions**: When @mentioned, the bot uses personality context + conversation history for contextual replies
 - **Random Responder**: Configurable chance-based responses in a designated channel, using guild personality for tone
 - **Privacy**: All profiling is opt-out via `/config set personality-profiling false`. Messages older than 30 days are purged automatically
+
+### Guess Who Game
+
+`/guess_who` is a channel-based guessing game backed by a durable Postgres message archive:
+
+- **Archive source**: non-bot messages from `GUESS_WHO_CHANNEL_ID` are archived with the Discord message ID, content, timestamps, user ID, global username, and server display name
+- **Backfill**: on startup, the bot imports up to `GUESS_WHO_BACKFILL_LIMIT` accessible recent messages so the game has data immediately after deployment
+- **Game flow**: the bot posts a polished quote embed, players guess by mentioning the author, and the same embed updates the remaining guess count
+- **Reveal**: after a correct guess, 3 wrong guesses, or a 10-minute timeout, the same embed reveals the author, relative message age, original message ID, and jump link
+- **Archive retention**: archived messages are kept indefinitely for DBA-side history/log retrieval; there is no Discord-facing archive search command
 
 ## Stack
 
@@ -80,6 +91,8 @@ VALKEY_URL=redis://localhost:6379
 OLLAMA_URL=http://localhost:11434   # optional
 OLLAMA_MODEL=phi3:mini              # optional
 NODE_ENV=development
+GUESS_WHO_CHANNEL_ID=199168135935295488
+GUESS_WHO_BACKFILL_LIMIT=1000
 ```
 
 ### Database
