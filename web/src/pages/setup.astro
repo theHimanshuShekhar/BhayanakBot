@@ -1,7 +1,10 @@
 ---
 import CodeBlock from "~/components/CodeBlock.astro";
 import Sticker from "~/components/Sticker.astro";
+import { getBotInviteUrl } from "~/data/links";
 import SiteLayout from "~/layouts/SiteLayout.astro";
+
+const botInviteUrl = getBotInviteUrl();
 ---
 
 <SiteLayout title="Setup — BhayanakBot" active="setup">
@@ -19,7 +22,7 @@ import SiteLayout from "~/layouts/SiteLayout.astro";
 			<div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
 				{["Invite BhayanakBot with the Discord OAuth link.", "Grant slash-command and moderation permissions.", "Run /config view to confirm defaults.", "Configure channels, roles, auto-mod, and personality opt-ins."].map((step, index) => <div class="border-2 border-border bg-bg-panel p-6"><Sticker size="sm" rot={0}>STEP {index + 1}</Sticker><p class="mb-0 mt-4 text-[15px] leading-[1.55] text-fg/70">{step}</p></div>)}
 			</div>
-			<a href="https://discord.com/oauth2/authorize" class="a-press mt-8 inline-flex bg-accent px-7 py-4 font-mono text-[13px] font-extrabold uppercase text-bg">+ Add to Discord</a>
+			<a href={botInviteUrl} class="a-press mt-8 inline-flex bg-accent px-7 py-4 font-mono text-[13px] font-extrabold uppercase text-bg">+ Add to Discord</a>
 		</section>
 
 		<section data-tab-panel="self" hidden>

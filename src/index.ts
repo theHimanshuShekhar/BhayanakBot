@@ -9,6 +9,7 @@ import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
+import { getPublicStatsIntervalMs, writePublicBotStatsSnapshotForClient } from "./lib/publicStats.js";
 
 const client = new BhayanakClient();
 
@@ -43,6 +44,20 @@ async function main() {
 		YTLog.setLevel(YTLog.Level.NONE);
 		registerPlayerEvents(client.player);
 
+		let publicStatsWriteRunning = false;
+		const writePublicStats = async () => {
+			if (publicStatsWriteRunning) return;
+			publicStatsWriteRunning = true;
+			try {
+				await writePublicBotStatsSnapshotForClient(client);
+				client.logger.info("[public-stats] Snapshot written");
+			} catch (err) {
+				client.logger.error("[public-stats] Snapshot failed:", err);
+			} finally {
+				publicStatsWriteRunning = false;
+			}
+		};
+
 		client.once("clientReady", () => {
 			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
 			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guild(s):`);
@@ -51,6 +66,12 @@ async function main() {
 				const duration = joined ? formatDuration(Date.now() - joined.getTime()) : "unknown";
 				client.logger.info(`  - ${guild.name} (${guild.id}) — member for ${duration}`);
 			}
+
+			void writePublicStats();
+			setInterval(
+				() => void writePublicStats(),
+				getPublicStatsIntervalMs({ PUBLIC_STATS_INTERVAL_MS: process.env.PUBLIC_STATS_INTERVAL_MS }),
+			);
 
 			void backfillGuessWhoMessages(client)
 				.then((count) => client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`))

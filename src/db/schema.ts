@@ -69,6 +69,22 @@ export const guildSettings = pgTable("guild_settings", {
 	randomResponseChance: integer("random_response_chance").default(0).notNull(),
 });
 
+export const botCommandCounters = pgTable("bot_command_counters", {
+	name: varchar("name", { length: 50 }).primaryKey(),
+	commandsRun: integer("commands_run").default(0).notNull(),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const publicBotStatsSnapshots = pgTable("public_bot_stats_snapshots", {
+	name: varchar("name", { length: 50 }).primaryKey(),
+	guilds: integer("guilds").default(0).notNull(),
+	commandsRun: integer("commands_run").default(0).notNull(),
+	latencyMs: integer("latency_ms"),
+	capturedAt: timestamp("captured_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const users = pgTable(
 	"users",
 	{

@@ -6,6 +6,8 @@ import Sticker from "~/components/Sticker.astro";
 import { COMMANDS, findCategory, slugForCommand } from "~/data/commands";
 import SiteLayout from "~/layouts/SiteLayout.astro";
 
+export const prerender = true;
+
 export async function getStaticPaths() {
 	const entries = await getCollection("commands");
 	const richBySlug = new Map(entries.map((entry) => [entry.id.replace(/\.mdx$/, ""), entry]));

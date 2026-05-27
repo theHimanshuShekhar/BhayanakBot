@@ -6,7 +6,7 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY src/ ./src/
@@ -24,7 +24,7 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild esbuild
 
 COPY drizzle.config.ts ./
@@ -42,7 +42,7 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml ./
 # Full install (not --prod) so drizzle-kit and tsx are available
 RUN pnpm install --frozen-lockfile
 
@@ -51,6 +51,7 @@ COPY drizzle/ ./drizzle/
 
 # Copy source and run directly with tsx instead of pre-compiling
 COPY src/ ./src/
+COPY web/ ./web/
 COPY tsconfig.json ./
 
 CMD ["sh", "-c", "pnpm db:migrate && pnpm exec tsx src/index.ts"]
