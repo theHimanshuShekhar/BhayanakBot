@@ -1,11 +1,13 @@
 ---
 import BotAvatar from "./BotAvatar.astro";
+import { getBotInviteUrl } from "~/data/links";
 
 interface Props {
 	active: "home" | "commands" | "setup" | "changelog" | "status";
 }
 
 const { active } = Astro.props;
+const botInviteUrl = getBotInviteUrl();
 const links = [
 	{ id: "home", href: "/", label: "home" },
 	{ id: "commands", href: "/commands", label: "commands" },
@@ -40,7 +42,7 @@ const links = [
 		</div>
 
 		<a
-			href="https://discord.com/oauth2/authorize"
+			href={botInviteUrl}
 			class="a-press bg-accent px-[18px] py-2.5 font-mono text-[12px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:hidden"
 			style="--press-rest-shadow: 3px 3px 0 var(--color-fg); --press-hover-shadow: 1.5px 1.5px 0 var(--color-fg);"
 		>
@@ -72,7 +74,7 @@ const links = [
 			</a>
 		))}
 		<a
-			href="https://discord.com/oauth2/authorize"
+			href={botInviteUrl}
 			class="a-press mt-2 block w-full bg-accent px-[18px] py-3.5 text-center font-mono text-[13px] font-extrabold uppercase tracking-[0.5px] text-bg"
 			style="--press-rest-shadow: 3px 3px 0 var(--color-fg); --press-hover-shadow: 1.5px 1.5px 0 var(--color-fg);"
 		>

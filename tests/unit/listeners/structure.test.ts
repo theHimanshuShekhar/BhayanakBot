@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createListenerContext, loadListenerClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
 
 const listenerFiles = [
+	"../../../src/listeners/commands/commandSuccess.js",
 	"../../../src/listeners/guild/guildMemberAdd.js",
 	"../../../src/listeners/guild/guildMemberRemove.js",
 	"../../../src/listeners/guild/guildAuditLogEntryCreate.js",

@@ -4,8 +4,13 @@ import ChatMessage from "~/components/ChatMessage.astro";
 import SceneCard from "~/components/SceneCard.astro";
 import StatStrip from "~/components/StatStrip.astro";
 import Sticker from "~/components/Sticker.astro";
-import { stats } from "~/data/stats";
+import { getBotInviteUrl } from "~/data/links";
+import { formatLatency, formatStatNumber, getStats } from "~/data/stats";
 import SiteLayout from "~/layouts/SiteLayout.astro";
+
+const stats = await getStats();
+const botInviteUrl = getBotInviteUrl();
+const snapshotStatus = stats.capturedAt ? "snapshot available" : "snapshot unavailable";
 ---
 
 <SiteLayout title="BhayanakBot — your server's worst behavior, automated" active="home">
@@ -13,8 +18,8 @@ import SiteLayout from "~/layouts/SiteLayout.astro";
 		<div class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(245_245_240_/_0.06)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:linear-gradient(180deg,#000_30%,transparent_100%)]"></div>
 		<div class="relative mx-auto max-w-[1180px]">
 			<div class="mb-6 flex flex-wrap items-center gap-2.5 max-md:mb-4">
-				<span class="a-status-dot-live h-2 w-2 rounded-full bg-success shadow-[0_0_8px_var(--color-success)]"></span>
-				<span class="font-mono text-[12px] tracking-[0.5px] text-fg/70 max-md:text-[11px]">online · {stats.servers.toLocaleString()} servers · {stats.latencyMs}ms latency</span>
+				<span class:list={["h-2 w-2 rounded-full", stats.capturedAt ? "bg-success shadow-[0_0_8px_var(--color-success)]" : "bg-warning"]}></span>
+				<span class="font-mono text-[12px] tracking-[0.5px] text-fg/70 max-md:text-[11px]">{snapshotStatus} · {formatStatNumber(stats.servers)} servers · {formatLatency(stats.latencyMs)} gateway latency</span>
 			</div>
 			<h1 class="m-0 text-[128px] leading-[0.88] font-black -tracking-[4px] uppercase max-md:text-[56px] max-md:-tracking-[1.5px]">
 				your server's<br /><span class="text-accent">worst behavior</span>,<br />automated.
@@ -24,14 +29,19 @@ import SiteLayout from "~/layouts/SiteLayout.astro";
 				<Sticker rot={6}>NO ADS · NO PAYWALL</Sticker>
 			</div>
 			<div class="mt-10 flex flex-wrap items-center gap-3 max-md:mt-7 max-md:gap-2.5">
-				<a href="https://discord.com/oauth2/authorize" class="a-press border-2 border-bg bg-accent px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">+ Add to Discord</a>
+				<a href={botInviteUrl} class="a-press border-2 border-bg bg-accent px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">+ Add to Discord</a>
 				<a href="/commands" class="a-ghost border-2 border-fg px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-fg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">Read the docs →</a>
 				<span class="font-mono text-[12px] text-fg/50 max-md:hidden">★ free · self-hostable · MIT</span>
 			</div>
 		</div>
 	</section>
 
-	<StatStrip stats={[{ value: stats.servers.toLocaleString(), label: "active servers" }, { value: String(stats.commands), label: `${stats.categories} categories` }, { value: stats.crimes, label: "crimes committed", accent: true }, { value: `${stats.latencyMs}ms`, label: "median latency" }]} />
+	<StatStrip stats={[
+		{ value: formatStatNumber(stats.servers), label: "active servers" },
+		{ value: String(stats.categories), label: "command categories" },
+		{ value: formatStatNumber(stats.commandsRun), label: "commands run", accent: true },
+		{ value: formatLatency(stats.latencyMs), label: "gateway latency" },
+	]} />
 
 	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
 		<div class="mb-8 flex flex-wrap items-end justify-between gap-6 max-md:flex-col max-md:items-start">

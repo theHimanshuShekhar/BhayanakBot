@@ -94,7 +94,13 @@ services:
       target: production
     container_name: bhayanak_bot_web
     restart: unless-stopped
-    command: sh -c "pnpm web:build && pnpm web:preview -- --host 0.0.0.0 --port 4321"
+    command: sh -c "pnpm web:build && HOST=0.0.0.0 PORT=4321 node web/dist/server/entry.mjs"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
+      PUBLIC_BOT_INVITE_URL: ${PUBLIC_BOT_INVITE_URL:-https://discord.com/oauth2/authorize}
     ports:
       - "${WEB_PORT:-4321}:4321"
     networks:
