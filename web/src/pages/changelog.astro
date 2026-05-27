@@ -1,0 +1,33 @@
+---
+import Sticker from "~/components/Sticker.astro";
+import { releases } from "~/data/changelog";
+import SiteLayout from "~/layouts/SiteLayout.astro";
+---
+
+<SiteLayout title="Changelog — BhayanakBot" active="changelog">
+	<section class="mx-auto max-w-[1000px] px-8 py-16 max-md:px-5 max-md:py-10">
+		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">ship log</div>
+		<h1 class="mt-2 mb-10 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px]">what changed,<br /><span class="text-accent">who broke it.</span></h1>
+		<div class="space-y-6">
+			{releases.map((release) => (
+				<article class="grid grid-cols-[220px_1fr] gap-6 border-2 border-border bg-bg-panel p-6 max-md:grid-cols-1">
+					<div>
+						<Sticker rot={-4}>{release.tag}</Sticker>
+						<h2 class="mb-1 mt-5 font-mono text-[28px] font-black text-accent">{release.version}</h2>
+						<div class="font-mono text-[12px] text-fg/45">{release.date}</div>
+					</div>
+					<div class="space-y-5">
+						{release.groups.map((group) => (
+							<section>
+								<div class="mb-2 font-mono text-[11px] font-bold uppercase tracking-[1px] text-accent">{group.heading}</div>
+								<ul class="m-0 space-y-2 pl-5 text-[14px] leading-[1.55] text-fg/70">
+									{group.items.map((item) => <li set:html={item.replaceAll(/`([^`]+)`/g, '<code class="text-accent-yellow font-mono">$1</code>')}></li>)}
+								</ul>
+							</section>
+						))}
+					</div>
+				</article>
+			))}
+		</div>
+	</section>
+</SiteLayout>

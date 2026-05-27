@@ -1,0 +1,34 @@
+---
+name: "/crime"
+cat: "RPG · economy"
+tags: ["RISKY", "COOLDOWN"]
+summary: "Attempt a crime against the server economy. Success pays coins, XP, and reputation. Failure sends you to jail."
+syntax:
+  cmd: "/crime"
+  args:
+    - { n: "job", d: "Crime job to attempt", req: true, t: "enum" }
+variants:
+  - { n: "pickpocket", risk: 20, pay: "low", stat: "AGI", d: "Low risk, low reward." }
+  - { n: "heist", risk: 80, pay: "high", stat: "STR + INT", d: "Big payout, long jail timer on failure." }
+examples:
+  - label: "jail"
+    tag: "L"
+    tagBg: "#a78bfa"
+    user: "parth"
+    userColor: "#60a5fa"
+    input: "job:heist"
+    time: "14:12"
+    botSays: "you wrote this is a robbery on a sticky note. it fell off the counter."
+    reactions: [{ e: "💀", n: 8 }, { e: "🚔", n: 4 }]
+    embedAccent: "#a78bfa"
+    embedTitle: "Crime · Failed"
+    embedFooter: "Type /crime escape or pay bail"
+    embedRows:
+      - ["Sentence", "00:14:32"]
+      - ["Bail", "2,400 coins"]
+      - ["Reputation", "-12", "#a78bfa"]
+related:
+  - { n: "/work", d: "Safer income" }
+  - { n: "/train", d: "Improve stat rolls" }
+  - { n: "/inventory", d: "Use items and tools" }
+---

@@ -10,6 +10,7 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY src/ ./src/
+COPY web/ ./web/
 COPY tsconfig.json ./
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/

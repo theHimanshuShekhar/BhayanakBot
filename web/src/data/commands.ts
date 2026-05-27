@@ -19,51 +19,54 @@ export interface Category {
 	description: string;
 }
 
+export interface CommandDoc extends Command {
+	slug: string;
+	syntax: string;
+}
+
 export const CATEGORIES: Category[] = [
-	{ id: "all", label: "All", icon: "⚡", description: "All 56 commands" },
 	{
 		id: "rpg",
 		label: "RPG & Economy",
-		icon: "⚔️",
-		description: "Profile, jobs, crime, training, shop, pets, properties, quests.",
+		icon: "⚔",
+		description: "Profiles, jobs, crime, training, shop, pets, properties, daily rewards, and quests.",
 	},
 	{
 		id: "moderation",
 		label: "Moderation",
-		icon: "🛡️",
+		icon: "⛨",
 		description: "Mute, kick, ban, warn, purge, and case management.",
 	},
-	{ id: "music", label: "Music", icon: "🎵", description: "Play, queue, and control music in voice channels." },
+	{ id: "music", label: "Music", icon: "♪", description: "Play, queue, and control music in voice channels." },
 	{
 		id: "utility",
 		label: "Utility",
-		icon: "🔧",
-		description: "General-purpose tools: info, avatars, AFK, reminders, summaries.",
+		icon: "◇",
+		description: "Info, avatars, AFK, reminders, summaries, help, and personality tools.",
 	},
-	{ id: "fun", label: "Fun", icon: "🎲", description: "Memes, polls, 8-ball, coin flips, and avatar effects." },
-	{ id: "games", label: "Games", icon: "🎮", description: "Interactive channel games backed by server history." },
-	{ id: "leveling", label: "Leveling", icon: "📈", description: "XP ranks, leaderboards, and role rewards." },
-	{ id: "tickets", label: "Tickets", icon: "🎫", description: "Open, claim, and manage support tickets." },
-	{ id: "roles", label: "Roles", icon: "🏷️", description: "Reaction roles and role select menus." },
-	{ id: "giveaway", label: "Giveaways", icon: "🎉", description: "Start, end, and reroll giveaways." },
-	{ id: "suggestions", label: "Suggestions", icon: "💡", description: "Submit and manage community suggestions." },
+	{ id: "fun", label: "Fun", icon: "✦", description: "Memes, polls, 8-ball, coin flips, and random choices." },
+	{ id: "games", label: "Games", icon: "▣", description: "Interactive channel games backed by server history." },
+	{ id: "leveling", label: "Leveling", icon: "★", description: "XP ranks, leaderboards, and role rewards." },
+	{ id: "tickets", label: "Tickets", icon: "✉", description: "Open, claim, and manage support tickets." },
+	{ id: "roles", label: "Roles", icon: "◈", description: "Reaction roles and role select menus." },
+	{ id: "giveaway", label: "Giveaways", icon: "☆", description: "Start, end, and reroll giveaways." },
+	{ id: "suggestions", label: "Suggestions", icon: "✎", description: "Submit and manage community suggestions." },
 	{
 		id: "config",
 		label: "Server Config",
-		icon: "⚙️",
+		icon: "⚙",
 		description: "Configure channels, roles, auto-mod, and anti-raid settings.",
 	},
 	{
 		id: "autorespond",
 		label: "Autoresponders",
-		icon: "🤖",
-		description: "Configure automatic message responses (static or LLM-generated).",
+		icon: "⇄",
+		description: "Static and LLM-backed automatic message responses.",
 	},
-	{ id: "minecraft", label: "Minecraft", icon: "⛏️", description: "Minecraft server status and recommended mods." },
+	{ id: "minecraft", label: "Minecraft", icon: "▥", description: "Minecraft server status, live map, and mods." },
 ];
 
-export const COMMANDS: Command[] = [
-	// RPG (10)
+export const RAW_COMMANDS: Command[] = [
 	{
 		name: "/profile",
 		description: "View your RPG profile or another player's stats and progress.",
@@ -113,46 +116,51 @@ export const COMMANDS: Command[] = [
 		category: "rpg",
 	},
 	{
+		name: "/daily",
+		description: "Claim your daily RPG reward and maintain your streak.",
+		examples: ["/daily"],
+		category: "rpg",
+	},
+	{
 		name: "/quests",
 		description: "View today's daily quests and your completion progress.",
 		examples: ["/quests"],
 		category: "rpg",
 	},
-	// Moderation (9)
 	{
 		name: "/ban",
 		description: "Ban a member from the server, optionally as a temporary ban.",
-		examples: ['/ban user:@spammer reason:"raid"', "/ban user:@x duration:7d"],
+		examples: ["/ban user:@spammer reason:raid", "/ban user:@x duration:7d"],
 		category: "moderation",
 	},
 	{
 		name: "/kick",
 		description: "Kick a member from the server.",
-		examples: ['/kick user:@someone reason:"inappropriate behavior"'],
+		examples: ["/kick user:@someone reason:inappropriate behavior"],
 		category: "moderation",
 	},
 	{
 		name: "/mute",
 		description: "Mute a member for a duration.",
-		examples: ['/mute user:@x duration:10m reason:"spam"', "/mute user:@y duration:1h"],
+		examples: ["/mute user:@x duration:10m reason:spam", "/mute user:@y duration:1h"],
 		category: "moderation",
 	},
 	{
 		name: "/unmute",
 		description: "Unmute a previously muted member.",
-		examples: ['/unmute user:@x reason:"served time"'],
+		examples: ["/unmute user:@x reason:served time"],
 		category: "moderation",
 	},
 	{
 		name: "/warn",
 		description: "Warn a member and log the case.",
-		examples: ['/warn user:@x reason:"no caps in #general"'],
+		examples: ["/warn user:@x reason:no caps in #general"],
 		category: "moderation",
 	},
 	{
 		name: "/unban",
 		description: "Unban a user by their user ID.",
-		examples: ['/unban user-id:123456789012345678 reason:"appeal accepted"'],
+		examples: ["/unban user-id:123456789012345678 reason:appeal accepted"],
 		category: "moderation",
 	},
 	{
@@ -164,11 +172,11 @@ export const COMMANDS: Command[] = [
 	{
 		name: "/case",
 		description: "View or edit a moderation case.",
-		examples: ["/case view number:12", '/case edit number:12 reason:"updated context"'],
+		examples: ["/case view number:12", "/case edit number:12 reason:updated context"],
 		category: "moderation",
 		subcommands: {
 			view: { summary: "View a specific case by its number.", examples: ["/case view number:5"] },
-			edit: { summary: "Edit the reason for an existing case.", examples: ['/case edit number:5 reason:"typo fix"'] },
+			edit: { summary: "Edit the reason for an existing case.", examples: ["/case edit number:5 reason:typo fix"] },
 		},
 	},
 	{
@@ -177,7 +185,6 @@ export const COMMANDS: Command[] = [
 		examples: ["/history user:@someone"],
 		category: "moderation",
 	},
-	// Music (7)
 	{
 		name: "/play",
 		description: "Play a song or playlist from a URL or search query.",
@@ -185,17 +192,10 @@ export const COMMANDS: Command[] = [
 		category: "music",
 	},
 	{
-		name: "/music",
+		name: "/controls",
 		description: "Pause, resume, skip, stop, or disconnect the music player.",
-		examples: ["/music pause", "/music skip", "/music stop", "/music disconnect"],
+		examples: ["/controls"],
 		category: "music",
-		subcommands: {
-			pause: { summary: "Pause the current song.", examples: ["/music pause"] },
-			resume: { summary: "Resume playback.", examples: ["/music resume"] },
-			skip: { summary: "Skip the current song.", examples: ["/music skip"] },
-			stop: { summary: "Stop music and clear the queue.", examples: ["/music stop"] },
-			disconnect: { summary: "Disconnect the bot from voice.", examples: ["/music disconnect"] },
-		},
 	},
 	{
 		name: "/queue",
@@ -215,25 +215,14 @@ export const COMMANDS: Command[] = [
 		examples: ["/volume level:80"],
 		category: "music",
 	},
-	{
-		name: "/shuffle",
-		description: "Shuffle the current music queue.",
-		examples: ["/shuffle"],
-		category: "music",
-	},
+	{ name: "/shuffle", description: "Shuffle the current music queue.", examples: ["/shuffle"], category: "music" },
 	{
 		name: "/loop",
 		description: "Set the queue loop mode (off, track, or queue).",
 		examples: ["/loop mode:track", "/loop mode:queue", "/loop mode:off"],
 		category: "music",
 	},
-	// Utility (11)
-	{
-		name: "/ping",
-		description: "Check bot latency and API response time.",
-		examples: ["/ping"],
-		category: "utility",
-	},
+	{ name: "/ping", description: "Check bot latency and API response time.", examples: ["/ping"], category: "utility" },
 	{
 		name: "/serverinfo",
 		description: "Display information about this server.",
@@ -269,35 +258,23 @@ export const COMMANDS: Command[] = [
 		description: "Manage your AFK status — set a message or clear it.",
 		examples: ["/afk set reason:brb lunch", "/afk clear"],
 		category: "utility",
-		subcommands: {
-			set: { summary: "Set yourself as AFK with an optional reason.", examples: ["/afk set reason:studying"] },
-			clear: { summary: "Clear your AFK status manually.", examples: ["/afk clear"] },
-		},
 	},
 	{
 		name: "/remind",
 		description: "Set, list, and cancel personal reminders.",
-		examples: ['/remind set time:2h message:"stretch"', "/remind list", "/remind cancel id:3"],
+		examples: ["/remind set time:2h message:stretch", "/remind list", "/remind cancel id:3"],
 		category: "utility",
-		subcommands: {
-			set: {
-				summary: "Set a reminder after a duration (e.g. 10m, 2h, 1d).",
-				examples: ['/remind set time:30m message:"check oven"'],
-			},
-			list: { summary: "List your active reminders.", examples: ["/remind list"] },
-			cancel: { summary: "Cancel a reminder by its ID.", examples: ["/remind cancel id:7"] },
-		},
 	},
 	{
 		name: "/summarize",
 		description: "Summarize recent messages in this channel using AI.",
 		examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
 		category: "utility",
-		usageNotes: "Uses the local Ollama model. `time` overrides `count` if both are given.",
+		usageNotes: "Uses the local Ollama model. time overrides count if both are given.",
 	},
 	{
 		name: "/personality",
-		description: "View the bot's personality profile for a user (admin only).",
+		description: "View the bot's personality profile for a user or guild.",
 		examples: ["/personality", "/personality user:@someone"],
 		category: "utility",
 	},
@@ -307,47 +284,33 @@ export const COMMANDS: Command[] = [
 		examples: ["/help", "/help category:rpg"],
 		category: "utility",
 	},
-	// Fun (5)
 	{
 		name: "/8ball",
 		description: "Ask the magic 8-ball a yes/no question.",
 		examples: ["/8ball question:Will I win today?"],
 		category: "fun",
 	},
-	{
-		name: "/coinflip",
-		description: "Flip a coin — heads or tails.",
-		examples: ["/coinflip"],
-		category: "fun",
-	},
+	{ name: "/coinflip", description: "Flip a coin — heads or tails.", examples: ["/coinflip"], category: "fun" },
 	{
 		name: "/choose",
 		description: "Have the bot randomly pick from a list of choices.",
 		examples: ["/choose options:pizza,sushi,tacos"],
 		category: "fun",
 	},
-	{
-		name: "/meme",
-		description: "Fetch a random meme from Reddit.",
-		examples: ["/meme"],
-		category: "fun",
-	},
+	{ name: "/meme", description: "Fetch a random meme from Reddit.", examples: ["/meme"], category: "fun" },
 	{
 		name: "/poll",
 		description: "Create a button-based poll with up to 4 options.",
-		examples: ['/poll question:"Best language?" options:"Python,JS,Go,Rust"'],
+		examples: ["/poll question:Best language? options:Python,JS,Go,Rust"],
 		category: "fun",
 	},
-	// Games (1)
 	{
 		name: "/guess_who",
 		description: "Start a Guess Who round from archived messages in the configured channel.",
 		examples: ["/guess_who"],
 		category: "games",
-		usageNotes:
-			"Only works in `GUESS_WHO_CHANNEL_ID`. Players guess by mentioning users; 3 wrong guesses or a 10-minute timeout reveals the original author and message link.",
+		usageNotes: "Only works in GUESS_WHO_CHANNEL_ID. Three wrong guesses or a 10-minute timeout reveals the author.",
 	},
-	// Leveling (4)
 	{
 		name: "/rank",
 		description: "View your XP rank or another member's.",
@@ -365,11 +328,6 @@ export const COMMANDS: Command[] = [
 		description: "View and manage role rewards granted at specific XP levels.",
 		examples: ["/rewards list", "/rewards add level:10 role:@Veteran"],
 		category: "leveling",
-		subcommands: {
-			list: { summary: "List all configured level rewards.", examples: ["/rewards list"] },
-			add: { summary: "Add a role reward for reaching a level.", examples: ["/rewards add level:10 role:@Veteran"] },
-			remove: { summary: "Remove a level reward.", examples: ["/rewards remove level:10"] },
-		},
 	},
 	{
 		name: "/level-reset",
@@ -377,7 +335,6 @@ export const COMMANDS: Command[] = [
 		examples: ["/level-reset user:@someone"],
 		category: "leveling",
 	},
-	// Tickets (2)
 	{
 		name: "/ticket-panel",
 		description: "Post a ticket creation panel button in a channel.",
@@ -389,50 +346,22 @@ export const COMMANDS: Command[] = [
 		description: "Open, close, claim, or manage support tickets.",
 		examples: ["/ticket open topic:billing issue", "/ticket close", "/ticket claim", "/ticket add user:@helper"],
 		category: "tickets",
-		subcommands: {
-			open: { summary: "Open a new support ticket.", examples: ["/ticket open topic:billing issue"] },
-			close: { summary: "Close the current ticket channel.", examples: ["/ticket close"] },
-			claim: { summary: "Claim the ticket as your own to handle.", examples: ["/ticket claim"] },
-			add: { summary: "Add a user to the ticket channel.", examples: ["/ticket add user:@helper"] },
-			remove: { summary: "Remove a user from the ticket channel.", examples: ["/ticket remove user:@helper"] },
-			transcript: { summary: "Export a text transcript of the ticket.", examples: ["/ticket transcript"] },
-		},
 	},
-	// Roles (2)
 	{
-		name: "/reactionrole",
+		name: "/reaction-roles",
 		description: "Add or remove reaction roles on messages.",
 		examples: [
-			"/reactionrole add message-id:123456 emoji:👍 role:@Member",
-			"/reactionrole remove message-id:123456 emoji:👍",
+			"/reaction-roles add message-id:123456 emoji:👍 role:@Member",
+			"/reaction-roles remove message-id:123456 emoji:👍",
 		],
 		category: "roles",
-		subcommands: {
-			add: {
-				summary: "Attach a reaction role to a message.",
-				examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"],
-			},
-			remove: {
-				summary: "Remove a reaction role from a message.",
-				examples: ["/reactionrole remove message-id:123456 emoji:👍"],
-			},
-		},
 	},
 	{
-		name: "/rolemenu",
+		name: "/role-menu",
 		description: "Create and manage self-assignable role select menus.",
-		examples: ["/rolemenu create channel:#roles", "/rolemenu add-option id:abc role:@Gamer label:Gamer"],
+		examples: ["/role-menu create channel:#roles", "/role-menu add-option id:abc role:@Gamer label:Gamer"],
 		category: "roles",
-		subcommands: {
-			create: { summary: "Create a role selection menu in a channel.", examples: ["/rolemenu create channel:#roles"] },
-			delete: { summary: "Delete an existing role menu.", examples: ["/rolemenu delete id:abc123"] },
-			"add-option": {
-				summary: "Add a role option to an existing menu.",
-				examples: ["/rolemenu add-option id:abc123 role:@Gamer label:Gamer"],
-			},
-		},
 	},
-	// Giveaway (1)
 	{
 		name: "/giveaway",
 		description: "Start, end, or reroll a giveaway.",
@@ -442,20 +371,11 @@ export const COMMANDS: Command[] = [
 			"/giveaway reroll message-id:123456",
 		],
 		category: "giveaway",
-		subcommands: {
-			start: {
-				summary: "Start a timed giveaway in the current channel.",
-				examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
-			},
-			end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
-			reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
-		},
 	},
-	// Suggestions (2)
 	{
 		name: "/suggest",
 		description: "Submit a suggestion to the server's suggestions channel.",
-		examples: ['/suggest idea:"Add a movie night bot"'],
+		examples: ["/suggest idea:Add a movie night bot"],
 		category: "suggestions",
 	},
 	{
@@ -463,15 +383,7 @@ export const COMMANDS: Command[] = [
 		description: "Approve or deny a submitted suggestion.",
 		examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 response:Out of scope"],
 		category: "suggestions",
-		subcommands: {
-			approve: { summary: "Approve a suggestion with an optional response.", examples: ["/suggestion approve id:5"] },
-			deny: {
-				summary: "Deny a suggestion with an optional response.",
-				examples: ["/suggestion deny id:3 response:Out of scope"],
-			},
-		},
 	},
-	// Config (1)
 	{
 		name: "/config",
 		description: "Configure server channels, roles, auto-moderation, and anti-raid settings.",
@@ -481,46 +393,48 @@ export const COMMANDS: Command[] = [
 			"/config automod setting:spam-threshold number:5",
 		],
 		category: "config",
-		subcommands: {
-			view: { summary: "View current server configuration.", examples: ["/config view"] },
-			set: {
-				summary: "Set a configuration value for a specific setting.",
-				examples: ["/config set setting:log-channel channel:#mod-log"],
-			},
-			automod: {
-				summary: "Configure auto-moderation thresholds.",
-				examples: ["/config automod setting:spam-threshold number:5"],
-			},
-			antiraid: {
-				summary: "Configure anti-raid protection (join rate limits).",
-				examples: ["/config antiraid setting:threshold number:10"],
-			},
-		},
 	},
-	// Autorespond (1)
 	{
 		name: "/autorespond",
 		description: "Add, remove, and list automatic keyword response triggers.",
 		examples: [
-			'/autorespond add trigger:"hello" response:"Hi there!"',
+			"/autorespond add trigger:hello response:Hi there!",
 			"/autorespond list",
 			"/autorespond remove trigger:hello",
 		],
 		category: "autorespond",
-		subcommands: {
-			add: {
-				summary: "Add a new auto-response trigger.",
-				examples: ['/autorespond add trigger:"hello" response:"Hi there!"'],
-			},
-			remove: { summary: "Remove an auto-response trigger.", examples: ["/autorespond remove trigger:hello"] },
-			list: { summary: "List all configured auto-responses.", examples: ["/autorespond list"] },
-		},
 	},
-	// Minecraft (1)
 	{
 		name: "/minecraft",
-		description: "Show the status of our Minecraft server at mc.bhayanak.net and browse recommended mods.",
+		description: "Show the status of mc.bhayanak.net, the live map, Homestead version, and recommended mods.",
 		examples: ["/minecraft"],
 		category: "minecraft",
 	},
 ];
+
+export const slugForCommand = (name: string) =>
+	name
+		.replace(/^\//, "")
+		.replaceAll("_", "-")
+		.replace(/[^a-z0-9-]/gi, "-")
+		.toLowerCase();
+
+export const syntaxForCommand = (command: Command) =>
+	command.examples[0]?.replace(/\s+[^\s]+:/g, " <arg>") ?? command.name;
+
+export const COMMANDS: CommandDoc[] = RAW_COMMANDS.map((command) => ({
+	...command,
+	slug: slugForCommand(command.name),
+	syntax: syntaxForCommand(command),
+}));
+
+export const COMMANDS_BY_CATEGORY = CATEGORIES.map((category) => ({
+	...category,
+	items: COMMANDS.filter((command) => command.category === category.id),
+}));
+
+export const TOTAL_COMMANDS = COMMANDS.length;
+export const TOTAL_CATEGORIES = CATEGORIES.length;
+
+export const findCommand = (slug: string) => COMMANDS.find((command) => command.slug === slug);
+export const findCategory = (id: string) => CATEGORIES.find((category) => category.id === id);

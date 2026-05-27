@@ -1,0 +1,30 @@
+---
+name: "/play"
+cat: "Music"
+tags: ["VOICE", "QUEUE"]
+summary: "Queue a track or playlist by URL or search query. BhayanakBot joins your voice channel and starts playback."
+syntax:
+  cmd: "/play"
+  args:
+    - { n: "query", d: "URL or search text", req: true, t: "string" }
+examples:
+  - label: "search"
+    tag: "QUEUED"
+    tagBg: "#facc15"
+    user: "rhea"
+    userColor: "#facc15"
+    input: "query:midnight city"
+    time: "14:31"
+    botSays: "queued 1 track. now playing."
+    reactions: [{ e: "🎶", n: 2 }]
+    embedAccent: "#facc15"
+    embedTitle: "Now Playing · Midnight City"
+    embedFooter: "use /controls for buttons"
+    embedRows:
+      - ["Duration", "4:03"]
+      - ["Source", "YouTube"]
+related:
+  - { n: "/queue", d: "Show what is coming up" }
+  - { n: "/controls", d: "Playback buttons" }
+  - { n: "/volume", d: "Set output volume" }
+---

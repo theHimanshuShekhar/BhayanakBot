@@ -1,0 +1,112 @@
+---
+import { getCollection } from "astro:content";
+import { COMMANDS_BY_CATEGORY, TOTAL_CATEGORIES, TOTAL_COMMANDS } from "~/data/commands";
+import SiteLayout from "~/layouts/SiteLayout.astro";
+
+const detailed = await getCollection("commands");
+const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/, "")));
+---
+
+<SiteLayout title="Commands — BhayanakBot" active="commands">
+	<div class="flex min-h-screen max-md:block">
+		<aside class="sticky top-[53px] h-[calc(100vh-53px)] w-64 self-start overflow-y-auto border-r-2 border-border px-8 pt-8 pb-8 max-md:hidden">
+			<div class="mb-3 font-mono text-[10px] uppercase tracking-[1px] text-fg/40">{TOTAL_COMMANDS} commands · {TOTAL_CATEGORIES} categories</div>
+			<button type="button" class="a-side is-active -ml-2.5 flex w-[calc(100%+10px)] cursor-pointer items-center justify-between bg-accent px-2.5 py-1.5 text-left font-mono text-[12px] font-bold text-bg" data-cat="all">all commands</button>
+			{COMMANDS_BY_CATEGORY.map((category) => (
+				<button type="button" class="a-side -ml-2.5 flex w-[calc(100%+10px)] cursor-pointer items-center justify-between bg-transparent px-2.5 py-1.5 text-left font-mono text-[12px] font-medium text-fg" data-cat={category.id}>
+					<span>{category.label.toLowerCase()}</span><span class="text-[10px] opacity-50">{category.items.length}</span>
+				</button>
+			))}
+		</aside>
+
+		<div class="hidden sticky top-[53px] z-10 gap-1.5 overflow-x-auto border-b-2 border-border bg-bg py-2.5 pl-5 max-md:flex [scrollbar-width:none]">
+			<button type="button" class="a-tab is-active shrink-0 border-[1.5px] border-accent bg-accent px-3.5 py-2 font-mono text-[12px] font-bold tracking-[0.3px] text-bg" data-cat="all">all · {TOTAL_COMMANDS}</button>
+			{COMMANDS_BY_CATEGORY.map((category) => (
+				<button type="button" class="a-tab shrink-0 border-[1.5px] border-border bg-transparent px-3.5 py-2 font-mono text-[12px] font-bold tracking-[0.3px] text-fg/70" data-cat={category.id}>{category.label.toLowerCase()} · {category.items.length}</button>
+			))}
+		</div>
+
+		<div class="min-w-0 flex-1 px-8 pt-8 pb-20 max-md:px-5 max-md:pt-6 max-md:pb-16">
+			<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">docs / commands</div>
+			<h1 class="mt-1 mb-3.5 text-[64px] leading-[0.95] font-black -tracking-[2px] uppercase max-md:text-[40px] max-md:-tracking-[1px]">every command,<br />every <span class="text-accent">flag</span>.</h1>
+			<p class="mb-8 max-w-[560px] text-[15px] leading-[1.5] text-fg/60 max-md:text-[14px]">All {TOTAL_COMMANDS} current commands are tracked here. Update this catalog whenever bot command behavior changes.</p>
+
+			<div class="mb-8 flex items-center gap-2.5 border-2 border-border bg-bg-panel px-4 py-3">
+				<span class="font-mono text-[14px] text-accent">&gt;</span>
+				<input id="cmd-filter" autocomplete="off" placeholder="filter commands…" class="min-w-0 flex-1 border-none bg-transparent font-mono text-[14px] text-fg outline-none max-md:text-[13px]" />
+				<kbd class="font-mono text-[11px] text-fg/40 max-md:hidden">⌘K</kbd>
+			</div>
+
+			<div id="cmd-list">
+				{COMMANDS_BY_CATEGORY.map((category) => (
+					<section class="mb-12 max-md:mb-8" data-cat-section={category.id}>
+						<div class="mb-3.5 flex items-center gap-3">
+							<h2 class="m-0 text-[28px] font-black -tracking-[0.5px] uppercase max-md:text-[22px]">{category.label}</h2>
+							<div class="h-0.5 flex-1 bg-accent opacity-40"></div>
+							<span class="font-mono text-[11px] text-fg/40">{category.items.length} commands</span>
+						</div>
+						<div class="grid grid-cols-2 border-2 border-border max-md:grid-cols-1">
+							{category.items.map((command, index) => {
+								const documented = detailedSlugs.has(command.slug);
+								const isLeftCol = index % 2 === 0;
+								const isLastRow = Math.floor(index / 2) === Math.floor((category.items.length - 1) / 2);
+								return (
+									<a href={`/commands/${command.slug}`} data-name={command.name.toLowerCase()} data-desc={command.description.toLowerCase()} class:list={["card a-card-lift bg-bg-panel p-5 text-fg", isLeftCol && "border-r-2 border-border max-md:border-r-0", !isLastRow && "border-b-2 border-border", "max-md:p-4"]}>
+										<div class="mb-1.5 flex items-baseline justify-between gap-2">
+											<code class="font-mono text-[15px] font-bold text-accent max-md:text-[14px]">{command.name}</code>
+											<span class="flex items-center gap-2">{documented && <span class="font-mono text-[9px] font-bold tracking-[0.5px] text-success">FULL DOCS</span>}<span class="font-mono text-[10px] text-fg/30">→</span></span>
+										</div>
+										<div class="mb-2 text-[13px] leading-[1.4] text-fg/65">{command.description}</div>
+										<code class="font-mono text-[11px] text-fg/45">{command.syntax}</code>
+									</a>
+								);
+							})}
+						</div>
+					</section>
+				))}
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const input = document.getElementById("cmd-filter") as HTMLInputElement | null;
+		const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-cat-section]"));
+		const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-cat]"));
+		let activeCat = "all";
+
+		function updateActiveButtons() {
+			buttons.forEach((button) => {
+				const active = button.dataset.cat === activeCat;
+				button.classList.toggle("is-active", active);
+				button.classList.toggle("bg-accent", active);
+				button.classList.toggle("text-bg", active);
+				button.classList.toggle("border-accent", active);
+				button.classList.toggle("bg-transparent", !active);
+				button.classList.toggle("text-fg", !active);
+			});
+		}
+
+		function rerender() {
+			const query = (input?.value ?? "").toLowerCase().trim();
+			sections.forEach((section) => {
+				let anyVisible = false;
+				const sectionCat = section.dataset.catSection;
+				section.querySelectorAll<HTMLElement>(".card").forEach((card) => {
+					const matchesCat = activeCat === "all" || activeCat === sectionCat;
+					const matchesQuery = !query || (card.dataset.name ?? "").includes(query) || (card.dataset.desc ?? "").includes(query);
+					const visible = matchesCat && matchesQuery;
+					card.style.display = visible ? "" : "none";
+					anyVisible = anyVisible || visible;
+				});
+				section.style.display = anyVisible ? "" : "none";
+			});
+		}
+
+		input?.addEventListener("input", rerender);
+		buttons.forEach((button) => button.addEventListener("click", () => {
+			activeCat = button.dataset.cat ?? "all";
+			updateActiveButtons();
+			rerender();
+		}));
+	</script>
+</SiteLayout>

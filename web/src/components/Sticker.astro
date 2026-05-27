@@ -1,0 +1,20 @@
+---
+interface Props {
+	rot?: number;
+	bg?: string;
+	color?: string;
+	size?: "sm" | "md";
+}
+
+const { rot = -4, bg = "var(--color-accent-yellow)", color = "var(--color-bg)", size = "md" } = Astro.props;
+---
+
+<span
+	class:list={[
+		"inline-flex w-fit items-center border-2 border-bg font-mono font-extrabold uppercase tracking-[0.7px] shadow-[3px_3px_0_var(--color-bg)]",
+		size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-[11px]",
+	]}
+	style={`background: ${bg}; color: ${color}; transform: rotate(${rot}deg);`}
+>
+	<slot />
+</span>

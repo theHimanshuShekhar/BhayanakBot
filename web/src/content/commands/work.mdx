@@ -1,0 +1,31 @@
+---
+name: "/work"
+cat: "RPG · economy"
+tags: ["SAFE", "COOLDOWN"]
+summary: "Take an honest job. Outcomes scale with your stats and tools."
+syntax:
+  cmd: "/work"
+  args:
+    - { n: "job", d: "Job to perform", req: true, t: "enum" }
+variants:
+  - { n: "miner", risk: 15, pay: "medium", stat: "STR", d: "Stable coin payouts with rare drops." }
+  - { n: "hacker", risk: 25, pay: "high", stat: "INT", d: "Higher payout and better flavor text." }
+examples:
+  - label: "job"
+    tag: "WIN"
+    tagBg: "#22c55e"
+    user: "mona"
+    userColor: "#22c55e"
+    input: "job:miner"
+    time: "07:14"
+    botSays: "you found three rocks and one suspiciously shiny pebble. capitalism."
+    embedAccent: "#22c55e"
+    embedTitle: "Work · Success"
+    embedRows:
+      - ["Payout", "+94 coins", "#22c55e"]
+      - ["XP", "+18"]
+related:
+  - { n: "/crime", d: "Higher variance income" }
+  - { n: "/shop", d: "Buy tools" }
+  - { n: "/train", d: "Improve stats" }
+---

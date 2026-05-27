@@ -1,0 +1,28 @@
+---
+name: "/personality"
+cat: "AI · personality"
+tags: ["AI", "OPT-IN"]
+summary: "View the personality profile BhayanakBot has built for a user or guild."
+syntax:
+  cmd: "/personality"
+  args:
+    - { n: "user", d: "User profile to view", req: false, t: "@user" }
+examples:
+  - label: "profile"
+    tag: "VIBE"
+    tagBg: "#a78bfa"
+    user: "parth"
+    userColor: "#a78bfa"
+    input: "user:@parth"
+    time: "19:14"
+    botSays: "here is your vibe report. regrettably accurate."
+    embedAccent: "#a78bfa"
+    embedTitle: "Personality · @parth"
+    embedRows:
+      - ["Top trait", "contrarian"]
+      - ["Vocab", "meme-forward"]
+related:
+  - { n: "/config", d: "Toggle profiling" }
+  - { n: "/summarize", d: "AI channel summaries" }
+  - { n: "/userinfo", d: "Account info" }
+---

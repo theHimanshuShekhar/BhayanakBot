@@ -1,0 +1,28 @@
+---
+name: "/train"
+cat: "RPG · stats"
+tags: ["STATS", "COOLDOWN"]
+summary: "Train one of your RPG stats to improve work and crime outcomes."
+syntax:
+  cmd: "/train"
+  args:
+    - { n: "stat", d: "Stat to train", req: true, t: "enum" }
+examples:
+  - label: "stat"
+    tag: "+1"
+    tagBg: "#facc15"
+    user: "dev_kaz"
+    userColor: "#60a5fa"
+    input: "stat:agility"
+    time: "08:02"
+    botSays: "you ran around the discord building 17 times. agility goes up."
+    embedAccent: "#facc15"
+    embedTitle: "Training · Agility"
+    embedRows:
+      - ["New AGI", "63 -> 64", "#facc15"]
+      - ["XP", "+12"]
+related:
+  - { n: "/profile", d: "See current stats" }
+  - { n: "/crime", d: "Use stat rolls" }
+  - { n: "/work", d: "Unlock better jobs" }
+---

@@ -1,0 +1,90 @@
+---
+import BotEmbed from "~/components/BotEmbed.astro";
+import ChatMessage from "~/components/ChatMessage.astro";
+import SceneCard from "~/components/SceneCard.astro";
+import StatStrip from "~/components/StatStrip.astro";
+import Sticker from "~/components/Sticker.astro";
+import { stats } from "~/data/stats";
+import SiteLayout from "~/layouts/SiteLayout.astro";
+---
+
+<SiteLayout title="BhayanakBot — your server's worst behavior, automated" active="home">
+	<section class="relative overflow-hidden px-8 pt-20 pb-15 max-md:px-5 max-md:pt-12 max-md:pb-9">
+		<div class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(245_245_240_/_0.06)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:linear-gradient(180deg,#000_30%,transparent_100%)]"></div>
+		<div class="relative mx-auto max-w-[1180px]">
+			<div class="mb-6 flex flex-wrap items-center gap-2.5 max-md:mb-4">
+				<span class="a-status-dot-live h-2 w-2 rounded-full bg-success shadow-[0_0_8px_var(--color-success)]"></span>
+				<span class="font-mono text-[12px] tracking-[0.5px] text-fg/70 max-md:text-[11px]">online · {stats.servers.toLocaleString()} servers · {stats.latencyMs}ms latency</span>
+			</div>
+			<h1 class="m-0 text-[128px] leading-[0.88] font-black -tracking-[4px] uppercase max-md:text-[56px] max-md:-tracking-[1.5px]">
+				your server's<br /><span class="text-accent">worst behavior</span>,<br />automated.
+			</h1>
+			<div class="mt-8 flex flex-wrap items-center gap-6 max-md:mt-5 max-md:gap-4">
+				<p class="m-0 max-w-[520px] text-[18px] leading-[1.5] text-fg/70 max-md:text-[15px]">A Discord bot with RPG economy, music, moderation, leveling, tickets, giveaways, Minecraft status, and an AI that learns your server's personality.</p>
+				<Sticker rot={6}>NO ADS · NO PAYWALL</Sticker>
+			</div>
+			<div class="mt-10 flex flex-wrap items-center gap-3 max-md:mt-7 max-md:gap-2.5">
+				<a href="https://discord.com/oauth2/authorize" class="a-press border-2 border-bg bg-accent px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">+ Add to Discord</a>
+				<a href="/commands" class="a-ghost border-2 border-fg px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-fg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">Read the docs →</a>
+				<span class="font-mono text-[12px] text-fg/50 max-md:hidden">★ free · self-hostable · MIT</span>
+			</div>
+		</div>
+	</section>
+
+	<StatStrip stats={[{ value: stats.servers.toLocaleString(), label: "active servers" }, { value: String(stats.commands), label: `${stats.categories} categories` }, { value: stats.crimes, label: "crimes committed", accent: true }, { value: `${stats.latencyMs}ms`, label: "median latency" }]} />
+
+	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
+		<div class="mb-8 flex flex-wrap items-end justify-between gap-6 max-md:flex-col max-md:items-start">
+			<div>
+				<Sticker rot={-3} bg="var(--color-accent)" color="var(--color-bg)">SEE IT IN ACTION</Sticker>
+				<h2 class="mt-4 mb-0 text-[56px] leading-[0.95] font-black -tracking-[2px] max-md:text-[32px] max-md:-tracking-[1px]">one bot.<br />fourteen kinds of chaos.</h2>
+			</div>
+			<p class="max-w-[360px] text-[15px] leading-[1.5] text-fg/60 max-md:text-[14px]">Every command is slash-first, every system has logs, and the personality engine makes the bot sound like it belongs in your server.</p>
+		</div>
+		<div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+			<SceneCard channel="economy" tag="RPG">
+				<ChatMessage user="mona" userColor="#facc15" time="today at 14:22"><code class="font-mono text-accent">/crime</code> job:heist</ChatMessage>
+				<ChatMessage user="BhayanakBot" bot time="today at 14:22">you brought a banana wrapped in foil. security respected the bit and still arrested you.<BotEmbed title="Crime · Failed" footer="Bail: 2,400 coins · try /work next time"><div class="grid grid-cols-2 gap-2"><div>Sentence <strong>00:14:32</strong></div><div>Reputation <strong class="text-accent">-12</strong></div></div></BotEmbed></ChatMessage>
+			</SceneCard>
+			<SceneCard channel="voice" tag="MUSIC" tagColor="var(--color-accent-yellow)">
+				<ChatMessage user="rhea" userColor="#22c55e" time="today at 16:03"><code class="font-mono text-accent">/play</code> query:midnight city</ChatMessage>
+				<ChatMessage user="BhayanakBot" bot time="today at 16:03">queued. don't skip it at the drop.<BotEmbed accent="#facc15" title="Now Playing" footer="/controls for buttons">M83 · Midnight City · volume 85</BotEmbed></ChatMessage>
+			</SceneCard>
+			<SceneCard channel="general" tag="AI">
+				<ChatMessage user="parth" userColor="#60a5fa" time="today at 19:14"><code class="font-mono text-accent">/personality</code> user:@parth</ChatMessage>
+				<ChatMessage user="BhayanakBot" bot time="today at 19:14">top trait: contrarian. confidence: unfortunately high.<BotEmbed title="Personality · @parth">vocab: meme-forward · mood: chaotic good</BotEmbed></ChatMessage>
+			</SceneCard>
+			<SceneCard channel="mod-log" tag="MOD">
+				<ChatMessage user="BhayanakBot" bot time="today at 21:40"><BotEmbed accent="#22c55e" title="Case #128 · Warn">reason: mass mentions · moderator: @admin</BotEmbed></ChatMessage>
+				<ChatMessage user="admin" userColor="#a78bfa" time="today at 21:41"><code class="font-mono text-accent">/history</code> user:@spammer</ChatMessage>
+			</SceneCard>
+		</div>
+	</section>
+
+	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
+		<div class="grid grid-cols-[1.1fr_0.9fr] gap-10 border-2 border-border bg-bg-panel p-10 max-md:grid-cols-1 max-md:p-6">
+			<div>
+				<Sticker bg="var(--color-accent-yellow)" rot={-5}>FEATURED</Sticker>
+				<h2 class="mt-5 mb-4 text-[48px] leading-none font-black -tracking-[2px] uppercase max-md:text-[32px]">AI personality<br /><span class="text-accent">without the slop.</span></h2>
+				<p class="max-w-[540px] text-[15px] leading-[1.6] text-fg/65">BhayanakBot stores opt-in conversation context, builds user and guild vibe profiles, and uses them to make summaries and replies feel local to your server.</p>
+				<a href="/commands/personality" class="a-ghost mt-6 inline-flex border-2 border-border px-5 py-3 font-mono text-[12px] font-bold uppercase text-fg">read /personality docs →</a>
+			</div>
+			<div class="rotate-[0.4deg] border-2 border-border bg-bg">
+				<ChatMessage user="BhayanakBot" bot time="profile build"><BotEmbed title="Guild Personality">mood: unhinged but loyal · peak activity: 21:00 · recurring topic: hot dog discourse</BotEmbed></ChatMessage>
+			</div>
+		</div>
+	</section>
+
+	<section class="mx-auto my-20 grid max-w-[1180px] grid-cols-3 border-2 border-border max-md:grid-cols-1">
+		{[
+			["RPG", "Persistent economy, stats, pets, property, daily quests, jail, and jobs."],
+			["MOD", "Cases, history, anti-spam actions, mutes, tempbans, logs, and audit listeners."],
+			["AI", "Summaries, personality profiles, mention replies, and contextual autoresponses."],
+		].map(([title, body], index) => (
+			<div class:list={["bg-bg-panel p-7", index < 2 && "border-r-2 border-border max-md:border-r-0 max-md:border-b-2"]}>
+				<div class="font-mono text-[11px] font-bold uppercase tracking-[1px] text-accent">{title}</div>
+				<p class="mt-4 mb-0 text-[15px] leading-[1.55] text-fg/65">{body}</p>
+			</div>
+		))}
+	</section>
+</SiteLayout>

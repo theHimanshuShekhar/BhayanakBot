@@ -1,0 +1,22 @@
+---
+interface Stat {
+	value: string;
+	label: string;
+	accent?: boolean;
+}
+
+interface Props {
+	stats: Stat[];
+}
+
+const { stats } = Astro.props;
+---
+
+<section class="mx-auto grid w-[calc(100%-64px)] max-w-[1180px] grid-cols-4 gap-8 border-y-2 border-border bg-bg-panel px-8 py-6 max-md:w-full max-md:grid-cols-2 max-md:gap-4 max-md:px-5 max-md:py-5">
+	{stats.map((stat) => (
+		<div>
+			<div class:list={["font-display text-[36px] font-black -tracking-[1px] max-md:text-[26px]", stat.accent ? "text-accent" : "text-fg"]}>{stat.value}</div>
+			<div class="mt-1 font-mono text-[11px] uppercase tracking-[0.5px] text-fg/50 max-md:text-[10px]">{stat.label}</div>
+		</div>
+	))}
+</section>

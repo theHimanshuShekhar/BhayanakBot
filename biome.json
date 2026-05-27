@@ -22,6 +22,11 @@
 			"semicolons": "always"
 		}
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"files": {
 		"ignoreUnknown": true,
 		"includes": ["src/**", "web/src/**", "tests/**"]

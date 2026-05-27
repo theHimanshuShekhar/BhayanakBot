@@ -21,8 +21,8 @@ pnpm db:generate    # Generate migration files
 pnpm db:migrate     # Run migrations
 pnpm db:studio      # Open Drizzle Studio UI
 
-pnpm web:dev        # Run the web frontend with Vite
-pnpm web:build      # Build the web frontend to web/dist/
+pnpm web:dev        # Run the Astro web frontend
+pnpm web:build      # Build the Astro web frontend to web/dist/
 ```
 
 Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_URL` at `TEST_DATABASE_URL` or `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test`, then runs migrations if that database is reachable. Integration tests may fail if the test Postgres database is not running.
@@ -72,15 +72,16 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 ## Web Frontend
 
-The `web/` directory is a separate React frontend built with Vite, React 19, Tailwind CSS v4, and TanStack Router.
+The `web/` directory is a separate Astro static site built with Astro, MDX content collections, and Tailwind CSS v4.
 
 - Source lives in `web/src/`.
-- Routes live in `web/src/routes/`.
-- Generated route tree is `web/src/routeTree.gen.ts`.
+- Pages live in `web/src/pages/`.
 - Command catalog data is in `web/src/data/commands.ts`.
+- Rich command detail docs live in `web/src/content/commands/`.
 - Components live in `web/src/components/`.
-- `pnpm web:dev` runs Vite with `web/vite.config.ts`.
+- `pnpm web:dev` runs Astro with `web/astro.config.mjs`.
 - `pnpm web:build` outputs to `web/dist/`.
+- When any Discord command is added, deleted, renamed, or behaviorally modified, update the web command catalog and relevant command docs in the same change.
 
 The web app is not included in the bot TypeScript build because the root `tsconfig.json` only includes `src/**/*`.
 

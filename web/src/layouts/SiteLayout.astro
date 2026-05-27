@@ -1,0 +1,60 @@
+---
+import "~/styles/global.css";
+import Footer from "~/components/Footer.astro";
+import Nav from "~/components/Nav.astro";
+
+interface Props {
+	title?: string;
+	description?: string;
+	active?: "home" | "commands" | "setup" | "changelog" | "status";
+}
+
+const {
+	title = "BhayanakBot",
+	description = "A Discord bot with RPG economy, music, moderation, server systems, and AI personality features.",
+	active = "home",
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://bhayanakbot.gg").toString();
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "SoftwareApplication",
+	name: "BhayanakBot",
+	applicationCategory: "CommunicationApplication",
+	operatingSystem: "Discord",
+	description,
+	url: Astro.site?.toString() ?? "https://bhayanakbot.gg",
+	offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<link rel="canonical" href={canonical} />
+		<title>{title}</title>
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800;900&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="bg-bg text-fg font-display antialiased">
+		<Nav active={active} />
+		<main class="a-page-enter min-h-[calc(100vh-180px)]">
+			<slot />
+		</main>
+		<Footer />
+	</body>
+</html>

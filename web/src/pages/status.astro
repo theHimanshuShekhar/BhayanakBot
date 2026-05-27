@@ -1,0 +1,37 @@
+---
+import StatStrip from "~/components/StatStrip.astro";
+import { stats } from "~/data/stats";
+import SiteLayout from "~/layouts/SiteLayout.astro";
+
+const services = [
+	{ name: "Discord gateway", status: "operational", latency: "41ms" },
+	{ name: "Postgres", status: "operational", latency: "8ms" },
+	{ name: "Valkey queue", status: "operational", latency: "3ms" },
+	{ name: "Ollama", status: "degraded", latency: "210ms" },
+];
+const spark = Array.from({ length: 60 }, (_, index) => (index % 23 === 0 ? "bg-warning" : "bg-success"));
+---
+
+<SiteLayout title="Status — BhayanakBot" active="status">
+	<section class="mx-auto max-w-[1180px] px-8 py-16 max-md:px-5 max-md:py-10">
+		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">live-ish status</div>
+		<h1 class="mt-2 mb-8 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px]">systems are<br /><span class="text-accent">mostly fine.</span></h1>
+	</section>
+	<StatStrip stats={[{ value: stats.uptime, label: "30d uptime", accent: true }, { value: "0", label: "open incidents" }, { value: `${stats.latencyMs}ms`, label: "median latency" }, { value: "4/4", label: "active shards" }]} />
+	<section class="mx-auto max-w-[1180px] px-8 py-12 max-md:px-5">
+		<div class="space-y-3">
+			{services.map((service) => (
+				<div class="grid grid-cols-[220px_140px_80px_1fr] items-center gap-4 border-2 border-border bg-bg-panel px-5 py-4 max-md:grid-cols-1">
+					<div class="font-mono text-[13px] font-bold text-fg">{service.name}</div>
+					<div class="flex items-center gap-2 font-mono text-[12px] text-fg/60"><span class:list={["h-2 w-2 rounded-full", service.status === "operational" ? "bg-success" : "bg-warning"]}></span>{service.status}</div>
+					<div class="font-mono text-[12px] text-fg/45">{service.latency}</div>
+					<div class="flex h-8 items-end gap-0.5">{spark.map((bar) => <span class:list={["h-6 w-[3px]", bar]}></span>)}</div>
+				</div>
+			))}
+		</div>
+		<div class="mt-8 border-2 border-border bg-bg-panel p-5">
+			<div class="mb-3 font-mono text-[11px] font-bold uppercase tracking-[1px] text-accent">recent incidents</div>
+			<p class="m-0 text-[14px] text-fg/60">No active incidents. Ollama can be slower during cold starts.</p>
+		</div>
+	</section>
+</SiteLayout>

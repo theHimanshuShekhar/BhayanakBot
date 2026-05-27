@@ -1,0 +1,99 @@
+---
+import BotAvatar from "./BotAvatar.astro";
+
+interface Props {
+	active: "home" | "commands" | "setup" | "changelog" | "status";
+}
+
+const { active } = Astro.props;
+const links = [
+	{ id: "home", href: "/", label: "home" },
+	{ id: "commands", href: "/commands", label: "commands" },
+	{ id: "setup", href: "/setup", label: "setup" },
+	{ id: "changelog", href: "/changelog", label: "changelog" },
+	{ id: "status", href: "/status", label: "status" },
+] as const;
+---
+
+<nav class="sticky top-0 z-50 border-b-2 border-border bg-bg" data-nav>
+	<div class="flex items-center justify-between gap-4 px-8 py-3.5 max-md:px-5">
+		<a href="/" class="flex items-center gap-2.5">
+			<BotAvatar size={30} />
+			<span class="font-display text-[22px] font-black -tracking-[0.5px] text-fg">
+				Bhayanak<span class="text-accent">Bot</span>
+			</span>
+			<span class="font-mono text-[10px] uppercase tracking-[1px] text-fg/40 max-md:hidden">v2.7</span>
+		</a>
+
+		<div class="flex gap-0.5 max-md:hidden">
+			{links.map((link) => (
+				<a
+					href={link.href}
+					class:list={[
+						"a-nav-link px-3 py-2 font-mono text-[13px] font-semibold",
+						active === link.id ? "is-active text-accent" : "text-fg/60 hover:text-fg",
+					]}
+				>
+					{link.label}
+				</a>
+			))}
+		</div>
+
+		<a
+			href="https://discord.com/oauth2/authorize"
+			class="a-press bg-accent px-[18px] py-2.5 font-mono text-[12px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:hidden"
+			style="--press-rest-shadow: 3px 3px 0 var(--color-fg); --press-hover-shadow: 1.5px 1.5px 0 var(--color-fg);"
+		>
+			+ Add to Discord
+		</a>
+
+		<button
+			type="button"
+			aria-label="Open menu"
+			class="hidden h-[38px] w-[38px] flex-col items-center justify-center gap-1 border-2 border-border bg-transparent p-0 max-md:flex"
+			data-burger
+		>
+			<span class="h-0.5 w-4 bg-fg transition-transform duration-150"></span>
+			<span class="h-0.5 w-4 bg-fg transition-opacity duration-150"></span>
+			<span class="h-0.5 w-4 bg-fg transition-transform duration-150"></span>
+		</button>
+	</div>
+
+	<div class="hidden border-t-2 border-border bg-bg px-5 pt-3 pb-5 max-md:block" data-sheet hidden>
+		{links.map((link) => (
+			<a
+				href={link.href}
+				class:list={[
+					"a-tab mb-1 block w-full px-3.5 py-3 text-left font-mono text-[14px] font-bold tracking-[0.3px]",
+					active === link.id ? "is-active bg-accent text-bg" : "text-fg",
+				]}
+			>
+				{link.label}
+			</a>
+		))}
+		<a
+			href="https://discord.com/oauth2/authorize"
+			class="a-press mt-2 block w-full bg-accent px-[18px] py-3.5 text-center font-mono text-[13px] font-extrabold uppercase tracking-[0.5px] text-bg"
+			style="--press-rest-shadow: 3px 3px 0 var(--color-fg); --press-hover-shadow: 1.5px 1.5px 0 var(--color-fg);"
+		>
+			+ Add to Discord
+		</a>
+	</div>
+</nav>
+
+<script>
+	const nav = document.querySelector("[data-nav]");
+	const burger = nav?.querySelector("[data-burger]");
+	const sheet = nav?.querySelector("[data-sheet]") as HTMLElement | null;
+	burger?.addEventListener("click", () => {
+		const open = sheet?.hasAttribute("hidden") ?? true;
+		if (!sheet) return;
+		if (open) {
+			sheet.removeAttribute("hidden");
+			sheet.classList.add("a-sheet-enter");
+		} else {
+			sheet.setAttribute("hidden", "");
+			sheet.classList.remove("a-sheet-enter");
+		}
+	});
+</script>

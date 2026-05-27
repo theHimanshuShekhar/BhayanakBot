@@ -88,6 +88,18 @@ services:
     networks:
       - botnet
 
+  web:
+    build:
+      context: .
+      target: production
+    container_name: bhayanak_bot_web
+    restart: unless-stopped
+    command: sh -c "pnpm web:build && pnpm web:preview -- --host 0.0.0.0 --port 4321"
+    ports:
+      - "${WEB_PORT:-4321}:4321"
+    networks:
+      - botnet
+
 networks:
   botnet:
     driver: bridge
