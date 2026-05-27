@@ -39,3 +39,7 @@ A `/guess_who` round can stay active for up to ten minutes in its channel. If no
 ## Source Message Link
 
 A Discord jump link to the original message represented by an archived channel message. Game reveals use this link so players can inspect the source message after the author is revealed.
+
+## Public Bot Stats Snapshot
+
+A database-stored set of public marketing-site metrics written by the running bot after startup. The web app reads the latest snapshot from the database. If the bot is offline or fails to start, the web app may continue showing the most recent stored snapshot as stale data instead of inventing fallback numbers.
