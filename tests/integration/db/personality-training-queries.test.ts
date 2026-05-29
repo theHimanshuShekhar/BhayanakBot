@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+	isArchivedChannelMessageDeleted,
 	markArchivedChannelMessageDeleted,
 	upsertArchivedChannelMessage,
 } from "../../../src/db/queries/archivedChannelMessages.js";
@@ -153,6 +154,10 @@ describe("personality training database queries", () => {
 			messageId: "pt-user-edited",
 			content: "Latest edited archived content for training.",
 		});
+	});
+
+	it("reports missing archive rows as not deleted", async () => {
+		await expect(isArchivedChannelMessageDeleted("pt-missing-row")).resolves.toBe(false);
 	});
 
 	it("excludes backfilled archive rows that are numeric emoji-only or URL-dominated", async () => {

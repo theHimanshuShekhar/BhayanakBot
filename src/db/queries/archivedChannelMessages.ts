@@ -84,7 +84,7 @@ export async function isArchivedChannelMessageDeleted(messageId: string): Promis
 		columns: { deletedAt: true },
 		where: eq(archivedChannelMessages.messageId, messageId),
 	});
-	return row?.deletedAt !== null;
+	return row?.deletedAt != null;
 }
 
 export async function getRandomGuessWhoMessage(input: {
