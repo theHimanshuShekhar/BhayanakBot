@@ -328,6 +328,21 @@ export const RAW_COMMANDS: Command[] = [
 		category: "utility",
 		usageNotes:
 			"Refresh runs an incremental update from eligible archived training evidence and reports if it is skipped. Server administrators can disable personality profiling with /config.",
+		subcommands: {
+			"view user": {
+				summary: "View your own user personality profile or another member's profile.",
+				examples: ["/personality view user", "/personality view user user:@someone"],
+			},
+			"view guild": { summary: "View this server's culture profile.", examples: ["/personality view guild"] },
+			"refresh user": {
+				summary: "Refresh a user's personality profile from new archive evidence.",
+				examples: ["/personality refresh user user:@someone"],
+			},
+			"refresh guild": {
+				summary: "Refresh this server's culture profile from new archive evidence.",
+				examples: ["/personality refresh guild"],
+			},
+		},
 	},
 	{
 		name: "/help",
@@ -438,6 +453,16 @@ export const RAW_COMMANDS: Command[] = [
 		],
 		category: "roles",
 		usageNotes: "type can be normal, toggle, or unique.",
+		subcommands: {
+			add: {
+				summary: "Attach a reaction role to a message.",
+				examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"],
+			},
+			remove: {
+				summary: "Remove a reaction role from a message.",
+				examples: ["/reactionrole remove message-id:123456 emoji:👍"],
+			},
+		},
 	},
 	{
 		name: "/rolemenu",
@@ -449,6 +474,14 @@ export const RAW_COMMANDS: Command[] = [
 			"/rolemenu delete message-id:123456",
 		],
 		category: "roles",
+		subcommands: {
+			create: { summary: "Create a role selection menu in a channel.", examples: ["/rolemenu create channel:#roles"] },
+			"add-option": {
+				summary: "Add a role option to an existing menu.",
+				examples: ["/rolemenu add-option message-id:123456 role:@Gamer label:Gamer"],
+			},
+			delete: { summary: "Delete an existing role menu.", examples: ["/rolemenu delete message-id:123456"] },
+		},
 	},
 	{
 		name: "/giveaway",
@@ -459,6 +492,14 @@ export const RAW_COMMANDS: Command[] = [
 			"/giveaway reroll message-id:123456",
 		],
 		category: "giveaway",
+		subcommands: {
+			start: {
+				summary: "Start a timed giveaway in the current channel.",
+				examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
+			},
+			end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
+			reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
+		},
 	},
 	{
 		name: "/suggest",
@@ -471,6 +512,16 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Approve or deny a submitted suggestion.",
 		examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 reason:Out of scope"],
 		category: "suggestions",
+		subcommands: {
+			approve: {
+				summary: "Approve a suggestion with an optional response.",
+				examples: ["/suggestion approve id:5 response:Love this idea!"],
+			},
+			deny: {
+				summary: "Deny a suggestion with an optional reason.",
+				examples: ["/suggestion deny id:3 reason:Out of scope"],
+			},
+		},
 	},
 	{
 		name: "/config",
@@ -481,6 +532,21 @@ export const RAW_COMMANDS: Command[] = [
 			"/config automod setting:spam-threshold number:5",
 		],
 		category: "config",
+		subcommands: {
+			view: { summary: "View current server configuration.", examples: ["/config view"] },
+			set: {
+				summary: "Set a channel, role, XP, message, personality, or random response setting.",
+				examples: ["/config set setting:log-channel channel:#mod-log"],
+			},
+			automod: {
+				summary: "Configure auto-moderation thresholds and actions.",
+				examples: ["/config automod setting:spam-threshold number:5"],
+			},
+			antiraid: {
+				summary: "Configure anti-raid join-rate protection.",
+				examples: ["/config antiraid setting:threshold number:10"],
+			},
+		},
 	},
 	{
 		name: "/autorespond",
@@ -493,6 +559,17 @@ export const RAW_COMMANDS: Command[] = [
 			"/autorespond remove trigger:hello",
 		],
 		category: "autorespond",
+		subcommands: {
+			add: {
+				summary: "Add a static or LLM-backed auto-response trigger.",
+				examples: [
+					'/autorespond add trigger:"hello" response:"Hi there!"',
+					'/autorespond add trigger:"bug" response:"Please file a bug report!" require-mention:true',
+				],
+			},
+			remove: { summary: "Remove an auto-response by trigger.", examples: ["/autorespond remove trigger:hello"] },
+			list: { summary: "List all configured auto-responses.", examples: ["/autorespond list"] },
+		},
 	},
 	{
 		name: "/minecraft",
