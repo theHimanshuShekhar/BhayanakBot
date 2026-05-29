@@ -5,12 +5,12 @@ import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedCh
 import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
 import { db } from "../../../src/lib/database.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
-import { callOllamaLowPriority } from "../../../src/lib/ollama.js";
+import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
 
-vi.mock("../../../src/lib/ollama.js", () => ({
-	callOllamaLowPriority: vi.fn(async () => "Profile summary without direct quotes."),
+vi.mock("../../../src/lib/llmProvider.js", () => ({
+	callBackgroundLlm: vi.fn(async () => "Profile summary without direct quotes."),
 }));
 
 const GUILD_ID = "builder-guild";
@@ -18,7 +18,7 @@ const CHANNEL_ID = GUESS_WHO_CHANNEL_ID;
 const NON_GENERAL_CHANNEL_ID = "builder-non-general";
 const USER_ID = "builder-user";
 
-const mockedCallOllamaLowPriority = vi.mocked(callOllamaLowPriority);
+const mockedCallBackgroundLlm = vi.mocked(callBackgroundLlm);
 
 async function cleanupBuilderRows(): Promise<void> {
 	await db.delete(archivedChannelMessages).where(eq(archivedChannelMessages.guildId, GUILD_ID));
@@ -133,7 +133,7 @@ function authorLabelForPromptContent(userPrompt: string, content: string): strin
 describe("personality profile builders", () => {
 	beforeEach(async () => {
 		await cleanupBuilderRows();
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 		container.logger = {
 			debug: vi.fn(),
 			warn: vi.fn(),
@@ -152,7 +152,7 @@ describe("personality profile builders", () => {
 		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 
 		expect(result.status).toBe("skipped_insufficient_evidence");
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect(await getBuilderProfile()).toBeUndefined();
 	});
 
@@ -162,7 +162,7 @@ describe("personality profile builders", () => {
 		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 
 		expect(result.status).toBe("built");
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 		expect((await getBuilderProfile())?.profile).toBe("Profile summary without direct quotes.");
 	});
 
@@ -181,7 +181,7 @@ describe("personality profile builders", () => {
 		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 
 		expect(result.status).toBe("skipped_cooldown");
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 	});
 
 	it("does not build a user profile from non-general-channel archived messages", async () => {
@@ -194,7 +194,7 @@ describe("personality profile builders", () => {
 
 		await buildPersonalityProfile(USER_ID, GUILD_ID);
 
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect(await getBuilderProfile()).toBeUndefined();
 	});
 
@@ -222,7 +222,7 @@ describe("personality profile builders", () => {
 
 		await buildPersonalityProfile(USER_ID, GUILD_ID);
 
-		const [systemPrompt, userPrompt] = mockedCallOllamaLowPriority.mock.calls[0] ?? [];
+		const [systemPrompt, userPrompt] = mockedCallBackgroundLlm.mock.calls[0] ?? [];
 		expect(`${systemPrompt}\n${userPrompt}`.toLowerCase()).toContain("do not quote source messages directly");
 	});
 
@@ -234,12 +234,12 @@ describe("personality profile builders", () => {
 			.update(userPersonalityProfiles)
 			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
 			.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 
 		await buildPersonalityProfile(USER_ID, GUILD_ID);
 
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
-		const userPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+		const userPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		expect(userPrompt).toContain("Current personality profile:");
 		expect(userPrompt).toContain("Profile summary without direct quotes.");
 		expect(userPrompt).toContain("Archived eligible message pi 000");
@@ -248,7 +248,7 @@ describe("personality profile builders", () => {
 
 	it("sets lastRefreshedAt after a null model result so an immediate retry is cooldowned", async () => {
 		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
-		mockedCallOllamaLowPriority.mockResolvedValueOnce(null);
+		mockedCallBackgroundLlm.mockResolvedValueOnce(null);
 
 		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 		const profileAfterFailure = await getBuilderProfile();
@@ -260,13 +260,13 @@ describe("personality profile builders", () => {
 		expect(profileAfterFailure?.lastRefreshedAt).toBeInstanceOf(Date);
 		expect(profileAfterFailure?.lastTrainingMessageAt).toBeNull();
 		expect(profileAfterFailure?.lastTrainingMessageId).toBeNull();
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not reduce newMessageCount to the capped fetched batch size after a null model result", async () => {
 		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
 		await db.insert(userPersonalityProfiles).values({ userId: USER_ID, guildId: GUILD_ID, newMessageCount: 125 });
-		mockedCallOllamaLowPriority.mockResolvedValueOnce(null);
+		mockedCallBackgroundLlm.mockResolvedValueOnce(null);
 
 		await buildPersonalityProfile(USER_ID, GUILD_ID);
 
@@ -279,7 +279,7 @@ describe("personality profile builders", () => {
 		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
 		expect(result.status).toBe("skipped_insufficient_evidence");
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect(await getGuildBuilderProfile()).toBeUndefined();
 	});
 
@@ -289,7 +289,7 @@ describe("personality profile builders", () => {
 		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
 		expect(result.status).toBe("built");
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 		expect((await getGuildBuilderProfile())?.profile).toBe("Profile summary without direct quotes.");
 	});
 
@@ -307,7 +307,7 @@ describe("personality profile builders", () => {
 		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
 		expect(result.status).toBe("skipped_cooldown");
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 	});
 
 	it("does not build a guild profile from non-general-channel archived messages", async () => {
@@ -324,7 +324,7 @@ describe("personality profile builders", () => {
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect(await getGuildBuilderProfile()).toBeUndefined();
 	});
 
@@ -345,7 +345,7 @@ describe("personality profile builders", () => {
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect((await getGuildBuilderProfile())?.lastTrainingMessageId).toBe("seed000");
 	});
 
@@ -354,8 +354,8 @@ describe("personality profile builders", () => {
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
-		const userPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+		const userPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		for (const count of countPromptLinesByAuthor(userPrompt).values()) {
 			expect(count).toBeLessThanOrEqual(10);
 		}
@@ -367,7 +367,7 @@ describe("personality profile builders", () => {
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		const userPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		const userPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		expect(authorLabelForPromptContent(userPrompt, "guild gb000 context")).toMatch(/^Author \d+(?:\.\d+)?$/);
 		expect(authorLabelForPromptContent(userPrompt, "guild gb001 context")).toMatch(/^Author \d+(?:\.\d+)?$/);
 		expect(userPrompt).not.toContain("author-00");
@@ -377,7 +377,7 @@ describe("personality profile builders", () => {
 	it("keeps anonymized guild author labels stable across incremental builds", async () => {
 		await archiveGuildMessages({ count: 200, idPrefix: "gs", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
 		await buildGuildPersonalityProfile(GUILD_ID);
-		const firstPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		const firstPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		const firstBuildLabel = authorLabelForPromptContent(firstPrompt, "guild gs001 context");
 		await archiveGuildMessagesForAuthor({
 			count: 40,
@@ -389,11 +389,11 @@ describe("personality profile builders", () => {
 			.update(guildPersonalityProfiles)
 			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
 			.where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		const secondPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		const secondPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		expect(authorLabelForPromptContent(secondPrompt, "guild gt000 context")).toBe(firstBuildLabel);
 		expect(secondPrompt).not.toContain("author-01");
 	});
@@ -417,12 +417,12 @@ describe("personality profile builders", () => {
 			.update(guildPersonalityProfiles)
 			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
 			.where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
-		const userPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+		const userPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		expect(userPrompt).toContain("Current server culture profile:");
 		expect(userPrompt).toContain("Profile summary without direct quotes.");
 		expect(userPrompt).toContain("guild gi000 context");
@@ -448,7 +448,7 @@ describe("personality profile builders", () => {
 			.update(guildPersonalityProfiles)
 			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
 			.where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 		const firstRefreshProfile = await getGuildBuilderProfile();
@@ -456,10 +456,10 @@ describe("personality profile builders", () => {
 			.update(guildPersonalityProfiles)
 			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
 			.where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 		await buildGuildPersonalityProfile(GUILD_ID);
 
-		const secondRefreshPrompt = mockedCallOllamaLowPriority.mock.calls[0]?.[1] ?? "";
+		const secondRefreshPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		expect(firstRefreshProfile?.lastTrainingMessageId).toBe("gx039");
 		expect(secondRefreshPrompt).toContain("guild gx040 context");
 		expect(secondRefreshPrompt).toContain("guild gy000 context");
@@ -469,7 +469,7 @@ describe("personality profile builders", () => {
 	it("sets guild cooldown after a null model result without advancing cursor or reducing messageCount", async () => {
 		await archiveGuildMessages({ count: 200, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
 		await db.insert(guildPersonalityProfiles).values({ guildId: GUILD_ID, messageCount: 250 });
-		mockedCallOllamaLowPriority.mockResolvedValueOnce(null);
+		mockedCallBackgroundLlm.mockResolvedValueOnce(null);
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 		const profileAfterFailure = await getGuildBuilderProfile();
@@ -480,6 +480,6 @@ describe("personality profile builders", () => {
 		expect(profileAfterFailure?.lastTrainingMessageAt).toBeNull();
 		expect(profileAfterFailure?.lastTrainingMessageId).toBeNull();
 		expect(profileAfterFailure?.messageCount).toBe(250);
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 	});
 });

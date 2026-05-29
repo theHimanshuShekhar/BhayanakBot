@@ -7,7 +7,7 @@ import {
 import { guildPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
-import { callOllamaLowPriority } from "../ollama.js";
+import { callBackgroundLlm } from "../llmProvider.js";
 
 const OLLAMA_TIMEOUT_MS = 90_000;
 const MAX_MESSAGES_PER_BUILD = 200;
@@ -105,7 +105,7 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 	const guild = client.guilds.cache.get(guildId);
 	const label = guild ? `${guild.name} (id=${guildId})` : `guild id=${guildId}`;
 
-	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
 	if (!result) {
 		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
 		await db

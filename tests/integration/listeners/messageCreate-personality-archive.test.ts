@@ -16,7 +16,7 @@ import {
 import { db } from "../../../src/lib/database.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { generateAutoResponse, generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
-import { callOllamaLowPriority } from "../../../src/lib/ollama.js";
+import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
@@ -64,15 +64,15 @@ vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({
 	generateMentionReply: vi.fn(),
 }));
 
-vi.mock("../../../src/lib/ollama.js", () => ({
-	callOllamaLowPriority: vi.fn(async () => "Profile summary from listener archived messages."),
+vi.mock("../../../src/lib/llmProvider.js", () => ({
+	callBackgroundLlm: vi.fn(async () => "Profile summary from listener archived messages."),
 }));
 
 const GUILD_ID = "listener-guild";
 const USER_ID = "listener-user";
 const OTHER_USER_ID = "listener-other";
 
-const mockedCallOllamaLowPriority = vi.mocked(callOllamaLowPriority);
+const mockedCallBackgroundLlm = vi.mocked(callBackgroundLlm);
 const mockedGenerateAutoResponse = vi.mocked(generateAutoResponse);
 const mockedGenerateMentionReply = vi.mocked(generateMentionReply);
 const mockedGetOrCreateSettings = vi.mocked(getOrCreateSettings);
@@ -205,7 +205,7 @@ describe("messageCreate personality archive flow", () => {
 	beforeEach(async () => {
 		await cleanupRows();
 		archivedChannelMessageTestHooks.afterPendingDeleteRead = undefined;
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 		mockedGenerateAutoResponse.mockClear();
 		mockedGenerateMentionReply.mockClear();
 		mockedFindMatchingResponse.mockClear();
@@ -344,13 +344,13 @@ describe("messageCreate personality archive flow", () => {
 		await buildPersonalityProfile(USER_ID, GUILD_ID);
 
 		expect(await countArchivedRows()).toBe(100);
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
 	});
 
 	it("listener-triggered threshold build sees the triggering archived message", async () => {
 		await archiveListenerMessages({ count: 99 });
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 
 		await createListener().run(
 			createMessage({
@@ -360,8 +360,8 @@ describe("messageCreate personality archive flow", () => {
 			}) as never,
 		);
 
-		await vi.waitFor(() => expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1));
-		expect(mockedCallOllamaLowPriority.mock.calls[0]?.[1]).toContain(
+		await vi.waitFor(() => expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1));
+		expect(mockedCallBackgroundLlm.mock.calls[0]?.[1]).toContain(
 			"Threshold triggering archived message must be visible to builder.",
 		);
 		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
@@ -374,7 +374,7 @@ describe("messageCreate personality archive flow", () => {
 		await buildGuildPersonalityProfile(GUILD_ID);
 
 		expect(await countArchivedRows()).toBe(200);
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 		expect((await getGuildProfile())?.profile).toBe("Profile summary from listener archived messages.");
 	});
 
@@ -391,12 +391,12 @@ describe("messageCreate personality archive flow", () => {
 			);
 		}
 		await markArchivedChannelMessageDeleted("ld099", new Date("2026-05-28T14:00:00.000Z"));
-		mockedCallOllamaLowPriority.mockClear();
+		mockedCallBackgroundLlm.mockClear();
 
 		await buildPersonalityProfile(USER_ID, GUILD_ID);
 
 		expect(await getArchiveRow("short-row")).toBeDefined();
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect((await getUserProfile())?.profile).toBeNull();
 	});
 

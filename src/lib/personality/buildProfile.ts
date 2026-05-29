@@ -5,7 +5,7 @@ import { getEligibleUserTrainingMessages } from "../../db/queries/personalityTra
 import { userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
-import { callOllamaLowPriority } from "../ollama.js";
+import { callBackgroundLlm } from "../llmProvider.js";
 
 const OLLAMA_TIMEOUT_MS = 90_000;
 // Prevent runaway prompts: absorb at most 100 messages or 8 000 chars per build pass.
@@ -120,7 +120,7 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	const displayName = member?.displayName ?? user?.username;
 	const label = displayName ? `${displayName} (id=${userId})` : `user id=${userId}`;
 
-	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
 	if (!result) {
 		container.logger.warn(
 			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,

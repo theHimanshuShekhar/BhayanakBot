@@ -270,7 +270,7 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Summarize recent messages in this channel using AI.",
 		examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
 		category: "utility",
-		usageNotes: "Uses the local Ollama model. time overrides count if both are given.",
+		usageNotes: "Uses the configured AI provider. time overrides count if both are given.",
 	},
 	{
 		name: "/personality",

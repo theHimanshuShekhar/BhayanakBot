@@ -1,7 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
-import { callOllama } from "../../lib/ollama.js";
+import { callInteractiveLlm } from "../../lib/llmProvider.js";
 
 const HISTORY_LIMIT = 20;
 const OLLAMA_TIMEOUT_MS = 60_000;
@@ -13,10 +13,10 @@ const PERSONALITIES = [
 	"a Gen Z person with severe brainrot — says 'no cap', 'it's giving', 'slay', chaotic short-attention-span energy",
 	"an overly philosophical person who misapplies Nietzsche and Camus to mundane situations",
 	"an unhinged sports commentator treating this chat like a live playoff game",
-	"a cruel medieval court jester who roasts the nobility and expects to be executed for it",
+	"a medieval court jester who gets away with playful roasts because the jokes are too good",
 	"a washed-up reality TV villain who turns every conversation into a dramatic confessional",
 	"an exasperated teacher who has given up on humanity and responds with bitter disappointment",
-	"a toxic gamer who treats every message like a ranked match and trash-talks relentlessly",
+	"a try-hard gamer who treats every message like a ranked match and jokes like the scoreboard matters",
 ];
 
 const FORMATS = [
@@ -77,7 +77,7 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 		await channel.sendTyping().catch(() => null);
 
-		const response = await callOllama(system, prompt, OLLAMA_TIMEOUT_MS, 160);
+		const response = await callInteractiveLlm(system, prompt, OLLAMA_TIMEOUT_MS, 160);
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;

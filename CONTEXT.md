@@ -43,3 +43,7 @@ A Discord jump link to the original message represented by an archived channel m
 ## Public Bot Stats Snapshot
 
 A database-stored set of public marketing-site metrics written by the running bot after startup. The web app reads the latest snapshot from the database. If the bot is offline or fails to start, the web app may continue showing the most recent stored snapshot as stale data instead of inventing fallback numbers.
+
+## Zen LLM Provider
+
+The opencode Zen hosted model endpoint used first for Discord responder replies and user or guild personality profile generation. It is distinct from the legacy local Ollama provider, which remains the primary provider for RPG, quest, and other non-responder bot features. Responder and personality generation fall back to Ollama when Zen is unconfigured or returns an unusable response.

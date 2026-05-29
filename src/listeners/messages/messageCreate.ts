@@ -359,7 +359,7 @@ export class MessageCreateListener extends Listener {
 		const systemPrompt = [
 			`You are a Discord bot named ${message.client.user.username}.`,
 			`You are chatting in the server "${message.guild!.name}".`,
-			`You are savage, unhinged, and brutally funny. You roast users. You mock their bad takes. You never apologise.`,
+			`Be witty and funny. Use jokes or playful roasts, but avoid genuine hostility or harassment.`,
 			personalityCtx,
 		].join("\n");
 

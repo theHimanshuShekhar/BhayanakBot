@@ -95,7 +95,10 @@ The web app is not included in the bot TypeScript build because the root `tsconf
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `VALKEY_URL` | `redis://localhost:6379` | Valkey/Redis for Sapphire scheduled-task BullMQ backing |
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance |
-| `OLLAMA_MODEL` | `phi3:mini` | Model used for LLM features |
+| `OLLAMA_MODEL` | `phi3:mini` | Model used by legacy/local Ollama LLM features and fallback paths |
+| `ZEN_API_KEY` | unset | opencode Zen API key; responder, summary, and personality generation use Zen first when set |
+| `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
+| `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder and user/guild personality generation |
 | `YOUTUBE_COOKIE` | unset | Optional cookie for `discord-player-youtubei` |
 | `NODE_ENV` | unset | Controls log level (`debug` outside production, `info` in production) |
 | `TARGET_GUILD_ID` | `199168135935295488` | Guild gate for some LLM/voice features |
