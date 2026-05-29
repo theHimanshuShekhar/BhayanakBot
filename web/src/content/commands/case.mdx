@@ -1,0 +1,32 @@
+---
+name: "/case"
+cat: "Moderation"
+tags: ["MOD", "CASES"]
+summary: "View a moderation case or update its reason."
+syntax:
+  cmd: "/case"
+  args:
+    - { n: "view|edit", d: "Case action", req: true, t: "subcommand" }
+    - { n: "number", d: "Server case number", req: true, t: "integer" }
+    - { n: "reason", d: "New reason for edit", req: false, t: "string" }
+examples:
+  - label: "view"
+    tag: "CASE"
+    tagBg: "#60a5fa"
+    user: "mod"
+    userColor: "#60a5fa"
+    input: "view number:12"
+    time: "16:00"
+    botSays: "case details loaded."
+    embedAccent: "#60a5fa"
+    embedTitle: "Moderation Case #12"
+    embedRows:
+      - ["Action", "warn"]
+      - ["Moderator", "recorded"]
+related:
+  - { n: "/history", d: "Find cases by user" }
+  - { n: "/warn", d: "Create warning cases" }
+  - { n: "/ban", d: "Create ban cases" }
+---
+
+Requires moderator access. `/case edit` only updates the stored reason.

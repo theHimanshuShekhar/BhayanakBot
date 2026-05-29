@@ -1,0 +1,31 @@
+---
+name: "/warn"
+cat: "Moderation"
+tags: ["MOD", "CASE"]
+summary: "Warn a member and create a moderation case."
+syntax:
+  cmd: "/warn"
+  args:
+    - { n: "user", d: "Member to warn", req: true, t: "@user" }
+    - { n: "reason", d: "Reason for the warning", req: true, t: "string" }
+examples:
+  - label: "warn"
+    tag: "WARN"
+    tagBg: "#facc15"
+    user: "mod"
+    userColor: "#facc15"
+    input: "user:@x reason:no caps in #general"
+    time: "15:35"
+    botSays: "warning logged."
+    embedAccent: "#facc15"
+    embedTitle: "Warn · Case Created"
+    embedRows:
+      - ["User", "@x"]
+      - ["Reason", "no caps in #general"]
+related:
+  - { n: "/history", d: "View warnings and cases" }
+  - { n: "/case", d: "View or edit a case" }
+  - { n: "/mute", d: "Escalate moderation" }
+---
+
+Requires moderator access.

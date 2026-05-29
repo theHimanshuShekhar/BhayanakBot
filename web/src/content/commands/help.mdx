@@ -1,0 +1,28 @@
+---
+name: "/help"
+cat: "Utility"
+tags: ["HELP", "MENU"]
+summary: "Open the interactive command help menu, optionally focused on a category."
+syntax:
+  cmd: "/help"
+  args:
+    - { n: "category", d: "Command category to open", req: false, t: "choice" }
+examples:
+  - label: "category"
+    tag: "HELP"
+    tagBg: "#60a5fa"
+    user: "dev_kaz"
+    userColor: "#60a5fa"
+    input: "category:rpg"
+    time: "10:30"
+    botSays: "help menu opened. docs but with buttons."
+    embedAccent: "#60a5fa"
+    embedTitle: "Help · RPG"
+    embedRows:
+      - ["Category", "rpg"]
+      - ["Commands", "listed"]
+related:
+  - { n: "/ping", d: "Check bot latency" }
+  - { n: "/config", d: "Server settings" }
+  - { n: "/profile", d: "RPG profile" }
+---

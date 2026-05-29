@@ -1,0 +1,32 @@
+---
+name: "/rewards"
+cat: "Leveling"
+tags: ["XP", "ROLES"]
+summary: "List, add, or remove role rewards granted at specific levels."
+syntax:
+  cmd: "/rewards"
+  args:
+    - { n: "list|add|remove", d: "Reward action", req: true, t: "subcommand" }
+    - { n: "level", d: "Level number for add or remove", req: false, t: "integer" }
+    - { n: "role", d: "Role to grant", req: false, t: "@role" }
+examples:
+  - label: "add"
+    tag: "ROLE"
+    tagBg: "#22c55e"
+    user: "admin"
+    userColor: "#22c55e"
+    input: "add level:10 role:@Veteran"
+    time: "12:10"
+    botSays: "level reward saved. carrot acquired."
+    embedAccent: "#22c55e"
+    embedTitle: "Level Reward Added"
+    embedRows:
+      - ["Level", "10"]
+      - ["Role", "@Veteran"]
+related:
+  - { n: "/rank", d: "View level" }
+  - { n: "/leaderboard", d: "Top XP" }
+  - { n: "/level-reset", d: "Reset XP" }
+---
+
+`add` and `remove` require Administrator permission. `list` shows configured level rewards.

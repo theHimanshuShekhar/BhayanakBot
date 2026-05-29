@@ -1,0 +1,31 @@
+---
+name: "/profile"
+cat: "RPG · profile"
+tags: ["RPG", "STATS"]
+summary: "View your RPG profile, or another member's profile, including level, coins, stats, and progress."
+syntax:
+  cmd: "/profile"
+  args:
+    - { n: "user", d: "Member to inspect; defaults to yourself", req: false, t: "@user" }
+examples:
+  - label: "self"
+    tag: "PROFILE"
+    tagBg: "#60a5fa"
+    user: "mona"
+    userColor: "#60a5fa"
+    input: ""
+    time: "09:10"
+    botSays: "profile loaded. the grind has receipts."
+    embedAccent: "#60a5fa"
+    embedTitle: "RPG Profile · mona"
+    embedRows:
+      - ["Level", "12"]
+      - ["Coins", "4,280"]
+      - ["Stats", "STR 58 · AGI 61 · INT 55"]
+related:
+  - { n: "/train", d: "Improve RPG stats" }
+  - { n: "/work", d: "Earn coins safely" }
+  - { n: "/inventory", d: "View items and tools" }
+---
+
+Profiles are created on demand when a member first uses RPG commands.

@@ -1,0 +1,32 @@
+---
+name: "/ticket"
+cat: "Tickets"
+tags: ["SUPPORT", "THREAD"]
+summary: "Open, close, claim, add or remove users from, or export support tickets."
+syntax:
+  cmd: "/ticket"
+  args:
+    - { n: "open|close|claim|add|remove|transcript", d: "Ticket action", req: true, t: "subcommand" }
+    - { n: "subject", d: "Subject for a new ticket", req: false, t: "string" }
+    - { n: "user", d: "User to add or remove", req: false, t: "@user" }
+examples:
+  - label: "open"
+    tag: "TICKET"
+    tagBg: "#22c55e"
+    user: "mona"
+    userColor: "#22c55e"
+    input: "open subject:billing issue"
+    time: "13:05"
+    botSays: "ticket opened. support arc begins."
+    embedAccent: "#22c55e"
+    embedTitle: "Ticket Opened"
+    embedRows:
+      - ["Subject", "billing issue"]
+      - ["Channel", "created"]
+related:
+  - { n: "/ticket-panel", d: "Post ticket button" }
+  - { n: "/config", d: "Ticket category and role" }
+  - { n: "/suggest", d: "Submit suggestion" }
+---
+
+Ticket management subcommands operate in ticket channels where appropriate. `transcript` exports the current ticket conversation.

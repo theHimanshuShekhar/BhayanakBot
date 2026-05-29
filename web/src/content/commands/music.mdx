@@ -1,0 +1,30 @@
+---
+name: "/music"
+cat: "Music"
+tags: ["VOICE", "CONTROL"]
+summary: "Pause, resume, skip, stop, or disconnect the active music player."
+syntax:
+  cmd: "/music"
+  args:
+    - { n: "pause|resume|skip|stop|disconnect", d: "Playback control action", req: true, t: "subcommand" }
+examples:
+  - label: "skip"
+    tag: "SKIP"
+    tagBg: "#facc15"
+    user: "rhea"
+    userColor: "#facc15"
+    input: "skip"
+    time: "14:40"
+    botSays: "skipped to the next track. democracy maybe."
+    embedAccent: "#facc15"
+    embedTitle: "Music · Skipped"
+    embedRows:
+      - ["Action", "skip"]
+      - ["Queue", "advanced"]
+related:
+  - { n: "/play", d: "Queue music" }
+  - { n: "/queue", d: "View upcoming tracks" }
+  - { n: "/nowplaying", d: "Show current track" }
+---
+
+Music controls require an active player and the usual voice-channel checks from the music system.

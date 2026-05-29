@@ -1,0 +1,28 @@
+---
+name: "/volume"
+cat: "Music"
+tags: ["VOICE", "DJ"]
+summary: "Set the music player volume from 0 to 100."
+syntax:
+  cmd: "/volume"
+  args:
+    - { n: "level", d: "Volume level", req: true, t: "integer 0-100" }
+examples:
+  - label: "set"
+    tag: "VOL"
+    tagBg: "#a78bfa"
+    user: "rhea"
+    userColor: "#a78bfa"
+    input: "level:80"
+    time: "14:55"
+    botSays: "volume updated. ears notified."
+    embedAccent: "#a78bfa"
+    embedTitle: "Music · Volume"
+    embedRows:
+      - ["Level", "80"]
+      - ["Range", "0-100"]
+related:
+  - { n: "/nowplaying", d: "Current track" }
+  - { n: "/music", d: "Playback controls" }
+  - { n: "/queue", d: "Current queue" }
+---

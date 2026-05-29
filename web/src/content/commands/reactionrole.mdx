@@ -1,0 +1,34 @@
+---
+name: "/reactionrole"
+cat: "Roles"
+tags: ["ROLES", "REACTION"]
+summary: "Add or remove reaction role bindings on existing messages."
+syntax:
+  cmd: "/reactionrole"
+  args:
+    - { n: "add|remove", d: "Reaction role action", req: true, t: "subcommand" }
+    - { n: "message-id", d: "Target message ID", req: true, t: "string" }
+    - { n: "emoji", d: "Emoji trigger", req: true, t: "emoji" }
+    - { n: "role", d: "Role to grant", req: false, t: "@role" }
+    - { n: "type", d: "normal, toggle, or unique", req: false, t: "choice" }
+examples:
+  - label: "add"
+    tag: "ROLE"
+    tagBg: "#a78bfa"
+    user: "admin"
+    userColor: "#a78bfa"
+    input: "add message-id:123456 emoji:👍 role:@Member type:toggle"
+    time: "13:10"
+    botSays: "reaction role saved. emoji bureaucracy online."
+    embedAccent: "#a78bfa"
+    embedTitle: "Reaction Role Added"
+    embedRows:
+      - ["Emoji", "👍"]
+      - ["Role", "@Member"]
+related:
+  - { n: "/rolemenu", d: "Role select menus" }
+  - { n: "/config", d: "Role settings" }
+  - { n: "/rewards", d: "Level role rewards" }
+---
+
+`type` can be `normal`, `toggle`, or `unique`.

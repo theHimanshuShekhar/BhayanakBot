@@ -1,0 +1,29 @@
+---
+name: "/ticket-panel"
+cat: "Tickets"
+tags: ["ADMIN", "PANEL"]
+summary: "Post a ticket creation panel button in a selected channel."
+syntax:
+  cmd: "/ticket-panel"
+  args:
+    - { n: "channel", d: "Channel where the panel should be posted", req: true, t: "#channel" }
+    - { n: "title", d: "Panel title", req: false, t: "string" }
+examples:
+  - label: "panel"
+    tag: "PANEL"
+    tagBg: "#60a5fa"
+    user: "admin"
+    userColor: "#60a5fa"
+    input: "channel:#support title:Open a Ticket"
+    time: "13:00"
+    botSays: "ticket panel posted. support funnel established."
+    embedAccent: "#60a5fa"
+    embedTitle: "Ticket Panel"
+    embedRows:
+      - ["Channel", "#support"]
+      - ["Button", "Open ticket"]
+related:
+  - { n: "/ticket", d: "Manage tickets" }
+  - { n: "/config", d: "Ticket settings" }
+  - { n: "/suggest", d: "Submit suggestions" }
+---

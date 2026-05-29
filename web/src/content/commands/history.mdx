@@ -1,0 +1,30 @@
+---
+name: "/history"
+cat: "Moderation"
+tags: ["MOD", "CASES"]
+summary: "View moderation history for a selected member."
+syntax:
+  cmd: "/history"
+  args:
+    - { n: "user", d: "Member whose cases should be shown", req: true, t: "@user" }
+examples:
+  - label: "lookup"
+    tag: "HISTORY"
+    tagBg: "#60a5fa"
+    user: "mod"
+    userColor: "#60a5fa"
+    input: "user:@someone"
+    time: "16:08"
+    botSays: "moderation history loaded."
+    embedAccent: "#60a5fa"
+    embedTitle: "Moderation History · @someone"
+    embedRows:
+      - ["Cases", "up to 20 shown"]
+      - ["User", "@someone"]
+related:
+  - { n: "/case", d: "Open a specific case" }
+  - { n: "/warn", d: "Warn a member" }
+  - { n: "/mute", d: "Mute a member" }
+---
+
+Requires moderator access. The command shows up to the first 20 moderation cases for the selected user.

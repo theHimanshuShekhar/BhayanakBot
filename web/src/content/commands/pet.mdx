@@ -1,0 +1,32 @@
+---
+name: "/pet"
+cat: "RPG · pets"
+tags: ["PETS", "BONUS"]
+summary: "View, adopt, and rename pet companions that can provide RPG bonuses."
+syntax:
+  cmd: "/pet"
+  args:
+    - { n: "view|adopt|rename", d: "Pet action", req: true, t: "subcommand" }
+    - { n: "pet", d: "Pet ID for adopt or rename", req: false, t: "string" }
+    - { n: "name", d: "Nickname for rename", req: false, t: "string" }
+examples:
+  - label: "adopt"
+    tag: "ADOPT"
+    tagBg: "#a78bfa"
+    user: "parth"
+    userColor: "#a78bfa"
+    input: "adopt pet:cat"
+    time: "12:40"
+    botSays: "pet adopted. it already judges your build."
+    embedAccent: "#a78bfa"
+    embedTitle: "Pet · Adopted"
+    embedRows:
+      - ["Pet", "cat"]
+      - ["Status", "companion added"]
+related:
+  - { n: "/profile", d: "View your RPG profile" }
+  - { n: "/shop", d: "Spend RPG coins" }
+  - { n: "/property", d: "Buy long-term upgrades" }
+---
+
+Use `/pet view` to inspect your pets before adopting or renaming one.

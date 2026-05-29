@@ -94,26 +94,46 @@ export const RAW_COMMANDS: Command[] = [
 	{
 		name: "/shop",
 		description: "Browse, buy, and sell items in the RPG shop.",
-		examples: ["/shop browse", "/shop buy item:lucky_charm", "/shop sell item:rare_gem"],
+		examples: ["/shop browse", "/shop buy item:lucky_charm", "/shop sell item:rare_gem quantity:1"],
 		category: "rpg",
+		subcommands: {
+			browse: { summary: "Browse available shop items.", examples: ["/shop browse"] },
+			buy: { summary: "Buy an item from the shop.", examples: ["/shop buy item:lucky_charm"] },
+			sell: { summary: "Sell an item from your inventory.", examples: ["/shop sell item:rare_gem quantity:1"] },
+		},
 	},
 	{
 		name: "/inventory",
 		description: "View your item inventory and use or equip items.",
-		examples: ["/inventory", "/inventory use:lucky_charm"],
+		examples: ["/inventory view", "/inventory use item:lucky_charm", "/inventory equip item:pickaxe"],
 		category: "rpg",
+		subcommands: {
+			view: { summary: "View your inventory.", examples: ["/inventory view"] },
+			use: { summary: "Use a consumable item.", examples: ["/inventory use item:lucky_charm"] },
+			equip: { summary: "Equip a tool item.", examples: ["/inventory equip item:pickaxe"] },
+		},
 	},
 	{
 		name: "/pet",
-		description: "Buy, view, and manage your pet companions.",
-		examples: ["/pet view", "/pet buy pet:cat", "/pet rename name:Whiskers"],
+		description: "View, adopt, and rename your pet companions.",
+		examples: ["/pet view", "/pet adopt pet:cat", "/pet rename pet:cat name:Whiskers"],
 		category: "rpg",
+		subcommands: {
+			view: { summary: "View your pets.", examples: ["/pet view"] },
+			adopt: { summary: "Adopt a pet from the market.", examples: ["/pet adopt pet:cat"] },
+			rename: { summary: "Give a pet a nickname.", examples: ["/pet rename pet:cat name:Whiskers"] },
+		},
 	},
 	{
 		name: "/property",
-		description: "Buy properties that generate passive coin income over time.",
-		examples: ["/property buy property:house", "/property collect", "/property list"],
+		description: "Buy and manage properties for passive income or storage bonuses.",
+		examples: ["/property buy property:studio_apartment", "/property collect", "/property view"],
 		category: "rpg",
+		subcommands: {
+			view: { summary: "View your properties.", examples: ["/property view"] },
+			buy: { summary: "Purchase a property.", examples: ["/property buy property:studio_apartment"] },
+			collect: { summary: "Collect accumulated property income.", examples: ["/property collect"] },
+		},
 	},
 	{
 		name: "/daily",
@@ -144,6 +164,7 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Mute a member for a duration.",
 		examples: ["/mute user:@x duration:10m reason:spam", "/mute user:@y duration:1h"],
 		category: "moderation",
+		usageNotes: "Requires a configured muted role via /config set muted-role.",
 	},
 	{
 		name: "/unmute",
@@ -168,6 +189,8 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Bulk-delete messages from a channel (optionally filtered by user).",
 		examples: ["/purge amount:50", "/purge amount:20 user:@spammer"],
 		category: "moderation",
+		usageNotes:
+			"Only messages from the latest amount fetched are considered; if user is provided, that subset is filtered by author. Messages older than 14 days cannot be bulk-deleted.",
 	},
 	{
 		name: "/case",
@@ -184,6 +207,7 @@ export const RAW_COMMANDS: Command[] = [
 		description: "View moderation history for a user.",
 		examples: ["/history user:@someone"],
 		category: "moderation",
+		usageNotes: "Shows up to the first 20 moderation cases for the selected user.",
 	},
 	{
 		name: "/play",
@@ -192,10 +216,17 @@ export const RAW_COMMANDS: Command[] = [
 		category: "music",
 	},
 	{
-		name: "/controls",
+		name: "/music",
 		description: "Pause, resume, skip, stop, or disconnect the music player.",
-		examples: ["/controls"],
+		examples: ["/music pause", "/music resume", "/music skip", "/music stop", "/music disconnect"],
 		category: "music",
+		subcommands: {
+			pause: { summary: "Pause the current track.", examples: ["/music pause"] },
+			resume: { summary: "Resume paused playback.", examples: ["/music resume"] },
+			skip: { summary: "Skip the current track.", examples: ["/music skip"] },
+			stop: { summary: "Stop playback and clear the queue.", examples: ["/music stop"] },
+			disconnect: { summary: "Disconnect the bot from voice.", examples: ["/music disconnect"] },
+		},
 	},
 	{
 		name: "/queue",
@@ -211,7 +242,7 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/volume",
-		description: "Set the playback volume (1–200).",
+		description: "Set the playback volume (0–100).",
 		examples: ["/volume level:80"],
 		category: "music",
 	},
@@ -237,7 +268,7 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/avatar",
-		description: "Show a user's avatar at full resolution.",
+		description: "Show a user's server avatar, or global avatar if no server avatar is set.",
 		examples: ["/avatar", "/avatar user:@someone"],
 		category: "utility",
 	},
@@ -249,7 +280,7 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/editsnipe",
-		description: "Show the last edited message in this channel (before the edit).",
+		description: "Show the last edited message in this channel, including before and after content.",
 		examples: ["/editsnipe"],
 		category: "utility",
 	},
@@ -258,19 +289,32 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Manage your AFK status — set a message or clear it.",
 		examples: ["/afk set reason:brb lunch", "/afk clear"],
 		category: "utility",
+		subcommands: {
+			set: { summary: "Set yourself as AFK with an optional reason.", examples: ["/afk set reason:studying"] },
+			clear: { summary: "Clear your AFK status manually.", examples: ["/afk clear"] },
+		},
 	},
 	{
 		name: "/remind",
 		description: "Set, list, and cancel personal reminders.",
-		examples: ["/remind set time:2h message:stretch", "/remind list", "/remind cancel id:3"],
+		examples: ['/remind set time:2h message:"stretch"', "/remind list", "/remind cancel id:3"],
 		category: "utility",
+		subcommands: {
+			set: {
+				summary: "Set a reminder after a duration such as 10m, 2h, or 1d.",
+				examples: ['/remind set time:30m message:"check oven"'],
+			},
+			list: { summary: "List your active reminders.", examples: ["/remind list"] },
+			cancel: { summary: "Cancel a reminder by its ID.", examples: ["/remind cancel id:7"] },
+		},
 	},
 	{
 		name: "/summarize",
 		description: "Summarize recent messages in this channel using AI.",
 		examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
 		category: "utility",
-		usageNotes: "Uses the configured AI provider. time overrides count if both are given.",
+		usageNotes:
+			"Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes up to 200 non-bot text messages and successful summaries apply a 10-minute channel cooldown.",
 	},
 	{
 		name: "/personality",
@@ -307,8 +351,11 @@ export const RAW_COMMANDS: Command[] = [
 	{ name: "/meme", description: "Fetch a random meme from Reddit.", examples: ["/meme"], category: "fun" },
 	{
 		name: "/poll",
-		description: "Create a button-based poll with up to 4 options.",
-		examples: ["/poll question:Best language? options:Python,JS,Go,Rust"],
+		description: "Create a button-based poll with 2–4 options and an optional duration.",
+		examples: [
+			'/poll question:"Best language?" option1:Python option2:JS option3:Go option4:Rust',
+			'/poll question:"Raid time?" option1:Now option2:Later duration:30',
+		],
 		category: "fun",
 	},
 	{
@@ -316,7 +363,8 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Start a Guess Who round from archived messages in the configured channel.",
 		examples: ["/guess_who"],
 		category: "games",
-		usageNotes: "Only works in GUESS_WHO_CHANNEL_ID. Three wrong guesses or a 10-minute timeout reveals the author.",
+		usageNotes:
+			"Only works in GUESS_WHO_CHANNEL_ID. Guess by mentioning a user. One active round is allowed per channel; three wrong guesses or a 10-minute timeout reveals the author.",
 	},
 	{
 		name: "/rank",
@@ -332,15 +380,27 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/rewards",
-		description: "View and manage role rewards granted at specific XP levels.",
-		examples: ["/rewards list", "/rewards add level:10 role:@Veteran"],
+		description: "View and manage role rewards granted at specific levels.",
+		examples: ["/rewards list", "/rewards add level:10 role:@Veteran", "/rewards remove level:10"],
 		category: "leveling",
+		subcommands: {
+			list: { summary: "List all configured level rewards.", examples: ["/rewards list"] },
+			add: {
+				summary: "Add a role reward for reaching a level. Requires Administrator permission.",
+				examples: ["/rewards add level:10 role:@Veteran"],
+			},
+			remove: {
+				summary: "Remove a level reward. Requires Administrator permission.",
+				examples: ["/rewards remove level:10"],
+			},
+		},
 	},
 	{
 		name: "/level-reset",
-		description: "Reset a user's XP and level back to zero.",
+		description: "Reset a user's XP, level, message count, and last message timestamp.",
 		examples: ["/level-reset user:@someone"],
 		category: "leveling",
+		usageNotes: "Requires admin permissions.",
 	},
 	{
 		name: "/ticket-panel",
@@ -350,23 +410,44 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/ticket",
-		description: "Open, close, claim, or manage support tickets.",
-		examples: ["/ticket open topic:billing issue", "/ticket close", "/ticket claim", "/ticket add user:@helper"],
+		description: "Open, close, claim, add or remove users from, or export support tickets.",
+		examples: [
+			"/ticket open subject:billing issue",
+			"/ticket close",
+			"/ticket claim",
+			"/ticket add user:@helper",
+			"/ticket transcript",
+		],
 		category: "tickets",
+		subcommands: {
+			open: { summary: "Open a support ticket.", examples: ["/ticket open subject:billing issue"] },
+			close: { summary: "Close the current ticket.", examples: ["/ticket close"] },
+			claim: { summary: "Claim the current ticket as staff.", examples: ["/ticket claim"] },
+			add: { summary: "Add a user to the current ticket.", examples: ["/ticket add user:@helper"] },
+			remove: { summary: "Remove a user from the current ticket.", examples: ["/ticket remove user:@helper"] },
+			transcript: { summary: "Export a ticket transcript.", examples: ["/ticket transcript"] },
+		},
 	},
 	{
-		name: "/reaction-roles",
+		name: "/reactionrole",
 		description: "Add or remove reaction roles on messages.",
 		examples: [
-			"/reaction-roles add message-id:123456 emoji:👍 role:@Member",
-			"/reaction-roles remove message-id:123456 emoji:👍",
+			"/reactionrole add message-id:123456 emoji:👍 role:@Member",
+			"/reactionrole add message-id:123456 emoji:👍 role:@Member type:toggle",
+			"/reactionrole remove message-id:123456 emoji:👍",
 		],
 		category: "roles",
+		usageNotes: "type can be normal, toggle, or unique.",
 	},
 	{
-		name: "/role-menu",
+		name: "/rolemenu",
 		description: "Create and manage self-assignable role select menus.",
-		examples: ["/role-menu create channel:#roles", "/role-menu add-option id:abc role:@Gamer label:Gamer"],
+		examples: [
+			"/rolemenu create channel:#roles",
+			"/rolemenu create channel:#roles placeholder:Pick roles max-values:2",
+			"/rolemenu add-option message-id:123456 role:@Gamer label:Gamer",
+			"/rolemenu delete message-id:123456",
+		],
 		category: "roles",
 	},
 	{
@@ -381,14 +462,14 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/suggest",
-		description: "Submit a suggestion to the server's suggestions channel.",
+		description: "Submit a suggestion to the configured suggestions/log channel.",
 		examples: ["/suggest idea:Add a movie night bot"],
 		category: "suggestions",
 	},
 	{
 		name: "/suggestion",
 		description: "Approve or deny a submitted suggestion.",
-		examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 response:Out of scope"],
+		examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 reason:Out of scope"],
 		category: "suggestions",
 	},
 	{
@@ -403,9 +484,11 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/autorespond",
-		description: "Add, remove, and list automatic keyword response triggers.",
+		description: "Add, remove, and list static or LLM auto-responses with keyword or regex triggers.",
 		examples: [
 			"/autorespond add trigger:hello response:Hi there!",
+			"/autorespond add trigger:^my name is (?<name>.+)$ response:Nice to meet you, {name}! use-regex:true",
+			"/autorespond add trigger:bug response:Please file a bug report! require-mention:true",
 			"/autorespond list",
 			"/autorespond remove trigger:hello",
 		],
@@ -413,7 +496,8 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/minecraft",
-		description: "Show the status of mc.bhayanak.net, the live map, Homestead version, and recommended mods.",
+		description:
+			"Show mc.bhayanak.net status, online players, live map, required Homestead modpack version, and recommended mods.",
 		examples: ["/minecraft"],
 		category: "minecraft",
 	},

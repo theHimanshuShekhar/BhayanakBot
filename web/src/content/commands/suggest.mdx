@@ -1,0 +1,28 @@
+---
+name: "/suggest"
+cat: "Suggestions"
+tags: ["IDEA", "COMMUNITY"]
+summary: "Submit a suggestion to the configured suggestions/log channel."
+syntax:
+  cmd: "/suggest"
+  args:
+    - { n: "idea", d: "Suggestion text", req: true, t: "string" }
+examples:
+  - label: "idea"
+    tag: "IDEA"
+    tagBg: "#22c55e"
+    user: "mona"
+    userColor: "#22c55e"
+    input: "idea:Add a movie night bot"
+    time: "13:25"
+    botSays: "suggestion submitted. democracy has entered the chat."
+    embedAccent: "#22c55e"
+    embedTitle: "Suggestion Submitted"
+    embedRows:
+      - ["Idea", "Add a movie night bot"]
+      - ["Status", "pending"]
+related:
+  - { n: "/suggestion", d: "Approve or deny" }
+  - { n: "/config", d: "Set log channel" }
+  - { n: "/poll", d: "Poll members" }
+---

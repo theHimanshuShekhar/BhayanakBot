@@ -1,0 +1,32 @@
+---
+name: "/mute"
+cat: "Moderation"
+tags: ["MOD", "TEMP"]
+summary: "Apply the configured muted role to a member for a duration and log the case."
+syntax:
+  cmd: "/mute"
+  args:
+    - { n: "user", d: "Member to mute", req: true, t: "@user" }
+    - { n: "duration", d: "Mute duration", req: true, t: "duration" }
+    - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
+examples:
+  - label: "mute"
+    tag: "MUTE"
+    tagBg: "#a78bfa"
+    user: "mod"
+    userColor: "#a78bfa"
+    input: "user:@x duration:10m reason:spam"
+    time: "15:20"
+    botSays: "muted role applied and case logged."
+    embedAccent: "#a78bfa"
+    embedTitle: "Mute · Temporary"
+    embedRows:
+      - ["User", "@x"]
+      - ["Duration", "10m"]
+related:
+  - { n: "/unmute", d: "Remove a mute" }
+  - { n: "/config", d: "Set muted role" }
+  - { n: "/case", d: "Inspect cases" }
+---
+
+Requires moderator access and a configured muted role from `/config set setting:muted-role role:@Muted`. The expiration task removes the role after the stored duration.

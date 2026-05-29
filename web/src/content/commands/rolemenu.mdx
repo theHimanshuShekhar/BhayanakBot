@@ -1,0 +1,33 @@
+---
+name: "/rolemenu"
+cat: "Roles"
+tags: ["ROLES", "MENU"]
+summary: "Create and manage self-assignable role select menus."
+syntax:
+  cmd: "/rolemenu"
+  args:
+    - { n: "create|add-option|delete", d: "Role menu action", req: true, t: "subcommand" }
+    - { n: "channel", d: "Channel for create", req: false, t: "#channel" }
+    - { n: "message-id", d: "Menu message ID for updates", req: false, t: "string" }
+    - { n: "role", d: "Role for an option", req: false, t: "@role" }
+examples:
+  - label: "option"
+    tag: "MENU"
+    tagBg: "#60a5fa"
+    user: "admin"
+    userColor: "#60a5fa"
+    input: "add-option message-id:123456 role:@Gamer label:Gamer"
+    time: "13:15"
+    botSays: "role menu option added. self-service unlocked."
+    embedAccent: "#60a5fa"
+    embedTitle: "Role Menu Updated"
+    embedRows:
+      - ["Role", "@Gamer"]
+      - ["Message", "123456"]
+related:
+  - { n: "/reactionrole", d: "Reaction roles" }
+  - { n: "/rewards", d: "Level rewards" }
+  - { n: "/config", d: "Server config" }
+---
+
+Use `/rolemenu create` to post a menu, `/rolemenu add-option` to add role choices, and `/rolemenu delete` to remove a menu.

@@ -1,0 +1,32 @@
+---
+name: "/shop"
+cat: "RPG · economy"
+tags: ["ITEMS", "MARKET"]
+summary: "Browse RPG shop items, buy useful gear, or sell items from your inventory."
+syntax:
+  cmd: "/shop"
+  args:
+    - { n: "browse|buy|sell", d: "Shop action", req: true, t: "subcommand" }
+    - { n: "item", d: "Item ID for buy or sell", req: false, t: "string" }
+    - { n: "quantity", d: "Amount to buy or sell", req: false, t: "integer" }
+examples:
+  - label: "buy"
+    tag: "BOUGHT"
+    tagBg: "#22c55e"
+    user: "dev_kaz"
+    userColor: "#22c55e"
+    input: "buy item:lucky_charm"
+    time: "10:04"
+    botSays: "purchase complete. capitalism remains undefeated."
+    embedAccent: "#22c55e"
+    embedTitle: "Shop · Bought lucky_charm"
+    embedRows:
+      - ["Item", "Lucky Charm"]
+      - ["Coins", "updated"]
+related:
+  - { n: "/inventory", d: "Use or equip items" }
+  - { n: "/work", d: "Earn coins" }
+  - { n: "/crime", d: "Risky income" }
+---
+
+Use `/shop browse` to see available items. Use `/shop buy item:<id>` or `/shop sell item:<id> quantity:<amount>` when you know the item ID.

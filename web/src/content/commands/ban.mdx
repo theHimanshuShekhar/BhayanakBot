@@ -1,0 +1,32 @@
+---
+name: "/ban"
+cat: "Moderation"
+tags: ["MOD", "CASE"]
+summary: "Ban a member from the server and log the moderation action, optionally with a duration for temporary bans."
+syntax:
+  cmd: "/ban"
+  args:
+    - { n: "user", d: "Member to ban", req: true, t: "@user" }
+    - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
+    - { n: "duration", d: "Temporary ban duration", req: false, t: "duration" }
+examples:
+  - label: "temporary"
+    tag: "BAN"
+    tagBg: "#ef4444"
+    user: "mod"
+    userColor: "#ef4444"
+    input: "user:@spammer duration:7d reason:raid cleanup"
+    time: "15:10"
+    botSays: "member banned and case logged."
+    embedAccent: "#ef4444"
+    embedTitle: "Ban · Case Created"
+    embedRows:
+      - ["User", "@spammer"]
+      - ["Duration", "7d"]
+related:
+  - { n: "/unban", d: "Remove a ban" }
+  - { n: "/case", d: "View moderation cases" }
+  - { n: "/history", d: "View user history" }
+---
+
+Requires moderator access. A duration creates a temporary ban entry for the expiration task to reverse later.

@@ -1,0 +1,27 @@
+---
+name: "/snipe"
+cat: "Utility"
+tags: ["MESSAGE", "CACHE"]
+summary: "Show the last deleted message cached for the current channel."
+syntax:
+  cmd: "/snipe"
+  args: []
+examples:
+  - label: "deleted"
+    tag: "SNIPE"
+    tagBg: "#f97316"
+    user: "mona"
+    userColor: "#f97316"
+    input: ""
+    time: "09:20"
+    botSays: "last deleted message recovered from cache."
+    embedAccent: "#f97316"
+    embedTitle: "Deleted Message"
+    embedRows:
+      - ["Author", "shown"]
+      - ["Content", "shown if cached"]
+related:
+  - { n: "/editsnipe", d: "Show last edit" }
+  - { n: "/purge", d: "Delete messages" }
+  - { n: "/summarize", d: "Summarize messages" }
+---

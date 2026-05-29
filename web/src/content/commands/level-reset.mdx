@@ -1,0 +1,30 @@
+---
+name: "/level-reset"
+cat: "Leveling"
+tags: ["ADMIN", "XP"]
+summary: "Reset a user's XP, level, message count, and last message timestamp."
+syntax:
+  cmd: "/level-reset"
+  args:
+    - { n: "user", d: "Member to reset", req: true, t: "@user" }
+examples:
+  - label: "reset"
+    tag: "RESET"
+    tagBg: "#ef4444"
+    user: "admin"
+    userColor: "#ef4444"
+    input: "user:@someone"
+    time: "12:15"
+    botSays: "leveling data reset. fresh start, suspiciously admin-shaped."
+    embedAccent: "#ef4444"
+    embedTitle: "Level Reset"
+    embedRows:
+      - ["User", "@someone"]
+      - ["XP", "0"]
+related:
+  - { n: "/rank", d: "View rank" }
+  - { n: "/leaderboard", d: "Server leaderboard" }
+  - { n: "/rewards", d: "Level rewards" }
+---
+
+Requires admin permissions.

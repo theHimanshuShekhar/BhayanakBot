@@ -1,0 +1,33 @@
+---
+name: "/remind"
+cat: "Utility"
+tags: ["REMINDER", "DM"]
+summary: "Set, list, and cancel personal reminders."
+syntax:
+  cmd: "/remind"
+  args:
+    - { n: "set|list|cancel", d: "Reminder action", req: true, t: "subcommand" }
+    - { n: "time", d: "Delay such as 10m, 2h, or 1d", req: false, t: "duration" }
+    - { n: "message", d: "Reminder message", req: false, t: "string" }
+    - { n: "id", d: "Reminder ID for cancel", req: false, t: "integer" }
+examples:
+  - label: "set"
+    tag: "SET"
+    tagBg: "#22c55e"
+    user: "mona"
+    userColor: "#22c55e"
+    input: "set time:2h message:stretch"
+    time: "10:10"
+    botSays: "reminder scheduled. future you has been notified in advance."
+    embedAccent: "#22c55e"
+    embedTitle: "Reminder Set"
+    embedRows:
+      - ["Time", "2h"]
+      - ["Message", "stretch"]
+related:
+  - { n: "/afk", d: "Set away status" }
+  - { n: "/daily", d: "Daily reward" }
+  - { n: "/quests", d: "Daily quests" }
+---
+
+Use `/remind list` to see active reminders and `/remind cancel id:<id>` to remove one.

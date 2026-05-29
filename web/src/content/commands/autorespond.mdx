@@ -1,0 +1,34 @@
+---
+name: "/autorespond"
+cat: "Autoresponders"
+tags: ["ADMIN", "AUTO"]
+summary: "Add, remove, and list static or LLM auto-responses with keyword or regex triggers."
+syntax:
+  cmd: "/autorespond"
+  args:
+    - { n: "add|remove|list", d: "Autoresponder action", req: true, t: "subcommand" }
+    - { n: "trigger", d: "Trigger text or regex pattern", req: false, t: "string" }
+    - { n: "response", d: "Static response text", req: false, t: "string" }
+    - { n: "match-type", d: "exact, contains, or startsWith", req: false, t: "choice" }
+    - { n: "use-llm", d: "Generate responses with the AI provider", req: false, t: "boolean" }
+examples:
+  - label: "regex"
+    tag: "AUTO"
+    tagBg: "#a78bfa"
+    user: "admin"
+    userColor: "#a78bfa"
+    input: "add trigger:^my name is (?<name>.+)$ response:Nice to meet you, {name}! use-regex:true"
+    time: "13:45"
+    botSays: "auto-response saved. the bot will now interrupt precisely."
+    embedAccent: "#a78bfa"
+    embedTitle: "Autoresponder Added"
+    embedRows:
+      - ["Trigger", "regex"]
+      - ["Response", "static"]
+related:
+  - { n: "/config", d: "Server settings" }
+  - { n: "/summarize", d: "AI summaries" }
+  - { n: "/personality", d: "AI personality context" }
+---
+
+Requires admin access. `add` supports `match-type`, `use-llm`, `use-regex`, channel filters, mention requirements, chance, and trigger deletion. `remove` deletes by trigger and `list` shows configured responses.

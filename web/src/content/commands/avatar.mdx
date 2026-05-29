@@ -1,0 +1,28 @@
+---
+name: "/avatar"
+cat: "Utility"
+tags: ["USER", "IMAGE"]
+summary: "Show a user's server avatar, or their global avatar if no server avatar is set."
+syntax:
+  cmd: "/avatar"
+  args:
+    - { n: "user", d: "Member to inspect; defaults to yourself", req: false, t: "@user" }
+examples:
+  - label: "avatar"
+    tag: "IMAGE"
+    tagBg: "#a78bfa"
+    user: "parth"
+    userColor: "#a78bfa"
+    input: "user:@someone"
+    time: "09:15"
+    botSays: "avatar fetched. pixels accounted for."
+    embedAccent: "#a78bfa"
+    embedTitle: "Avatar · @someone"
+    embedRows:
+      - ["Source", "server or global avatar"]
+      - ["Size", "1024px"]
+related:
+  - { n: "/userinfo", d: "User details" }
+  - { n: "/serverinfo", d: "Server details" }
+  - { n: "/profile", d: "RPG profile" }
+---

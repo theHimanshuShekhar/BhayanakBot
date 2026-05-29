@@ -1,0 +1,31 @@
+---
+name: "/purge"
+cat: "Moderation"
+tags: ["MOD", "CLEANUP"]
+summary: "Bulk-delete recent messages from a channel, optionally filtering the fetched set by author."
+syntax:
+  cmd: "/purge"
+  args:
+    - { n: "amount", d: "Number of recent messages to fetch", req: true, t: "integer" }
+    - { n: "user", d: "Optional author filter", req: false, t: "@user" }
+examples:
+  - label: "cleanup"
+    tag: "PURGE"
+    tagBg: "#ef4444"
+    user: "mod"
+    userColor: "#ef4444"
+    input: "amount:20 user:@spammer"
+    time: "15:50"
+    botSays: "messages deleted from the recent fetched batch."
+    embedAccent: "#ef4444"
+    embedTitle: "Purge"
+    embedRows:
+      - ["Fetched", "20 recent messages"]
+      - ["Filter", "@spammer"]
+related:
+  - { n: "/warn", d: "Warn after cleanup" }
+  - { n: "/mute", d: "Mute spam" }
+  - { n: "/config", d: "Auto-mod settings" }
+---
+
+Requires moderator access. Discord bulk delete cannot remove messages older than 14 days. If `user` is provided, only matching authors from the fetched recent batch are deleted.

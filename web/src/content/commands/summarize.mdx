@@ -1,0 +1,31 @@
+---
+name: "/summarize"
+cat: "AI · utility"
+tags: ["AI", "CHANNEL"]
+summary: "Summarize recent non-bot text messages in the current channel using the configured AI provider."
+syntax:
+  cmd: "/summarize"
+  args:
+    - { n: "count", d: "Number of recent messages to consider", req: false, t: "integer" }
+    - { n: "time", d: "Time window: 15m, 30m, 1h, 2h, 6h, or 24h", req: false, t: "choice" }
+examples:
+  - label: "window"
+    tag: "AI"
+    tagBg: "#60a5fa"
+    user: "rhea"
+    userColor: "#60a5fa"
+    input: "time:2h"
+    time: "10:20"
+    botSays: "summary generated from recent channel messages."
+    embedAccent: "#60a5fa"
+    embedTitle: "Channel Summary"
+    embedRows:
+      - ["Window", "2h"]
+      - ["Messages", "up to 200"]
+related:
+  - { n: "/personality", d: "Archive-backed profiles" }
+  - { n: "/snipe", d: "Deleted message cache" }
+  - { n: "/help", d: "Command help" }
+---
+
+`time` overrides `count` when both are provided. Successful summaries apply a 10-minute cooldown for the channel.

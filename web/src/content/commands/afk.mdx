@@ -1,0 +1,31 @@
+---
+name: "/afk"
+cat: "Utility"
+tags: ["STATUS", "MENTIONS"]
+summary: "Set or clear your AFK status with an optional reason."
+syntax:
+  cmd: "/afk"
+  args:
+    - { n: "set|clear", d: "AFK action", req: true, t: "subcommand" }
+    - { n: "reason", d: "Optional AFK reason", req: false, t: "string" }
+examples:
+  - label: "set"
+    tag: "AFK"
+    tagBg: "#a78bfa"
+    user: "parth"
+    userColor: "#a78bfa"
+    input: "set reason:brb lunch"
+    time: "10:00"
+    botSays: "AFK set. touching grass, allegedly."
+    embedAccent: "#a78bfa"
+    embedTitle: "AFK"
+    embedRows:
+      - ["Status", "set"]
+      - ["Reason", "brb lunch"]
+related:
+  - { n: "/remind", d: "Set reminders" }
+  - { n: "/userinfo", d: "User info" }
+  - { n: "/help", d: "Command help" }
+---
+
+Use `/afk clear` to remove your AFK status manually.

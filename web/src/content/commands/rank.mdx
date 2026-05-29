@@ -1,0 +1,28 @@
+---
+name: "/rank"
+cat: "Leveling"
+tags: ["XP", "RANK"]
+summary: "View your XP rank or another member's rank in this server."
+syntax:
+  cmd: "/rank"
+  args:
+    - { n: "user", d: "Member to inspect; defaults to yourself", req: false, t: "@user" }
+examples:
+  - label: "self"
+    tag: "RANK"
+    tagBg: "#60a5fa"
+    user: "mona"
+    userColor: "#60a5fa"
+    input: ""
+    time: "12:00"
+    botSays: "rank loaded. number goes up."
+    embedAccent: "#60a5fa"
+    embedTitle: "Rank"
+    embedRows:
+      - ["Level", "shown"]
+      - ["XP", "shown"]
+related:
+  - { n: "/leaderboard", d: "Top XP earners" }
+  - { n: "/rewards", d: "Level rewards" }
+  - { n: "/level-reset", d: "Reset XP" }
+---

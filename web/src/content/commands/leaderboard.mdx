@@ -1,0 +1,28 @@
+---
+name: "/leaderboard"
+cat: "Leveling"
+tags: ["XP", "TOP"]
+summary: "View the top XP earners in this server."
+syntax:
+  cmd: "/leaderboard"
+  args:
+    - { n: "page", d: "Leaderboard page", req: false, t: "integer" }
+examples:
+  - label: "page"
+    tag: "TOP"
+    tagBg: "#facc15"
+    user: "rhea"
+    userColor: "#facc15"
+    input: "page:2"
+    time: "12:05"
+    botSays: "leaderboard loaded. competitive typing detected."
+    embedAccent: "#facc15"
+    embedTitle: "XP Leaderboard"
+    embedRows:
+      - ["Page", "2"]
+      - ["Members", "ranked"]
+related:
+  - { n: "/rank", d: "Your rank" }
+  - { n: "/rewards", d: "Level rewards" }
+  - { n: "/config", d: "XP settings" }
+---

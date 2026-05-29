@@ -1,0 +1,31 @@
+---
+name: "/unban"
+cat: "Moderation"
+tags: ["MOD", "CASE"]
+summary: "Unban a user by Discord user ID and log the action."
+syntax:
+  cmd: "/unban"
+  args:
+    - { n: "user-id", d: "Discord user ID to unban", req: true, t: "string" }
+    - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
+examples:
+  - label: "appeal"
+    tag: "UNBAN"
+    tagBg: "#22c55e"
+    user: "admin"
+    userColor: "#22c55e"
+    input: "user-id:123456789012345678 reason:appeal accepted"
+    time: "15:42"
+    botSays: "user unbanned and case logged."
+    embedAccent: "#22c55e"
+    embedTitle: "Unban"
+    embedRows:
+      - ["User ID", "123456789012345678"]
+      - ["Reason", "appeal accepted"]
+related:
+  - { n: "/ban", d: "Ban a member" }
+  - { n: "/case", d: "View moderation cases" }
+  - { n: "/history", d: "Review user history" }
+---
+
+Requires moderator access.

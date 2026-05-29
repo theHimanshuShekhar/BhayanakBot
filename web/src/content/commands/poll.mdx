@@ -1,0 +1,35 @@
+---
+name: "/poll"
+cat: "Fun"
+tags: ["VOTE", "BUTTONS"]
+summary: "Create a button-based poll with 2-4 options and an optional duration."
+syntax:
+  cmd: "/poll"
+  args:
+    - { n: "question", d: "Poll question", req: true, t: "string" }
+    - { n: "option1", d: "First option", req: true, t: "string" }
+    - { n: "option2", d: "Second option", req: true, t: "string" }
+    - { n: "option3", d: "Third option", req: false, t: "string" }
+    - { n: "option4", d: "Fourth option", req: false, t: "string" }
+    - { n: "duration", d: "Optional duration in minutes", req: false, t: "integer" }
+examples:
+  - label: "vote"
+    tag: "POLL"
+    tagBg: "#60a5fa"
+    user: "mona"
+    userColor: "#60a5fa"
+    input: "question:Best language? option1:Python option2:JS option3:Go option4:Rust"
+    time: "11:20"
+    botSays: "poll created. democracy with buttons."
+    embedAccent: "#60a5fa"
+    embedTitle: "Poll · Best language?"
+    embedRows:
+      - ["Options", "2-4"]
+      - ["Voting", "buttons"]
+related:
+  - { n: "/choose", d: "Random choice" }
+  - { n: "/giveaway", d: "Run giveaway" }
+  - { n: "/suggest", d: "Submit suggestion" }
+---
+
+Poll votes are handled by buttons. Timed polls end through the scheduled poll task.

@@ -1,0 +1,32 @@
+---
+name: "/suggestion"
+cat: "Suggestions"
+tags: ["ADMIN", "IDEA"]
+summary: "Approve or deny a submitted suggestion."
+syntax:
+  cmd: "/suggestion"
+  args:
+    - { n: "approve|deny", d: "Decision action", req: true, t: "subcommand" }
+    - { n: "id", d: "Suggestion ID", req: true, t: "integer" }
+    - { n: "response|reason", d: "Decision text", req: false, t: "string" }
+examples:
+  - label: "deny"
+    tag: "REVIEW"
+    tagBg: "#ef4444"
+    user: "admin"
+    userColor: "#ef4444"
+    input: "deny id:3 reason:Out of scope"
+    time: "13:30"
+    botSays: "suggestion updated. verdict delivered."
+    embedAccent: "#ef4444"
+    embedTitle: "Suggestion Denied"
+    embedRows:
+      - ["ID", "3"]
+      - ["Reason", "Out of scope"]
+related:
+  - { n: "/suggest", d: "Submit suggestion" }
+  - { n: "/config", d: "Suggestion channel" }
+  - { n: "/poll", d: "Poll members" }
+---
+
+Use `response` with `approve` and `reason` with `deny`.

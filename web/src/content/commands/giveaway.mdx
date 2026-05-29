@@ -1,0 +1,34 @@
+---
+name: "/giveaway"
+cat: "Giveaways"
+tags: ["EVENT", "BUTTON"]
+summary: "Start, end, or reroll a giveaway."
+syntax:
+  cmd: "/giveaway"
+  args:
+    - { n: "start|end|reroll", d: "Giveaway action", req: true, t: "subcommand" }
+    - { n: "duration", d: "Giveaway duration for start", req: false, t: "duration" }
+    - { n: "prize", d: "Prize name for start", req: false, t: "string" }
+    - { n: "winners", d: "Winner count for start", req: false, t: "integer" }
+    - { n: "message-id", d: "Giveaway message for end or reroll", req: false, t: "string" }
+examples:
+  - label: "start"
+    tag: "GIVE"
+    tagBg: "#facc15"
+    user: "admin"
+    userColor: "#facc15"
+    input: "start duration:1h prize:Nitro winners:2"
+    time: "13:20"
+    botSays: "giveaway started. button gamblers assemble."
+    embedAccent: "#facc15"
+    embedTitle: "Giveaway · Nitro"
+    embedRows:
+      - ["Duration", "1h"]
+      - ["Winners", "2"]
+related:
+  - { n: "/poll", d: "Button poll" }
+  - { n: "/config", d: "Server settings" }
+  - { n: "/suggest", d: "Community ideas" }
+---
+
+Giveaways are ended by scheduled tasks or manually with `/giveaway end message-id:<id>`. Use reroll to pick new winners from an ended giveaway.

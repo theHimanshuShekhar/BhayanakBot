@@ -1,0 +1,27 @@
+---
+name: "/editsnipe"
+cat: "Utility"
+tags: ["MESSAGE", "CACHE"]
+summary: "Show the last edited message cached for the current channel, including before and after content."
+syntax:
+  cmd: "/editsnipe"
+  args: []
+examples:
+  - label: "edited"
+    tag: "EDIT"
+    tagBg: "#f97316"
+    user: "rhea"
+    userColor: "#f97316"
+    input: ""
+    time: "09:25"
+    botSays: "last edit recovered from cache."
+    embedAccent: "#f97316"
+    embedTitle: "Edited Message"
+    embedRows:
+      - ["Before", "shown"]
+      - ["After", "shown"]
+related:
+  - { n: "/snipe", d: "Show last delete" }
+  - { n: "/summarize", d: "Summarize messages" }
+  - { n: "/purge", d: "Clean up messages" }
+---

@@ -1,0 +1,31 @@
+---
+name: "/kick"
+cat: "Moderation"
+tags: ["MOD", "CASE"]
+summary: "Kick a member from the server and record the moderation case."
+syntax:
+  cmd: "/kick"
+  args:
+    - { n: "user", d: "Member to kick", req: true, t: "@user" }
+    - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
+examples:
+  - label: "kick"
+    tag: "KICK"
+    tagBg: "#f97316"
+    user: "mod"
+    userColor: "#f97316"
+    input: "user:@someone reason:ignored warnings"
+    time: "15:14"
+    botSays: "member kicked and case logged."
+    embedAccent: "#f97316"
+    embedTitle: "Kick · Case Created"
+    embedRows:
+      - ["User", "@someone"]
+      - ["Reason", "ignored warnings"]
+related:
+  - { n: "/warn", d: "Warn a member" }
+  - { n: "/ban", d: "Ban a member" }
+  - { n: "/history", d: "Review moderation history" }
+---
+
+Requires moderator access.

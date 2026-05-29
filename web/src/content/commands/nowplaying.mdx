@@ -1,0 +1,27 @@
+---
+name: "/nowplaying"
+cat: "Music"
+tags: ["TRACK", "VOICE"]
+summary: "Show the currently playing track with playback progress."
+syntax:
+  cmd: "/nowplaying"
+  args: []
+examples:
+  - label: "track"
+    tag: "LIVE"
+    tagBg: "#22c55e"
+    user: "dev_kaz"
+    userColor: "#22c55e"
+    input: ""
+    time: "14:50"
+    botSays: "currently playing. the queue has a protagonist."
+    embedAccent: "#22c55e"
+    embedTitle: "Now Playing"
+    embedRows:
+      - ["Track", "current song"]
+      - ["Progress", "shown"]
+related:
+  - { n: "/queue", d: "See the queue" }
+  - { n: "/music", d: "Control playback" }
+  - { n: "/volume", d: "Adjust volume" }
+---

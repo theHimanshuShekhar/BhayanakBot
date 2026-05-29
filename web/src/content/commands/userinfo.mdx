@@ -1,0 +1,28 @@
+---
+name: "/userinfo"
+cat: "Utility"
+tags: ["USER", "INFO"]
+summary: "Display account and server information for yourself or another member."
+syntax:
+  cmd: "/userinfo"
+  args:
+    - { n: "user", d: "Member to inspect; defaults to yourself", req: false, t: "@user" }
+examples:
+  - label: "member"
+    tag: "INFO"
+    tagBg: "#60a5fa"
+    user: "dev_kaz"
+    userColor: "#60a5fa"
+    input: "user:@someone"
+    time: "09:10"
+    botSays: "user info loaded. timestamps included for legal reasons."
+    embedAccent: "#60a5fa"
+    embedTitle: "User Information · @someone"
+    embedRows:
+      - ["Joined", "shown"]
+      - ["Created", "shown"]
+related:
+  - { n: "/avatar", d: "Show avatar" }
+  - { n: "/rank", d: "Leveling rank" }
+  - { n: "/profile", d: "RPG profile" }
+---

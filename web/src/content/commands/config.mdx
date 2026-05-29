@@ -1,0 +1,32 @@
+---
+name: "/config"
+cat: "Server Config"
+tags: ["ADMIN", "SETTINGS"]
+summary: "Configure server channels, roles, XP, auto-mod, anti-raid, personality profiling, and random responses."
+syntax:
+  cmd: "/config"
+  args:
+    - { n: "view|set|automod|antiraid", d: "Configuration action", req: true, t: "subcommand" }
+    - { n: "setting", d: "Setting to update", req: false, t: "choice" }
+    - { n: "channel|role|number|text|toggle|value", d: "Value field matching the setting", req: false, t: "mixed" }
+examples:
+  - label: "set"
+    tag: "CONFIG"
+    tagBg: "#60a5fa"
+    user: "admin"
+    userColor: "#60a5fa"
+    input: "set setting:log-channel channel:#mod-log"
+    time: "13:40"
+    botSays: "configuration updated. knobs have been turned."
+    embedAccent: "#60a5fa"
+    embedTitle: "Config Updated"
+    embedRows:
+      - ["Setting", "log-channel"]
+      - ["Value", "#mod-log"]
+related:
+  - { n: "/mute", d: "Uses muted role" }
+  - { n: "/ticket", d: "Uses ticket config" }
+  - { n: "/autorespond", d: "Admin auto-responses" }
+---
+
+Requires admin access. `set` covers channels, roles, XP settings, messages, personality profiling, and random response settings. `automod` updates spam, bad-link, mention, action, and mute-duration settings. `antiraid` updates join threshold/window settings.

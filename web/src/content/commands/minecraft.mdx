@@ -1,0 +1,29 @@
+---
+name: "/minecraft"
+cat: "Minecraft"
+tags: ["SERVER", "MODS"]
+summary: "Show mc.bhayanak.net status, online players, live map, required Homestead modpack version, and recommended mods."
+syntax:
+  cmd: "/minecraft"
+  args: []
+examples:
+  - label: "status"
+    tag: "MC"
+    tagBg: "#22c55e"
+    user: "rhea"
+    userColor: "#22c55e"
+    input: ""
+    time: "13:35"
+    botSays: "minecraft status loaded. blocks accounted for."
+    embedAccent: "#22c55e"
+    embedTitle: "Minecraft Server"
+    embedRows:
+      - ["Address", "mc.bhayanak.net"]
+      - ["Mods", "required and recommended"]
+related:
+  - { n: "/serverinfo", d: "Discord server info" }
+  - { n: "/help", d: "Command help" }
+  - { n: "/ping", d: "Bot latency" }
+---
+
+The command checks live server status when possible and still shows connection details and mod information when the status check fails.

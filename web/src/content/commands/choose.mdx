@@ -1,0 +1,28 @@
+---
+name: "/choose"
+cat: "Fun"
+tags: ["RANDOM", "CHOICE"]
+summary: "Have the bot randomly pick from a comma-separated list of choices."
+syntax:
+  cmd: "/choose"
+  args:
+    - { n: "options", d: "Comma-separated choices", req: true, t: "string" }
+examples:
+  - label: "dinner"
+    tag: "PICK"
+    tagBg: "#22c55e"
+    user: "rhea"
+    userColor: "#22c55e"
+    input: "options:pizza,sushi,tacos"
+    time: "11:10"
+    botSays: "choice made. blame the bot."
+    embedAccent: "#22c55e"
+    embedTitle: "Choice"
+    embedRows:
+      - ["Options", "pizza, sushi, tacos"]
+      - ["Picked", "one option"]
+related:
+  - { n: "/coinflip", d: "Binary choice" }
+  - { n: "/8ball", d: "Ask fate" }
+  - { n: "/poll", d: "Let members vote" }
+---

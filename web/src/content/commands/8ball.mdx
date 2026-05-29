@@ -1,0 +1,28 @@
+---
+name: "/8ball"
+cat: "Fun"
+tags: ["RANDOM", "QUESTION"]
+summary: "Ask the magic 8-ball a yes/no question."
+syntax:
+  cmd: "/8ball"
+  args:
+    - { n: "question", d: "Question to ask", req: true, t: "string" }
+examples:
+  - label: "ask"
+    tag: "FATE"
+    tagBg: "#a78bfa"
+    user: "parth"
+    userColor: "#a78bfa"
+    input: "question:Will I win today?"
+    time: "11:00"
+    botSays: "the orb has opinions."
+    embedAccent: "#a78bfa"
+    embedTitle: "Magic 8-Ball"
+    embedRows:
+      - ["Question", "Will I win today?"]
+      - ["Answer", "random response"]
+related:
+  - { n: "/coinflip", d: "Flip a coin" }
+  - { n: "/choose", d: "Pick an option" }
+  - { n: "/meme", d: "Fetch a meme" }
+---

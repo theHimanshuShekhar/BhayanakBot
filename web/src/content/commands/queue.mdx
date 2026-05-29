@@ -1,0 +1,28 @@
+---
+name: "/queue"
+cat: "Music"
+tags: ["QUEUE", "VOICE"]
+summary: "Show the current music queue, optionally jumping to a page."
+syntax:
+  cmd: "/queue"
+  args:
+    - { n: "page", d: "Queue page to display", req: false, t: "integer" }
+examples:
+  - label: "page"
+    tag: "QUEUE"
+    tagBg: "#60a5fa"
+    user: "mona"
+    userColor: "#60a5fa"
+    input: "page:2"
+    time: "14:45"
+    botSays: "queue page loaded. the aux cable has a paper trail."
+    embedAccent: "#60a5fa"
+    embedTitle: "Music Queue · Page 2"
+    embedRows:
+      - ["Tracks", "listed"]
+      - ["Page", "2"]
+related:
+  - { n: "/play", d: "Add tracks" }
+  - { n: "/music", d: "Control playback" }
+  - { n: "/shuffle", d: "Shuffle queue" }
+---

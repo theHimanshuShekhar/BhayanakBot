@@ -1,0 +1,31 @@
+---
+name: "/unmute"
+cat: "Moderation"
+tags: ["MOD", "CASE"]
+summary: "Remove the configured muted role from a member and log the unmute."
+syntax:
+  cmd: "/unmute"
+  args:
+    - { n: "user", d: "Member to unmute", req: true, t: "@user" }
+    - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
+examples:
+  - label: "unmute"
+    tag: "CLEAR"
+    tagBg: "#22c55e"
+    user: "mod"
+    userColor: "#22c55e"
+    input: "user:@x reason:served time"
+    time: "15:30"
+    botSays: "mute removed and case logged."
+    embedAccent: "#22c55e"
+    embedTitle: "Unmute"
+    embedRows:
+      - ["User", "@x"]
+      - ["Reason", "served time"]
+related:
+  - { n: "/mute", d: "Mute a member" }
+  - { n: "/history", d: "View prior cases" }
+  - { n: "/config", d: "Muted role config" }
+---
+
+Requires moderator access and the configured muted role.

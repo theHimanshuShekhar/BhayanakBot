@@ -1,0 +1,28 @@
+---
+name: "/loop"
+cat: "Music"
+tags: ["QUEUE", "MODE"]
+summary: "Set loop mode for the current track or the whole queue."
+syntax:
+  cmd: "/loop"
+  args:
+    - { n: "mode", d: "Loop mode: off, track, or queue", req: true, t: "choice" }
+examples:
+  - label: "track"
+    tag: "LOOP"
+    tagBg: "#60a5fa"
+    user: "dev_kaz"
+    userColor: "#60a5fa"
+    input: "mode:track"
+    time: "15:05"
+    botSays: "loop mode updated. repetition arc engaged."
+    embedAccent: "#60a5fa"
+    embedTitle: "Music · Loop"
+    embedRows:
+      - ["Mode", "track"]
+      - ["Choices", "off · track · queue"]
+related:
+  - { n: "/queue", d: "View queue" }
+  - { n: "/music", d: "Control playback" }
+  - { n: "/shuffle", d: "Shuffle queue" }
+---

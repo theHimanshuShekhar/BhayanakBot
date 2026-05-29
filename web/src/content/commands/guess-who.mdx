@@ -1,0 +1,29 @@
+---
+name: "/guess_who"
+cat: "Games"
+tags: ["GAME", "ARCHIVE"]
+summary: "Start a Guess Who round using an archived message from the configured channel."
+syntax:
+  cmd: "/guess_who"
+  args: []
+examples:
+  - label: "round"
+    tag: "GUESS"
+    tagBg: "#a78bfa"
+    user: "rhea"
+    userColor: "#a78bfa"
+    input: ""
+    time: "11:30"
+    botSays: "guess who said this archived message. mention your suspect."
+    embedAccent: "#a78bfa"
+    embedTitle: "Guess Who"
+    embedRows:
+      - ["Guesses", "3 wrong allowed"]
+      - ["Timeout", "10 minutes"]
+related:
+  - { n: "/personality", d: "Archive-backed profiles" }
+  - { n: "/summarize", d: "AI summaries" }
+  - { n: "/poll", d: "Button polls" }
+---
+
+Only works in `GUESS_WHO_CHANNEL_ID`. Guess by mentioning a user. One round can be active per channel; three wrong guesses or a 10-minute timeout reveals the author.
