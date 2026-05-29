@@ -112,15 +112,9 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 				"Build a detailed personality profile based on these messages.",
 			].join("\n");
 
-	// Try to resolve the user's display name for logging
 	const client = container.client as BhayanakClient;
-	const guild = client.guilds.cache.get(guildId);
-	const member = guild?.members.cache.get(userId);
-	const user = client.users.cache.get(userId);
-	const displayName = member?.displayName ?? user?.username;
-	const label = displayName ? `${displayName} (id=${userId})` : `user id=${userId}`;
 
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, "personality:user");
 	if (!result) {
 		container.logger.warn(
 			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,

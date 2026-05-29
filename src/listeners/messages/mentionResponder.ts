@@ -69,7 +69,13 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guildId!);
 		const systemWithPersonality = personalityCtx + SYSTEM_PROMPT;
 
-		const response = await callInteractiveLlm(systemWithPersonality, prompt, OLLAMA_TIMEOUT_MS, 160);
+		const response = await callInteractiveLlm(
+			systemWithPersonality,
+			prompt,
+			OLLAMA_TIMEOUT_MS,
+			160,
+			"mention-responder",
+		);
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;

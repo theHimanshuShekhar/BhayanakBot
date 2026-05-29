@@ -7,20 +7,58 @@ type ZenChatResponse = {
 	choices?: Array<{ message?: { content?: string | null } }>;
 };
 
+type LlmMode = "interactive" | "background";
+type ZenFailureReason = "not_configured" | "http_error" | "fetch_error" | "empty" | "refusal";
+
+type ZenResult = {
+	content: string | null;
+	elapsedMs: number;
+	reason?: ZenFailureReason;
+};
+
+let nextRequestId = 1;
+
+function createRequestId(): string {
+	return `llm-${nextRequestId++}`;
+}
+
+function safeUrlHost(url: string): string {
+	try {
+		return new URL(url).host;
+	} catch {
+		return "invalid-url";
+	}
+}
+
+function logLlm(message: string): void {
+	console.log(`[llm] ${message}`);
+}
+
 async function callZenChat(
+	requestId: string,
+	mode: LlmMode,
+	label: string | undefined,
 	system: string,
 	prompt: string,
 	timeoutMs: number,
-): Promise<{ content: string | null; elapsedMs: number }> {
+): Promise<ZenResult> {
 	const startedAt = Date.now();
 	const apiKey = process.env.ZEN_API_KEY;
-	if (!apiKey) return { content: null, elapsedMs: 0 };
+	if (!apiKey) {
+		logLlm(
+			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=skipped reason=not_configured`,
+		);
+		return { content: null, elapsedMs: 0, reason: "not_configured" };
+	}
 
 	const baseUrl = (process.env.ZEN_BASE_URL ?? DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");
 	const model = process.env.ZEN_MODEL ?? DEFAULT_ZEN_MODEL;
 	const controller = new AbortController();
 	const zenTimeoutMs = Math.max(1000, Math.floor(timeoutMs / 2));
 	const timeout = setTimeout(() => controller.abort(), zenTimeoutMs);
+	logLlm(
+		`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen event=start model=${model} host=${safeUrlHost(baseUrl)} timeoutMs=${zenTimeoutMs}`,
+	);
 
 	try {
 		const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -37,18 +75,35 @@ async function callZenChat(
 		});
 
 		if (!res.ok) {
-			const body = await res.text().catch(() => "(unreadable)");
-			console.log(`[zen] chat completion failed: HTTP ${res.status} ${body.slice(0, 200)}`);
-			return { content: null, elapsedMs: Date.now() - startedAt };
+			logLlm(
+				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=http_error status=${res.status} elapsedMs=${Date.now() - startedAt}`,
+			);
+			return { content: null, elapsedMs: Date.now() - startedAt, reason: "http_error" };
 		}
 
 		const data = (await res.json()) as ZenChatResponse;
 		const content = data.choices?.[0]?.message?.content?.trim() ?? "";
-		if (!content || isRefusalOnly(content)) return { content: null, elapsedMs: Date.now() - startedAt };
+		if (!content) {
+			logLlm(
+				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=empty elapsedMs=${Date.now() - startedAt}`,
+			);
+			return { content: null, elapsedMs: Date.now() - startedAt, reason: "empty" };
+		}
+		if (isRefusalOnly(content)) {
+			logLlm(
+				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=refusal elapsedMs=${Date.now() - startedAt}`,
+			);
+			return { content: null, elapsedMs: Date.now() - startedAt, reason: "refusal" };
+		}
+		logLlm(
+			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=success elapsedMs=${Date.now() - startedAt} outputLength=${content.length}`,
+		);
 		return { content, elapsedMs: Date.now() - startedAt };
 	} catch (err) {
-		console.log(`[zen] chat completion error: ${err instanceof Error ? err.message : String(err)}`);
-		return { content: null, elapsedMs: Date.now() - startedAt };
+		logLlm(
+			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=fetch_error error=${err instanceof Error ? err.name : "unknown"} elapsedMs=${Date.now() - startedAt}`,
+		);
+		return { content: null, elapsedMs: Date.now() - startedAt, reason: "fetch_error" };
 	} finally {
 		clearTimeout(timeout);
 	}
@@ -69,10 +124,21 @@ export async function callInteractiveLlm(
 	prompt: string,
 	timeoutMs = 3000,
 	numPredict?: number,
+	label?: string,
 ): Promise<string | null> {
-	const zenResult = await callZenChat(system, prompt, timeoutMs);
+	const requestId = createRequestId();
+	logLlm(`request=${requestId} mode=interactive label=${label ?? "none"} event=start timeoutMs=${timeoutMs}`);
+	const zenResult = await callZenChat(requestId, "interactive", label, system, prompt, timeoutMs);
 	if (zenResult.content) return zenResult.content;
-	return callOllama(system, prompt, fallbackTimeout(timeoutMs, zenResult.elapsedMs), numPredict);
+	const remainingTimeoutMs = fallbackTimeout(timeoutMs, zenResult.elapsedMs);
+	logLlm(
+		`request=${requestId} mode=interactive label=${label ?? "none"} provider=ollama event=fallback reason=${zenResult.reason ?? "unknown"} timeoutMs=${remainingTimeoutMs}`,
+	);
+	const result = await callOllama(system, prompt, remainingTimeoutMs, numPredict);
+	logLlm(
+		`request=${requestId} mode=interactive label=${label ?? "none"} provider=ollama result=${result ? "success" : "failure"} outputLength=${result?.length ?? 0}`,
+	);
+	return result;
 }
 
 export async function callBackgroundLlm(
@@ -82,7 +148,17 @@ export async function callBackgroundLlm(
 	numPredict?: number,
 	label?: string,
 ): Promise<string | null> {
-	const zenResult = await callZenChat(system, prompt, timeoutMs);
+	const requestId = createRequestId();
+	logLlm(`request=${requestId} mode=background label=${label ?? "none"} event=start timeoutMs=${timeoutMs}`);
+	const zenResult = await callZenChat(requestId, "background", label, system, prompt, timeoutMs);
 	if (zenResult.content) return zenResult.content;
-	return callOllamaLowPriority(system, prompt, fallbackTimeout(timeoutMs, zenResult.elapsedMs), numPredict, label);
+	const remainingTimeoutMs = fallbackTimeout(timeoutMs, zenResult.elapsedMs);
+	logLlm(
+		`request=${requestId} mode=background label=${label ?? "none"} provider=ollama event=fallback reason=${zenResult.reason ?? "unknown"} timeoutMs=${remainingTimeoutMs}`,
+	);
+	const result = await callOllamaLowPriority(system, prompt, remainingTimeoutMs, numPredict, label);
+	logLlm(
+		`request=${requestId} mode=background label=${label ?? "none"} provider=ollama result=${result ? "success" : "failure"} outputLength=${result?.length ?? 0}`,
+	);
+	return result;
 }

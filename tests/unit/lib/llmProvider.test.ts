@@ -34,13 +34,14 @@ describe("LLM provider", () => {
 	});
 
 	it("uses Zen chat completions when configured without forwarding token caps", async () => {
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 		mockedFetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({ choices: [{ message: { content: "zen generated reply" } }] }),
 		});
 		const { callInteractiveLlm } = await importProvider();
 
-		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123);
+		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123, "summarize");
 
 		expect(result).toBe("zen generated reply");
 		expect(mockedFetch).toHaveBeenCalledWith(
@@ -58,6 +59,11 @@ describe("LLM provider", () => {
 			}),
 		);
 		expect(mockedCallOllama).not.toHaveBeenCalled();
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[llm] request="));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("mode=interactive"));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("label=summarize"));
+		expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("User prompt"));
+		logSpy.mockRestore();
 	});
 
 	it("falls back to high-priority Ollama when Zen is not configured", async () => {
@@ -75,7 +81,7 @@ describe("LLM provider", () => {
 		mockedFetch.mockResolvedValueOnce({ ok: false, status: 503, text: async () => "temporarily unavailable" });
 		const { callBackgroundLlm } = await importProvider();
 
-		const result = await callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "profile label");
+		const result = await callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
 
 		expect(result).toBe("ollama background fallback");
 		expect(mockedCallOllamaLowPriority).toHaveBeenCalledWith(
@@ -83,7 +89,7 @@ describe("LLM provider", () => {
 			"User prompt",
 			expect.any(Number),
 			undefined,
-			"profile label",
+			"personality:user",
 		);
 	});
 

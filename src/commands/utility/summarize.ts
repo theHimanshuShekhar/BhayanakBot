@@ -159,7 +159,7 @@ export class SummarizeCommand extends Command {
 		}
 
 		const prompt = messages.join("\n");
-		const summary = await callInteractiveLlm(SYSTEM_PROMPT, prompt, OLLAMA_TIMEOUT_MS);
+		const summary = await callInteractiveLlm(SYSTEM_PROMPT, prompt, OLLAMA_TIMEOUT_MS, undefined, "summarize");
 
 		if (!summary) {
 			return interaction.editReply({

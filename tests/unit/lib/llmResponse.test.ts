@@ -20,6 +20,7 @@ describe("LLM response prompts", () => {
 		expect(prompt).toContain("joke or playful roast");
 		expect(prompt).toContain("Avoid genuine hostility");
 		expect(prompt).not.toMatch(/No mercy|Reply savagely/i);
+		expect(mockedCallInteractiveLlm.mock.calls[0]?.[4]).toBe("autoresponder:mention-reply");
 	});
 
 	it("asks chat replies for jokes or playful roasts without hostile no-mercy wording", async () => {
@@ -29,5 +30,6 @@ describe("LLM response prompts", () => {
 		expect(prompt).toContain("joke or playful roast");
 		expect(prompt).toContain("Keep it funny, not hostile");
 		expect(prompt).not.toMatch(/No mercy|Reply savagely/i);
+		expect(mockedCallInteractiveLlm.mock.calls[0]?.[4]).toBe("autoresponder:chat-response");
 	});
 });

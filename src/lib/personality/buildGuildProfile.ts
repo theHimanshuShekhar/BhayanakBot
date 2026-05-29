@@ -97,12 +97,9 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 				"\n",
 			);
 
-	// Try to resolve the guild name for logging
 	const client = container.client as BhayanakClient;
-	const guild = client.guilds.cache.get(guildId);
-	const label = guild ? `${guild.name} (id=${guildId})` : `guild id=${guildId}`;
 
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, "personality:guild");
 	if (!result) {
 		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
 		await db

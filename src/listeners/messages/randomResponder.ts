@@ -77,7 +77,7 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 		await channel.sendTyping().catch(() => null);
 
-		const response = await callInteractiveLlm(system, prompt, OLLAMA_TIMEOUT_MS, 160);
+		const response = await callInteractiveLlm(system, prompt, OLLAMA_TIMEOUT_MS, 160, "random-responder");
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;
