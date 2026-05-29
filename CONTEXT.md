@@ -16,6 +16,16 @@ The capped, repeat-safe process of importing accessible historical Discord messa
 
 The Discord channel where messages are archived and where `/guess_who` rounds are allowed. For the current feature, this is channel `199168135935295488` only.
 
+## Personality Training Corpus
+
+The set of archived Discord messages considered for personality training. For this server, the corpus uses the same general chat source as the Guess Who Channel; personality training and `/guess_who` may apply different eligibility rules over the same archived messages.
+
+Backfilled archived messages are valid personality training source material when they satisfy personality training eligibility. Deleted archived messages are not used for future profile generation.
+
+If an archived message is deleted after it has already influenced an incremental profile update, the profile is not automatically rebuilt or purged. Deleted messages are excluded from future profile generation.
+
+When an archived message has been edited, personality training uses the latest non-deleted archived content rather than attempting to preserve or analyze earlier message versions.
+
 ## Game-Eligible Message
 
 An archived channel message that is safe and useful as a `/guess_who` prompt. Game eligibility is stricter than archival: short, command-like, link-only, mention-heavy, bot-authored, or too-recent messages are excluded from the game pool.
@@ -47,3 +57,73 @@ A database-stored set of public marketing-site metrics written by the running bo
 ## Zen LLM Provider
 
 The opencode Zen hosted model endpoint used first for Discord responder replies and user or guild personality profile generation. It is distinct from the legacy local Ollama provider, which remains the primary provider for RPG, quest, and other non-responder bot features. Responder and personality generation fall back to Ollama when Zen is unconfigured or returns an unusable response.
+
+## Personality Training Message
+
+A durable, non-deleted archived Discord message eligible to be used for user or guild personality profile generation. Personality training messages are the canonical source material for generated personality profiles; short-lived profile queues or counters are derived processing state, not the source of truth.
+
+## Personality Training Eligibility
+
+The rule set that decides whether an archived Discord message is suitable personality source material. Training eligibility is separate from game eligibility: a message may be archived for history, excluded from `/guess_who`, and still be useful for personality training, or vice versa.
+
+Bot-authored messages and command invocations are not personality training eligible.
+
+## User Personality Profile
+
+A generated description of one Discord user's communication style within a specific guild. It is based on that user's personality training messages in that guild and should not be treated as a global identity across all servers.
+
+User personality profiles may use backfilled personality training messages from the same guild.
+
+User personality profiles may be viewed by guild members for users in the same guild. Discord responses that show profile content should remain ephemeral rather than posting the profile directly into the channel.
+
+Generated personality profiles describe communication patterns and should not reproduce direct quotes from source messages.
+
+## Guild Personality Profile
+
+A generated description of a Discord server's shared culture, tone, recurring topics, and social dynamics. It is not the sum of individual user personality profiles; it should be based on a balanced view of guild-level personality training messages so one high-volume user does not dominate the profile.
+
+Guild personality generation should use author-balanced source material so high-volume users can influence the profile without overwhelming the server-level view.
+
+Guild personality source material should preserve speaker separation, such as with stable anonymized author labels, so the profile can distinguish shared culture from one person's repeated messages.
+
+Guild personality profiles should be available to server-context AI replies as culture and tone context, separate from any user personality profile used for the individual being answered.
+
+Guild personality profiles may use historical eligible messages from users who are no longer active or no longer members, because those messages can still reflect the server's culture over time.
+
+## Personality Profile Command Surface
+
+The Discord-facing commands for viewing and rebuilding personality profiles. The command surface includes both user personality profiles and guild personality profiles; command names and web documentation should make that distinction explicit.
+
+Normal AI replies may be shaped by personality profiles without announcing that profile context was used. The `/personality` command surface is the explicit way to inspect profile content.
+
+## Personality Feature Toggle
+
+A guild-level administrative switch that enables or disables personality collection and profile behavior for operational control. It is not a consent model and should not be described as opt-in or opt-out in domain language.
+
+## Incremental Personality Profile Update
+
+A profile generation pass that preserves the existing personality profile and refines it with newly eligible personality training messages. Incremental updates are the default behavior for both user and guild personality profiles.
+
+Incremental updates may process personality training messages in bounded chunks. Chunking limits each prompt size, but eligible messages that do not fit in one pass remain available for later refreshes rather than being ignored.
+
+## Personality Profile Refresh
+
+A user- or admin-triggered incremental personality profile update. A refresh does not imply a full recomputation from all historical source messages; that separate operation is a rebuild.
+
+During a refresh, newer evidence should be allowed to revise or soften older profile observations when user or guild behavior has changed.
+
+## Personality Profile Rebuild
+
+A full recomputation of a personality profile from historical personality training messages. Rebuilds are distinct from refreshes and are not the default profile update path.
+
+## Personality Profile Evidence Threshold
+
+The minimum amount of eligible personality training material required before a profile generation pass should run. First-time profile creation requires enough evidence to avoid weak or misleading profiles; later incremental refreshes may use a smaller threshold because they refine an existing profile.
+
+## Personality E2E Test
+
+An end-to-end personality test should exercise the real profile-generation path with Ollama when a local model is available. Discord events and interactions may be mocked in-process, but the language model boundary should be real for at least one e2e path; tests may skip gracefully when Ollama is unavailable.
+
+Real-Ollama personality e2e tests are required when changes affect model prompts, Ollama integration, or profile-generation behavior. For unrelated changes, they are opt-in rather than part of every default test run.
+
+Real-Ollama personality e2e tests should assert observable behavior and profile structure rather than exact generated prose, because model output is nondeterministic.

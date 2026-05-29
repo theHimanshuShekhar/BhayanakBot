@@ -1,0 +1,3 @@
+# Use Archived Messages For Personality Training
+
+We will use durable archived Discord messages as the source of truth for personality training, while treating short-lived queues and counters as derived processing state. This is deliberate because user and guild personality profiles need stable, replayable source material with message identity, edit/delete state, author context, and backfilled history; the existing `user_messages` queue is disposable and loses evidence after profile absorption. Personality training may share the same archived general-chat source as `/guess_who`, but it uses separate training eligibility rules and incremental profile updates.
