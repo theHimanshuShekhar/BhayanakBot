@@ -1,6 +1,7 @@
 import { container } from "@sapphire/framework";
 import { and, eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import {
 	archivedChannelMessageTestHooks,
@@ -14,7 +15,7 @@ import {
 } from "../../../src/db/schema.js";
 import { db } from "../../../src/lib/database.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../../src/lib/constants.js";
-import { generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
+import { generateAutoResponse, generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
 import { callOllamaLowPriority } from "../../../src/lib/ollama.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
@@ -72,8 +73,10 @@ const USER_ID = "listener-user";
 const OTHER_USER_ID = "listener-other";
 
 const mockedCallOllamaLowPriority = vi.mocked(callOllamaLowPriority);
+const mockedGenerateAutoResponse = vi.mocked(generateAutoResponse);
 const mockedGenerateMentionReply = vi.mocked(generateMentionReply);
 const mockedGetOrCreateSettings = vi.mocked(getOrCreateSettings);
+const mockedFindMatchingResponse = vi.mocked(findMatchingResponse);
 
 function createSettings(overrides: Record<string, unknown> = {}) {
 	return {
@@ -203,7 +206,9 @@ describe("messageCreate personality archive flow", () => {
 		await cleanupRows();
 		archivedChannelMessageTestHooks.afterPendingDeleteRead = undefined;
 		mockedCallOllamaLowPriority.mockClear();
+		mockedGenerateAutoResponse.mockClear();
 		mockedGenerateMentionReply.mockClear();
+		mockedFindMatchingResponse.mockClear();
 		mockedGetOrCreateSettings.mockReset();
 		mockedGetOrCreateSettings.mockImplementation(async (guildId: string) => createSettings({ guildId }) as never);
 		container.logger = { debug: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as typeof container.logger;
@@ -423,5 +428,58 @@ describe("messageCreate personality archive flow", () => {
 		const systemPrompt = mockedGenerateMentionReply.mock.calls[0]?.[0] ?? "";
 		expect(systemPrompt).toContain("Guild culture belongs in random context.");
 		expect(systemPrompt).not.toContain("Triggering user's private profile should not be in random context.");
+	});
+
+	it("normalizes known user names in generated smart mention replies to Discord mentions", async () => {
+		mockedGenerateMentionReply.mockResolvedValueOnce(
+			"piss off, excal11bur. goti is catching strays, and Adineo17 is wise beyond her years. excal11burrito stays plain and <@222> stays mentioned.",
+		);
+		const reply = vi.fn(async () => null);
+		const message = createMessage({
+			messageId: "mention-normalize",
+			channelId: TARGET_TEXT_CHANNEL_ID,
+			content: "<@bot-user> say something about everyone",
+		});
+		message.reply = reply;
+		message.mentions.has = vi.fn(() => true);
+		message.guild.members.cache.set("111", { id: "111", displayName: "excal11bur", user: { username: "excal11bur" } });
+		message.guild.members.cache.set("222", { id: "222", displayName: "goti", user: { username: "goti" } });
+		message.guild.members.cache.set("333", { id: "333", displayName: "Adineo17", user: { username: "Adineo17" } });
+
+		await createListener().run(message as never);
+
+		expect(reply).toHaveBeenCalledWith(
+			"piss off, <@111>. <@222> is catching strays, and <@333> is wise beyond her years. excal11burrito stays plain and <@222> stays mentioned.",
+		);
+	});
+
+	it("normalizes known user names in generated autoresponder replies", async () => {
+		mockedFindMatchingResponse.mockResolvedValueOnce({
+			response: {
+				id: 1,
+				guildId: GUILD_ID,
+				trigger: "hello",
+				response: "Be rude.",
+				matchType: "contains",
+				responseType: "llm",
+				useRegex: false,
+				channelIds: [],
+				requireMention: false,
+				chancePercent: 100,
+				deleteTrigger: false,
+				createdAt: new Date("2026-05-28T12:00:00.000Z"),
+			},
+		});
+		mockedGenerateAutoResponse.mockResolvedValueOnce("excal11bur and goti are both in this generated reply.");
+		const reply = vi.fn(async () => null);
+		const message = createMessage({ messageId: "llm-autoresponse-normalize", channelId: TARGET_TEXT_CHANNEL_ID });
+		message.reply = reply;
+		message.guild.members.cache.set("111", { id: "111", displayName: "excal11bur", user: { username: "excal11bur" } });
+		message.guild.members.cache.set("222", { id: "222", displayName: "goti", user: { username: "goti" } });
+
+		await createListener().run(message as never);
+
+		expect(mockedGenerateAutoResponse.mock.calls[0]?.[2]).toBe(`<@${USER_ID}>`);
+		expect(reply).toHaveBeenCalledWith("<@111> and <@222> are both in this generated reply.");
 	});
 });

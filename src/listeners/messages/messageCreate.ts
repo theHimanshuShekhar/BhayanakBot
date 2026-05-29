@@ -285,14 +285,14 @@ export class MessageCreateListener extends Listener {
 					const reply = await generateAutoResponse(
 						systemWithPersonality,
 						message.content,
-						message.author.username,
+						`<@${message.author.id}>`,
 						conversationContext,
 					);
 					this.container.logger.debug(
 						`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`,
 					);
 					if (reply) {
-						const safeReply = this.substituteVariables(reply, match.captured);
+						const safeReply = this.normalizeKnownUserNames(message, this.substituteVariables(reply, match.captured));
 						await this.sendReply(message, safeReply, match.response.deleteTrigger);
 					}
 				} else {
@@ -323,7 +323,9 @@ export class MessageCreateListener extends Listener {
 	private async sendReply(message: Message, content: string, deletedTrigger: boolean) {
 		const safeReply = content.length > 1990 ? `${content.slice(0, 1989)}…` : content;
 		if (safeReply.length !== content.length) {
-			this.container.logger.warn(`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`);
+			this.container.logger.warn(
+				`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`,
+			);
 		}
 		// If trigger was deleted, send as regular message instead of reply
 		if (deletedTrigger) {
@@ -364,12 +366,13 @@ export class MessageCreateListener extends Listener {
 		const reply = await generateMentionReply(
 			systemPrompt,
 			conversationContext,
-			message.author.username,
+			`<@${message.author.id}>`,
 			message.content.replace(new RegExp(`<@!?${message.client.user.id}>`, "g"), "").trim(),
 		);
 
 		if (reply) {
-			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+			const normalizedReply = this.normalizeKnownUserNames(message, reply);
+			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
 			await message
 				.reply(safeReply)
 				.catch((err) => this.container.logger.warn(`[smart-mention] reply send failed:`, err));
@@ -418,12 +421,13 @@ export class MessageCreateListener extends Listener {
 		const reply = await generateMentionReply(
 			systemPrompt,
 			conversationContext,
-			message.author.username,
+			`<@${message.author.id}>`,
 			message.content,
 		);
 
 		if (reply) {
-			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+			const normalizedReply = this.normalizeKnownUserNames(message, reply);
+			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
 			await (message.channel as TextChannel)
 				.send(safeReply)
 				.catch((err) => this.container.logger.warn(`[random-response] send failed:`, err));
@@ -438,7 +442,7 @@ export class MessageCreateListener extends Listener {
 			conversationHistory.set(channelId, history);
 		}
 		history.push({
-			author: message.author.username,
+			author: `<@${message.author.id}>`,
 			content: message.content.slice(0, 500), // cap individual message length
 			timestamp: Date.now(),
 		});
@@ -455,6 +459,28 @@ export class MessageCreateListener extends Listener {
 		if (history.length === 0) {
 			conversationHistory.delete(channelId);
 		}
+	}
+
+	private normalizeKnownUserNames(message: Message, content: string): string {
+		const members = message.guild?.members.cache;
+		if (!members) return content;
+
+		const replacements = new Map<string, string>();
+		for (const member of members.values()) {
+			const user = member.user;
+			for (const name of [member.displayName, user.username, user.globalName]) {
+				if (!name || name.length < 3) continue;
+				replacements.set(name, `<@${member.id}>`);
+			}
+		}
+
+		let normalized = content;
+		for (const [name, mention] of [...replacements.entries()].sort((a, b) => b[0].length - a[0].length)) {
+			const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			normalized = normalized.replace(new RegExp(`(?<![\\w@])${escapedName}(?![\\w])`, "g"), mention);
+		}
+
+		return normalized;
 	}
 
 	private getConversationContext(channelId: string, limit: number): string {
