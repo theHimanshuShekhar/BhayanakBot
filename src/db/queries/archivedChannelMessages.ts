@@ -16,17 +16,27 @@ export type ArchivedMessageInput = {
 };
 
 export type GuessWhoArchivedMessage = typeof archivedChannelMessages.$inferSelect;
+export type ArchivedMessageUpsertResult = { inserted: boolean; deleted: boolean };
 
 const pendingDeletedMessages = new Map<string, Date>();
 
-export async function upsertArchivedChannelMessage(input: ArchivedMessageInput): Promise<void> {
+export const archivedChannelMessageTestHooks: {
+	afterPendingDeleteRead?: () => Promise<void> | void;
+} = {};
+
+export async function upsertArchivedChannelMessage(input: ArchivedMessageInput): Promise<ArchivedMessageUpsertResult> {
 	const pendingDeletedAt = pendingDeletedMessages.get(input.messageId) ?? null;
-	await db
+	if (process.env.NODE_ENV === "test") await archivedChannelMessageTestHooks.afterPendingDeleteRead?.();
+	const insertedRows = await db
 		.insert(archivedChannelMessages)
 		.values({ ...input, updatedAt: new Date(), deletedAt: pendingDeletedAt })
-		.onConflictDoUpdate({
-			target: archivedChannelMessages.messageId,
-			set: {
+		.onConflictDoNothing()
+		.returning({ messageId: archivedChannelMessages.messageId });
+
+	if (insertedRows.length === 0) {
+		await db
+			.update(archivedChannelMessages)
+			.set({
 				guildId: input.guildId,
 				channelId: input.channelId,
 				authorUserId: input.authorUserId,
@@ -37,9 +47,23 @@ export async function upsertArchivedChannelMessage(input: ArchivedMessageInput):
 				editedAt: input.editedAt ?? null,
 				updatedAt: new Date(),
 				deletedAt: sql`coalesce(${archivedChannelMessages.deletedAt}, ${pendingDeletedAt})`,
-			},
-		});
+			})
+			.where(eq(archivedChannelMessages.messageId, input.messageId));
+	}
+
+	const finalPendingDeletedAt = pendingDeletedMessages.get(input.messageId) ?? pendingDeletedAt;
+	if (finalPendingDeletedAt) {
+		await db
+			.update(archivedChannelMessages)
+			.set({
+				deletedAt: finalPendingDeletedAt,
+				updatedAt: finalPendingDeletedAt,
+			})
+			.where(eq(archivedChannelMessages.messageId, input.messageId));
+	}
+
 	pendingDeletedMessages.delete(input.messageId);
+	return { inserted: insertedRows.length > 0, deleted: finalPendingDeletedAt !== null };
 }
 
 export async function markArchivedChannelMessageEdited(input: ArchivedMessageInput): Promise<void> {
@@ -53,6 +77,14 @@ export async function markArchivedChannelMessageDeleted(messageId: string, delet
 		.where(eq(archivedChannelMessages.messageId, messageId))
 		.returning({ messageId: archivedChannelMessages.messageId });
 	if (updatedRows.length === 0) pendingDeletedMessages.set(messageId, deletedAt);
+}
+
+export async function isArchivedChannelMessageDeleted(messageId: string): Promise<boolean> {
+	const row = await db.query.archivedChannelMessages.findFirst({
+		columns: { deletedAt: true },
+		where: eq(archivedChannelMessages.messageId, messageId),
+	});
+	return row?.deletedAt !== null;
 }
 
 export async function getRandomGuessWhoMessage(input: {

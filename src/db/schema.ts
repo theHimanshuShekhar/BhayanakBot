@@ -234,6 +234,20 @@ export const archivedChannelMessages = pgTable(
 		index("archived_messages_timeline_idx").on(t.guildId, t.channelId, t.messageCreatedAt),
 		index("archived_messages_author_timeline_idx").on(t.guildId, t.channelId, t.authorUserId, t.messageCreatedAt),
 		index("archived_messages_game_idx").on(t.guildId, t.channelId, t.deletedAt, t.messageCreatedAt),
+		index("archived_messages_personality_user_idx").on(
+			t.guildId,
+			t.authorUserId,
+			t.deletedAt,
+			t.messageCreatedAt,
+			t.messageId,
+		),
+		index("archived_messages_personality_guild_idx").on(
+			t.guildId,
+			t.deletedAt,
+			t.messageCreatedAt,
+			t.messageId,
+			t.authorUserId,
+		),
 	],
 );
 
@@ -297,6 +311,8 @@ export const userPersonalityProfiles = pgTable(
 		profile: text("profile"),
 		newMessageCount: integer("new_message_count").default(0).notNull(),
 		lastRefreshedAt: timestamp("last_refreshed_at"),
+		lastTrainingMessageAt: timestamp("last_training_message_at"),
+		lastTrainingMessageId: varchar("last_training_message_id", { length: 20 }),
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
 );
@@ -306,6 +322,8 @@ export const guildPersonalityProfiles = pgTable("guild_personality_profiles", {
 	profile: text("profile"),
 	messageCount: integer("message_count").default(0).notNull(),
 	lastRefreshedAt: timestamp("last_refreshed_at"),
+	lastTrainingMessageAt: timestamp("last_training_message_at"),
+	lastTrainingMessageId: varchar("last_training_message_id", { length: 20 }),
 });
 
 // --- RPG Module ---

@@ -1,0 +1,2 @@
+CREATE INDEX "archived_messages_personality_user_idx" ON "archived_channel_messages" USING btree ("guild_id","author_user_id","deleted_at","message_created_at","message_id");--> statement-breakpoint
+CREATE INDEX "archived_messages_personality_guild_idx" ON "archived_channel_messages" USING btree ("guild_id","deleted_at","message_created_at","message_id","author_user_id");
