@@ -10,7 +10,16 @@ import SiteLayout from "~/layouts/SiteLayout.astro";
 
 const stats = await getStats();
 const botInviteUrl = getBotInviteUrl();
-const snapshotStatus = stats.capturedAt ? "snapshot available" : "snapshot unavailable";
+const heroStatusParts = [
+	`${formatStatNumber(stats.servers)} servers`,
+	...(stats.latencyMs !== null ? [`${formatLatency(stats.latencyMs)} gateway latency`] : []),
+];
+const homeStats = [
+	{ value: formatStatNumber(stats.servers), label: "active servers" },
+	{ value: String(stats.categories), label: "command categories" },
+	{ value: formatStatNumber(stats.commandsRun), label: "commands run", accent: true },
+	...(stats.latencyMs !== null ? [{ value: formatLatency(stats.latencyMs), label: "gateway latency" }] : []),
+];
 ---
 
 <SiteLayout title="BhayanakBot — your server's worst behavior, automated" active="home">
@@ -19,7 +28,7 @@ const snapshotStatus = stats.capturedAt ? "snapshot available" : "snapshot unava
 		<div class="relative mx-auto max-w-[1180px]">
 			<div class="mb-6 flex flex-wrap items-center gap-2.5 max-md:mb-4">
 				<span class:list={["h-2 w-2 rounded-full", stats.capturedAt ? "bg-success shadow-[0_0_8px_var(--color-success)]" : "bg-warning"]}></span>
-				<span class="font-mono text-[12px] tracking-[0.5px] text-fg/70 max-md:text-[11px]">{snapshotStatus} · {formatStatNumber(stats.servers)} servers · {formatLatency(stats.latencyMs)} gateway latency</span>
+				<span class="font-mono text-[12px] tracking-[0.5px] text-fg/70 max-md:text-[11px]">{heroStatusParts.join(" · ")}</span>
 			</div>
 			<h1 class="m-0 text-[128px] leading-[0.88] font-black -tracking-[4px] uppercase max-md:text-[56px] max-md:-tracking-[1.5px]">
 				your server's<br /><span class="text-accent">worst behavior</span>,<br />automated.
@@ -36,12 +45,7 @@ const snapshotStatus = stats.capturedAt ? "snapshot available" : "snapshot unava
 		</div>
 	</section>
 
-	<StatStrip stats={[
-		{ value: formatStatNumber(stats.servers), label: "active servers" },
-		{ value: String(stats.categories), label: "command categories" },
-		{ value: formatStatNumber(stats.commandsRun), label: "commands run", accent: true },
-		{ value: formatLatency(stats.latencyMs), label: "gateway latency" },
-	]} />
+	<StatStrip stats={homeStats} />
 
 	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
 		<div class="mb-8 flex flex-wrap items-end justify-between gap-6 max-md:flex-col max-md:items-start">

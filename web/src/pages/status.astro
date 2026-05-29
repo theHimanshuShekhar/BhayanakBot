@@ -4,28 +4,19 @@ import { formatLatency, formatStatNumber, getStats } from "~/data/stats";
 import SiteLayout from "~/layouts/SiteLayout.astro";
 
 const stats = await getStats();
-const capturedAtLabel = stats.capturedAt?.toLocaleString() ?? "unavailable";
+const statusStats = [
+	...(stats.latencyMs !== null
+		? [{ value: formatLatency(stats.latencyMs), label: "gateway latency", accent: true }]
+		: []),
+	{ value: formatStatNumber(stats.servers), label: "active servers" },
+	{ value: formatStatNumber(stats.commandsRun), label: "commands run" },
+];
 ---
 
 <SiteLayout title="Status — BhayanakBot" active="status">
 	<section class="mx-auto max-w-[1180px] px-8 py-16 max-md:px-5 max-md:py-10">
-		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">public snapshot</div>
+		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">bot status</div>
 		<h1 class="mt-2 mb-8 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px]">latest public<br /><span class="text-accent">bot stats.</span></h1>
 	</section>
-	<StatStrip stats={[
-		{ value: stats.capturedAt ? "snapshot available" : "unavailable", label: "public stats", accent: true },
-		{ value: formatLatency(stats.latencyMs), label: "gateway latency" },
-		{ value: formatStatNumber(stats.servers), label: "active servers" },
-		{ value: formatStatNumber(stats.commandsRun), label: "commands run" },
-	]} />
-	<section class="mx-auto max-w-[1180px] px-8 py-12 max-md:px-5">
-		<div class="border-2 border-border bg-bg-panel p-6">
-			<div class="mb-3 font-mono text-[11px] font-bold uppercase tracking-[1px] text-accent">snapshot details</div>
-			<p class="m-0 max-w-[720px] text-[14px] leading-[1.6] text-fg/60">These values come from the latest public stats snapshot stored in the database. If no snapshot is available, the page shows unavailable instead of estimated service health.</p>
-			<div class="mt-5 grid grid-cols-[180px_1fr] gap-3 font-mono text-[12px] max-md:grid-cols-1">
-				<div class="text-fg/45">captured at</div>
-				<div class="text-fg/75">{capturedAtLabel}</div>
-			</div>
-		</div>
-	</section>
+	<StatStrip stats={statusStats} />
 </SiteLayout>

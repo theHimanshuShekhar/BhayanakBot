@@ -41,4 +41,16 @@ describe("personality command web docs", () => {
 		expect(homePage).toContain("/personality view user");
 		expect(homePage).not.toMatch(/\/personality(?:<\/code>)?\s+user:/);
 	});
+
+	it("public status surfaces avoid snapshot labels and hide unavailable latency", async () => {
+		const [homePage, statusPage] = await Promise.all([
+			readFile("web/src/pages/index.astro", "utf8"),
+			readFile("web/src/pages/status.astro", "utf8"),
+		]);
+		const publicStatusPages = `${homePage}\n${statusPage}`;
+
+		expect(publicStatusPages).not.toMatch(/snapshot available|snapshot unavailable|snapshot details|public snapshot/i);
+		expect(statusPage).not.toContain("capturedAtLabel");
+		expect(publicStatusPages).toContain("stats.latencyMs !== null");
+	});
 });
