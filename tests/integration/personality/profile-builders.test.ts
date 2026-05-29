@@ -149,8 +149,9 @@ describe("personality profile builders", () => {
 	it("does not build an initial user profile below the archive message threshold", async () => {
 		await archiveUserMessages({ count: 99, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
 
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
+		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 
+		expect(result.status).toBe("skipped_insufficient_evidence");
 		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 		expect(await getBuilderProfile()).toBeUndefined();
 	});
@@ -158,10 +159,29 @@ describe("personality profile builders", () => {
 	it("builds an initial user profile from 100 archived eligible messages", async () => {
 		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
 
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
+		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 
+		expect(result.status).toBe("built");
 		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
 		expect((await getBuilderProfile())?.profile).toBe("Profile summary without direct quotes.");
+	});
+
+	it("returns skipped_cooldown for a user profile refresh inside the build cooldown", async () => {
+		const cursor = new Date("2026-05-01T00:00:00.000Z");
+		await db.insert(userPersonalityProfiles).values({
+			userId: USER_ID,
+			guildId: GUILD_ID,
+			profile: "Existing user profile.",
+			lastRefreshedAt: new Date(),
+			lastTrainingMessageAt: cursor,
+			lastTrainingMessageId: "seed000",
+		});
+		await archiveUserMessages({ count: 20, idPrefix: "uc", start: new Date(cursor.getTime() + 1000) });
+
+		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
+
+		expect(result.status).toBe("skipped_cooldown");
+		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 	});
 
 	it("does not build a user profile from non-general-channel archived messages", async () => {
@@ -230,10 +250,12 @@ describe("personality profile builders", () => {
 		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
 		mockedCallOllamaLowPriority.mockResolvedValueOnce(null);
 
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
+		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
 		const profileAfterFailure = await getBuilderProfile();
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
+		const retryResult = await buildPersonalityProfile(USER_ID, GUILD_ID);
 
+		expect(result.status).toBe("skipped_model_empty");
+		expect(retryResult.status).toBe("skipped_cooldown");
 		expect(profileAfterFailure?.profile).toBeNull();
 		expect(profileAfterFailure?.lastRefreshedAt).toBeInstanceOf(Date);
 		expect(profileAfterFailure?.lastTrainingMessageAt).toBeNull();
@@ -254,8 +276,9 @@ describe("personality profile builders", () => {
 	it("does not build an initial guild profile below the archive message threshold", async () => {
 		await archiveGuildMessages({ count: 199, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
 
-		await buildGuildPersonalityProfile(GUILD_ID);
+		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
+		expect(result.status).toBe("skipped_insufficient_evidence");
 		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 		expect(await getGuildBuilderProfile()).toBeUndefined();
 	});
@@ -263,10 +286,28 @@ describe("personality profile builders", () => {
 	it("builds an initial guild profile from 200 archived eligible messages", async () => {
 		await archiveGuildMessages({ count: 200, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
 
-		await buildGuildPersonalityProfile(GUILD_ID);
+		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
+		expect(result.status).toBe("built");
 		expect(mockedCallOllamaLowPriority).toHaveBeenCalledTimes(1);
 		expect((await getGuildBuilderProfile())?.profile).toBe("Profile summary without direct quotes.");
+	});
+
+	it("returns skipped_cooldown for a guild profile refresh inside the build cooldown", async () => {
+		const cursor = new Date("2026-05-01T00:00:00.000Z");
+		await db.insert(guildPersonalityProfiles).values({
+			guildId: GUILD_ID,
+			profile: "Existing guild profile.",
+			lastRefreshedAt: new Date(),
+			lastTrainingMessageAt: cursor,
+			lastTrainingMessageId: "seed000",
+		});
+		await archiveGuildMessages({ count: 40, idPrefix: "gc", start: new Date(cursor.getTime() + 1000), authorCount: 4 });
+
+		const result = await buildGuildPersonalityProfile(GUILD_ID);
+
+		expect(result.status).toBe("skipped_cooldown");
+		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 	});
 
 	it("does not build a guild profile from non-general-channel archived messages", async () => {

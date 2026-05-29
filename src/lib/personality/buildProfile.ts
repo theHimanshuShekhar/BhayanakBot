@@ -12,8 +12,17 @@ const OLLAMA_TIMEOUT_MS = 90_000;
 // phi3:mini on CPU can't handle 40K chars in a reasonable time; smaller chunks finish reliably.
 const MAX_MESSAGES_PER_BUILD = 100;
 const MAX_CHARS_PER_BUILD = 8_000;
-const INITIAL_USER_PROFILE_THRESHOLD = 100;
-const REFRESH_USER_PROFILE_THRESHOLD = 20;
+export const INITIAL_USER_PROFILE_THRESHOLD = 100;
+export const REFRESH_USER_PROFILE_THRESHOLD = 20;
+export type PersonalityBuildStatus =
+	| "built"
+	| "skipped_cooldown"
+	| "skipped_in_progress"
+	| "skipped_insufficient_evidence"
+	| "skipped_model_empty";
+export interface PersonalityBuildResult {
+	status: PersonalityBuildStatus;
+}
 
 // Shared across all call sites (inline messageCreate trigger, /personality manual trigger,
 // scheduled refresh) so concurrent builds for the same user don't race on the same archive
@@ -35,12 +44,12 @@ const SYSTEM_PROMPT = [
 	"Do not quote source messages directly.",
 ].join(" ");
 
-export async function buildPersonalityProfile(userId: string, guildId: string): Promise<void> {
+export async function buildPersonalityProfile(userId: string, guildId: string): Promise<PersonalityBuildResult> {
 	const rebuildKey = `${userId}:${guildId}`;
-	if (rebuildInProgress.has(rebuildKey)) return;
+	if (rebuildInProgress.has(rebuildKey)) return { status: "skipped_in_progress" };
 	rebuildInProgress.add(rebuildKey);
 	try {
-		await buildPersonalityProfileUnguarded(userId, guildId);
+		return await buildPersonalityProfileUnguarded(userId, guildId);
 	} finally {
 		rebuildInProgress.delete(rebuildKey);
 	}
@@ -48,7 +57,7 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<void> {
+async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<PersonalityBuildResult> {
 	// Clean up stale messages before building to keep the table lean
 	await cleanupOldMessages();
 
@@ -64,16 +73,16 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		afterMessageId: row?.lastTrainingMessageId ?? null,
 		limit: MAX_MESSAGES_PER_BUILD,
 	});
-	if (messages.length === 0) return;
+	if (messages.length === 0) return { status: "skipped_insufficient_evidence" };
 
 	const existingProfile = row?.profile ?? null;
 	const threshold = existingProfile ? REFRESH_USER_PROFILE_THRESHOLD : INITIAL_USER_PROFILE_THRESHOLD;
-	if (messages.length < threshold) return;
+	if (messages.length < threshold) return { status: "skipped_insufficient_evidence" };
 
 	// Cooldown: don't hammer Ollama if builds fail or user spams messages
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
 		container.logger.debug(`[personality] Skipping build for userId=${userId} guildId=${guildId}: cooldown active`);
-		return;
+		return { status: "skipped_cooldown" };
 	}
 
 	// Build the message block chronologically while respecting the size caps.
@@ -84,7 +93,7 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		messageBlock += (messageBlock ? "\n" : "") + m.content;
 		processed.push(m);
 	}
-	if (processed.length === 0) return;
+	if (processed.length === 0) return { status: "skipped_insufficient_evidence" };
 
 	const userPrompt = existingProfile
 		? [
@@ -123,11 +132,11 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
 				set: { lastRefreshedAt: new Date() },
 			});
-		return;
+		return { status: "skipped_model_empty" };
 	}
 
 	const newestProcessedMessage = processed[processed.length - 1];
-	if (!newestProcessedMessage) return;
+	if (!newestProcessedMessage) return { status: "skipped_insufficient_evidence" };
 	const refreshedAt = new Date();
 
 	// Atomic: upsert profile and advance the archive cursor in one transaction.
@@ -163,4 +172,5 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	container.logger.debug(
 		`[personality] Profile updated for userId=${userId} guildId=${guildId} (${processed.length}/${messages.length} messages processed)`,
 	);
+	return { status: "built" };
 }

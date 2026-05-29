@@ -274,9 +274,16 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/personality",
-		description: "View the bot's personality profile for a user or guild.",
-		examples: ["/personality", "/personality user:@someone"],
+		description: "View user personality profiles or this server culture profile, and run archive-backed refreshes.",
+		examples: [
+			"/personality view user user:@someone",
+			"/personality view guild",
+			"/personality refresh user user:@someone",
+			"/personality refresh guild",
+		],
 		category: "utility",
+		usageNotes:
+			"Refresh runs an incremental update from eligible archived training evidence and reports if it is skipped. Server administrators can disable personality profiling with /config.",
 	},
 	{
 		name: "/help",

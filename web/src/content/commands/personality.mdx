@@ -1,28 +1,45 @@
 ---
 name: "/personality"
 cat: "AI · personality"
-tags: ["AI", "OPT-IN"]
-summary: "View the personality profile BhayanakBot has built for a user or guild."
+tags: ["AI", "ARCHIVE"]
+summary: "View user personality profiles or this server culture profile, and run archive-backed incremental refreshes."
 syntax:
-  cmd: "/personality"
+  cmd: "/personality view user"
   args:
-    - { n: "user", d: "User profile to view", req: false, t: "@user" }
+    - { n: "user", d: "User profile to view; defaults to yourself", req: false, t: "@user" }
 examples:
-  - label: "profile"
+  - label: "user profile"
     tag: "VIBE"
     tagBg: "#a78bfa"
     user: "parth"
     userColor: "#a78bfa"
-    input: "user:@parth"
+    input: "/personality view user user:@parth"
     time: "19:14"
-    botSays: "here is your vibe report. regrettably accurate."
+    botSays: "user personality profile from archived training evidence. regrettably accurate."
     embedAccent: "#a78bfa"
-    embedTitle: "Personality · @parth"
+    embedTitle: "User Personality Profile · @parth"
     embedRows:
       - ["Top trait", "contrarian"]
       - ["Vocab", "meme-forward"]
+  - label: "server culture"
+    tag: "CULTURE"
+    tagBg: "#5865f2"
+    user: "admin"
+    userColor: "#5865f2"
+    input: "/personality view guild"
+    time: "19:16"
+    botSays: "server culture profile from archived training evidence. chaotic but documented."
+    embedAccent: "#5865f2"
+    embedTitle: "Server Culture Profile"
+    embedRows:
+      - ["Tone", "chaotic casual"]
+      - ["Humor", "inside jokes"]
 related:
   - { n: "/config", d: "Toggle profiling" }
   - { n: "/summarize", d: "AI channel summaries" }
   - { n: "/userinfo", d: "Account info" }
 ---
+
+Use `/personality view user` to see your own user personality profile, or `/personality view user user:@someone` for another member. Use `/personality view guild` to see this server's culture profile.
+
+Administrators can run `/personality refresh user user:@someone` or `/personality refresh guild` to run an incremental refresh from new eligible archived training evidence. If there is not enough archived training evidence, the profile is in cooldown, another refresh is already running, or the model returns no profile text, the command reports that the refresh was skipped.

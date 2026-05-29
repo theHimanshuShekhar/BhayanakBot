@@ -12,9 +12,18 @@ import { callOllamaLowPriority } from "../ollama.js";
 const OLLAMA_TIMEOUT_MS = 90_000;
 const MAX_MESSAGES_PER_BUILD = 200;
 const MAX_CHARS_PER_BUILD = 8_000;
-const INITIAL_GUILD_PROFILE_THRESHOLD = 200;
-const REFRESH_GUILD_PROFILE_THRESHOLD = 40;
+export const INITIAL_GUILD_PROFILE_THRESHOLD = 200;
+export const REFRESH_GUILD_PROFILE_THRESHOLD = 40;
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+export type GuildPersonalityBuildStatus =
+	| "built"
+	| "skipped_cooldown"
+	| "skipped_in_progress"
+	| "skipped_insufficient_evidence"
+	| "skipped_model_empty";
+export interface GuildPersonalityBuildResult {
+	status: GuildPersonalityBuildStatus;
+}
 
 const rebuildInProgress = new Set<string>();
 
@@ -33,17 +42,17 @@ const SYSTEM_PROMPT = [
 	"Do not quote source messages directly.",
 ].join(" ");
 
-export async function buildGuildPersonalityProfile(guildId: string): Promise<void> {
-	if (rebuildInProgress.has(guildId)) return;
+export async function buildGuildPersonalityProfile(guildId: string): Promise<GuildPersonalityBuildResult> {
+	if (rebuildInProgress.has(guildId)) return { status: "skipped_in_progress" };
 	rebuildInProgress.add(guildId);
 	try {
-		await buildGuildPersonalityProfileUnguarded(guildId);
+		return await buildGuildPersonalityProfileUnguarded(guildId);
 	} finally {
 		rebuildInProgress.delete(guildId);
 	}
 }
 
-async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<void> {
+async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<GuildPersonalityBuildResult> {
 	const row = await db.query.guildPersonalityProfiles.findFirst({
 		where: eq(guildPersonalityProfiles.guildId, guildId),
 		columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
@@ -57,14 +66,14 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 		afterMessageId: row?.lastTrainingMessageId ?? null,
 		limit: threshold,
 	});
-	if (messages.length === 0) return;
+	if (messages.length === 0) return { status: "skipped_insufficient_evidence" };
 
-	if (messages.length < threshold) return;
+	if (messages.length < threshold) return { status: "skipped_insufficient_evidence" };
 
 	// Cooldown: don't hammer Ollama if builds fail or server is extremely active
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
 		container.logger.debug(`[guild-personality] Skipping build for guildId=${guildId}: cooldown active`);
-		return;
+		return { status: "skipped_cooldown" };
 	}
 
 	const sampledMessages = selectBalancedGuildPromptMessages(messages);
@@ -75,7 +84,7 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 		if (messageBlock.length + line.length > MAX_CHARS_PER_BUILD) break;
 		messageBlock += (messageBlock ? "\n" : "") + line;
 	}
-	if (messageBlock.length === 0) return;
+	if (messageBlock.length === 0) return { status: "skipped_insufficient_evidence" };
 
 	const userPrompt = existingProfile
 		? [
@@ -106,11 +115,11 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 				target: guildPersonalityProfiles.guildId,
 				set: { lastRefreshedAt: new Date() },
 			});
-		return;
+		return { status: "skipped_model_empty" };
 	}
 
 	const newestProcessedMessage = messages[messages.length - 1];
-	if (!newestProcessedMessage) return;
+	if (!newestProcessedMessage) return { status: "skipped_insufficient_evidence" };
 	const refreshedAt = new Date();
 
 	await db.transaction(async (tx) => {
@@ -142,6 +151,7 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<v
 	container.logger.debug(
 		`[guild-personality] Profile updated for guildId=${guildId} (${sampledMessages.length}/${messages.length} messages sampled)`,
 	);
+	return { status: "built" };
 }
 
 function selectBalancedGuildPromptMessages(messages: TrainingMessage[]): TrainingMessage[] {
