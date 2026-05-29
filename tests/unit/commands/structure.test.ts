@@ -1,4 +1,5 @@
 import { Command } from "@sapphire/framework";
+import { SlashCommandBuilder } from "discord.js";
 import { beforeAll, describe, expect, it } from "vitest";
 import { GUESS_WHO_MAX_WRONG_GUESSES } from "../../../src/lib/guessWho/session.js";
 import { createCommandContext, loadCommandClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
@@ -159,6 +160,28 @@ describe("command preconditions", () => {
 				}
 			}
 		}
+	});
+});
+
+describe("autorespond command metadata", () => {
+	beforeAll(() => {
+		setupSapphireContainer();
+	});
+
+	it("describes LLM auto-responses as provider-backed instead of Ollama-specific", async () => {
+		const CommandClass = await loadCommandClass("../../../src/commands/autorespond/autorespond.js");
+		const instance = new CommandClass(createCommandContext("src/commands/autorespond/autorespond.ts"), {});
+		let commandJson: ReturnType<SlashCommandBuilder["toJSON"]> | undefined;
+
+		instance.registerApplicationCommands({
+			registerChatInputCommand(register) {
+				const builder = new SlashCommandBuilder();
+				commandJson = register(builder).toJSON();
+			},
+		} as never);
+
+		expect(JSON.stringify(commandJson)).not.toMatch(/Ollama/i);
+		expect(JSON.stringify(commandJson)).toMatch(/configured AI provider/i);
 	});
 });
 

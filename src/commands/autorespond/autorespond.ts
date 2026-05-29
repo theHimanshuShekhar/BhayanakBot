@@ -51,7 +51,7 @@ export class AutoRespondCommand extends Subcommand {
 							opt
 								.setName("response")
 								.setDescription(
-									"Static reply, or Ollama system prompt if use-llm is enabled. Use {var} for regex captures.",
+									"Static reply, or AI system prompt if use-llm is enabled. Use {var} for regex captures.",
 								)
 								.setRequired(true),
 						)
@@ -69,7 +69,7 @@ export class AutoRespondCommand extends Subcommand {
 						.addBooleanOption((opt) =>
 							opt
 								.setName("use-llm")
-								.setDescription("Generate a unique response via Ollama instead of replying with static text")
+								.setDescription("Generate a unique response via the configured AI provider instead of static text")
 								.setRequired(false),
 						)
 						.addBooleanOption((opt) =>
