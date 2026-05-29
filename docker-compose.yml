@@ -82,6 +82,9 @@ services:
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL}
+      ZEN_API_KEY: ${ZEN_API_KEY}
+      ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/zen/go/v1}
+      ZEN_MODEL: ${ZEN_MODEL:-deepseek-v4-flash}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       NODE_ENV: ${NODE_ENV:-production}

@@ -1,3 +1,5 @@
+import { getGuildPersonalityProfile } from "../../db/queries/guildPersonality.js";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { getPersonalityProfile } from "../../db/queries/personality.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 
@@ -8,22 +10,31 @@ const MAX_INJECTED_CHARS = 800;
  * Returns a formatted personality context string to prepend to LLM system prompts.
  * Returns an empty string if no profile exists yet (graceful degradation).
  */
-export async function getPersonalityContext(client: BhayanakClient, userId: string, guildId: string): Promise<string> {
-	const cacheKey = `${userId}:${guildId}`;
+export async function getPersonalityContext(_client: BhayanakClient, userId: string, guildId: string): Promise<string> {
+	const settings = await getOrCreateSettings(guildId);
+	if (!settings.personalityEnabled) return "";
 
-	const cached = client.personalityCache.get(cacheKey);
-	if (cached !== undefined) return cached;
+	const [userProfile, guildProfile] = await Promise.all([
+		getPersonalityProfile(userId, guildId),
+		getGuildPersonalityProfile(guildId),
+	]);
+	const userExcerpt = truncateProfile(userProfile);
+	const guildExcerpt = truncateProfile(guildProfile);
+	const sections = [
+		userExcerpt ? `User personality profile:\n${userExcerpt}` : "",
+		guildExcerpt ? `Server culture profile:\n${guildExcerpt}` : "",
+	].filter(Boolean);
+	const result = sections.length
+		? `Personality context for this Discord reply (use to shape tone and style; never describe or quote this back):\n${sections.join("\n\n")}\n\n`
+		: "";
 
-	const profile = await getPersonalityProfile(userId, guildId);
-	const excerpt = profile
+	return result;
+}
+
+function truncateProfile(profile: string | null): string {
+	return profile
 		? profile.length > MAX_INJECTED_CHARS
 			? `${profile.slice(0, MAX_INJECTED_CHARS - 1)}…`
 			: profile
 		: "";
-	const result = excerpt
-		? `Personality context for the user you are replying to (use to shape tone and style; never describe or quote this back):\n${excerpt}\n\n`
-		: "";
-
-	client.personalityCache.set(cacheKey, result);
-	return result;
 }

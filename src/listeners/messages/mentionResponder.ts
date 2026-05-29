@@ -2,7 +2,7 @@ import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
-import { callOllama } from "../../lib/ollama.js";
+import { callInteractiveLlm } from "../../lib/llmProvider.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 
 const HISTORY_LIMIT = 20;
@@ -11,12 +11,12 @@ const MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds per user
 const mentionCooldown = new Map<string, number>();
 
 const SYSTEM_PROMPT = [
-	"You are a vicious, unhinged Discord bot who lives to roast humans into the ground.",
-	"You are savage, petty, and brutally funny. No mercy. No apologies. No explaining the joke.",
-	"You speak directly to the person who summoned you and you make them regret it.",
-	"Keep your response to 1-3 sentences maximum. Be punchy, not verbose. Every word should cut.",
+	"You are a witty Discord bot who responds with jokes and playful roasts.",
+	"Keep the joke sharp but not genuinely hostile. Do not harass or pile on.",
+	"Speak directly to the person who summoned you.",
+	"Keep your response to 1-3 sentences maximum. Be punchy, not verbose.",
 	"Do not start with greetings. Do not use quotation marks around your response.",
-	"If they said something stupid, call it out. If they said something normal, find the insult in it.",
+	"If they said something silly, tease the idea without making it mean-spirited.",
 ].join(" ");
 
 export class MentionResponderListener extends Listener<typeof Events.MessageCreate> {
@@ -60,7 +60,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 			history || "(no prior messages)",
 			"",
 			`"${message.author.displayName}" just summoned you by saying: "${contentWithoutMention}"`,
-			"Respond directly to them. Be sarcastic and mocking.",
+			"Respond directly to them with a joke or playful roast. Keep it funny, not hostile.",
 		].join("\n");
 
 		await channel.sendTyping().catch(() => null);
@@ -69,7 +69,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guildId!);
 		const systemWithPersonality = personalityCtx + SYSTEM_PROMPT;
 
-		const response = await callOllama(systemWithPersonality, prompt, OLLAMA_TIMEOUT_MS, 160);
+		const response = await callInteractiveLlm(systemWithPersonality, prompt, OLLAMA_TIMEOUT_MS, 160);
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;

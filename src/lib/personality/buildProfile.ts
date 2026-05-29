@@ -1,20 +1,32 @@
 import { container } from "@sapphire/framework";
-import { and, eq, inArray, sql } from "drizzle-orm";
-import { cleanupOldMessages, getPersonalityProfile, getUnabsorbedMessages } from "../../db/queries/personality.js";
-import { userMessages, userPersonalityProfiles } from "../../db/schema.js";
+import { and, eq, sql } from "drizzle-orm";
+import { cleanupOldMessages } from "../../db/queries/personality.js";
+import { getEligibleUserTrainingMessages } from "../../db/queries/personalityTraining.js";
+import { userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
-import { callOllamaLowPriority } from "../ollama.js";
+import { callBackgroundLlm } from "../llmProvider.js";
 
 const OLLAMA_TIMEOUT_MS = 90_000;
 // Prevent runaway prompts: absorb at most 100 messages or 8 000 chars per build pass.
 // phi3:mini on CPU can't handle 40K chars in a reasonable time; smaller chunks finish reliably.
 const MAX_MESSAGES_PER_BUILD = 100;
 const MAX_CHARS_PER_BUILD = 8_000;
+export const INITIAL_USER_PROFILE_THRESHOLD = 100;
+export const REFRESH_USER_PROFILE_THRESHOLD = 20;
+export type PersonalityBuildStatus =
+	| "built"
+	| "skipped_cooldown"
+	| "skipped_in_progress"
+	| "skipped_insufficient_evidence"
+	| "skipped_model_empty";
+export interface PersonalityBuildResult {
+	status: PersonalityBuildStatus;
+}
 
 // Shared across all call sites (inline messageCreate trigger, /personality manual trigger,
-// scheduled refresh) so concurrent builds for the same user don't race on the same
-// user_messages rows and clobber each other's transactions.
+// scheduled refresh) so concurrent builds for the same user don't race on the same archive
+// cursor and clobber each other's transactions.
 const rebuildInProgress = new Set<string>();
 
 const SYSTEM_PROMPT = [
@@ -29,14 +41,15 @@ const SYSTEM_PROMPT = [
 	"7. Patterns over time — any shifts in behavior, energy, or topics you can observe",
 	"Write in flowing prose, not bullet points. Be specific and detailed — the more nuanced the better.",
 	"Do not be generic. Ground every observation in evidence from the messages.",
+	"Do not quote source messages directly.",
 ].join(" ");
 
-export async function buildPersonalityProfile(userId: string, guildId: string): Promise<void> {
+export async function buildPersonalityProfile(userId: string, guildId: string): Promise<PersonalityBuildResult> {
 	const rebuildKey = `${userId}:${guildId}`;
-	if (rebuildInProgress.has(rebuildKey)) return;
+	if (rebuildInProgress.has(rebuildKey)) return { status: "skipped_in_progress" };
 	rebuildInProgress.add(rebuildKey);
 	try {
-		await buildPersonalityProfileUnguarded(userId, guildId);
+		return await buildPersonalityProfileUnguarded(userId, guildId);
 	} finally {
 		rebuildInProgress.delete(rebuildKey);
 	}
@@ -44,34 +57,43 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<void> {
+async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<PersonalityBuildResult> {
 	// Clean up stale messages before building to keep the table lean
 	await cleanupOldMessages();
 
-	const messages = await getUnabsorbedMessages(userId, guildId);
-	if (messages.length === 0) return;
-
-	// Cooldown: don't hammer Ollama if builds fail or user spams messages
 	const row = await db.query.userPersonalityProfiles.findFirst({
 		where: and(eq(userPersonalityProfiles.userId, userId), eq(userPersonalityProfiles.guildId, guildId)),
-		columns: { lastRefreshedAt: true },
+		columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
 	});
+
+	const messages = await getEligibleUserTrainingMessages({
+		guildId,
+		userId,
+		afterMessageCreatedAt: row?.lastTrainingMessageAt ?? null,
+		afterMessageId: row?.lastTrainingMessageId ?? null,
+		limit: MAX_MESSAGES_PER_BUILD,
+	});
+	if (messages.length === 0) return { status: "skipped_insufficient_evidence" };
+
+	const existingProfile = row?.profile ?? null;
+	const threshold = existingProfile ? REFRESH_USER_PROFILE_THRESHOLD : INITIAL_USER_PROFILE_THRESHOLD;
+	if (messages.length < threshold) return { status: "skipped_insufficient_evidence" };
+
+	// Cooldown: don't hammer Ollama if builds fail or user spams messages
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
 		container.logger.debug(`[personality] Skipping build for userId=${userId} guildId=${guildId}: cooldown active`);
-		return;
+		return { status: "skipped_cooldown" };
 	}
 
-	const existingProfile = await getPersonalityProfile(userId, guildId);
-
-	// Build the message block, respecting the size caps (take the most recent messages first)
+	// Build the message block chronologically while respecting the size caps.
 	let messageBlock = "";
-	const absorbed: typeof messages = [];
-	for (const m of messages.slice(-MAX_MESSAGES_PER_BUILD)) {
+	const processed: typeof messages = [];
+	for (const m of messages) {
 		if (messageBlock.length + m.content.length > MAX_CHARS_PER_BUILD) break;
 		messageBlock += (messageBlock ? "\n" : "") + m.content;
-		absorbed.push(m);
+		processed.push(m);
 	}
-	if (absorbed.length === 0) return;
+	if (processed.length === 0) return { status: "skipped_insufficient_evidence" };
 
 	const userPrompt = existingProfile
 		? [
@@ -98,47 +120,57 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	const displayName = member?.displayName ?? user?.username;
 	const label = displayName ? `${displayName} (id=${userId})` : `user id=${userId}`;
 
-	const result = await callOllamaLowPriority(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, label);
 	if (!result) {
 		container.logger.warn(
 			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,
 		);
-		// Self-heal: reset newMessageCount to actual unabsorbed count so we don't keep retrying with a stale inflated count
-		const remaining = await getUnabsorbedMessages(userId, guildId);
 		await db
-			.update(userPersonalityProfiles)
-			.set({ newMessageCount: remaining.length })
-			.where(sql`${userPersonalityProfiles.userId} = ${userId} AND ${userPersonalityProfiles.guildId} = ${guildId}`);
-		return;
+			.insert(userPersonalityProfiles)
+			.values({ userId, guildId, lastRefreshedAt: new Date() })
+			.onConflictDoUpdate({
+				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
+				set: { lastRefreshedAt: new Date() },
+			});
+		return { status: "skipped_model_empty" };
 	}
 
-	// Atomic: upsert profile + delete only the absorbed messages in one transaction.
+	const newestProcessedMessage = processed[processed.length - 1];
+	if (!newestProcessedMessage) return { status: "skipped_insufficient_evidence" };
+	const refreshedAt = new Date();
+
+	// Atomic: upsert profile and advance the archive cursor in one transaction.
 	// Decrement counter by absorbed count instead of resetting to 0 — this preserves
 	// increments from messages that arrived during the (potentially long) Ollama call.
 	await db.transaction(async (tx) => {
 		await tx
 			.insert(userPersonalityProfiles)
-			.values({ userId, guildId, profile: result, newMessageCount: 0, lastRefreshedAt: new Date() })
+			.values({
+				userId,
+				guildId,
+				profile: result,
+				newMessageCount: 0,
+				lastRefreshedAt: refreshedAt,
+				lastTrainingMessageAt: newestProcessedMessage.messageCreatedAt,
+				lastTrainingMessageId: newestProcessedMessage.messageId,
+			})
 			.onConflictDoUpdate({
 				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
 				set: {
 					profile: result,
-					newMessageCount: sql`GREATEST(0, ${userPersonalityProfiles.newMessageCount} - ${absorbed.length})`,
-					lastRefreshedAt: new Date(),
+					newMessageCount: sql`GREATEST(0, ${userPersonalityProfiles.newMessageCount} - ${processed.length})`,
+					lastRefreshedAt: refreshedAt,
+					lastTrainingMessageAt: newestProcessedMessage.messageCreatedAt,
+					lastTrainingMessageId: newestProcessedMessage.messageId,
 				},
 			});
-		await tx.delete(userMessages).where(
-			inArray(
-				userMessages.id,
-				absorbed.map((m) => m.id),
-			),
-		);
 	});
 
 	// Invalidate in-memory cache so the next response picks up the fresh profile
 	client.personalityCache.delete(`${userId}:${guildId}`);
 
 	container.logger.debug(
-		`[personality] Profile updated for userId=${userId} guildId=${guildId} (${absorbed.length}/${messages.length} messages absorbed)`,
+		`[personality] Profile updated for userId=${userId} guildId=${guildId} (${processed.length}/${messages.length} messages processed)`,
 	);
+	return { status: "built" };
 }

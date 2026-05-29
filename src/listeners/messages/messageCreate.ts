@@ -1,13 +1,15 @@
 import { Listener } from "@sapphire/framework";
 import { EmbedBuilder, type Message, PermissionFlagsBits, type TextChannel } from "discord.js";
+import { eq, sql } from "drizzle-orm";
 import { clearAfk, getAfk } from "../../db/queries/afk.js";
 import { upsertArchivedChannelMessage } from "../../db/queries/archivedChannelMessages.js";
 import { findMatchingResponse } from "../../db/queries/autoResponses.js";
-import { incrementGuildMessageCount } from "../../db/queries/guildPersonality.js";
+import { getGuildPersonalityProfile } from "../../db/queries/guildPersonality.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { createCase } from "../../db/queries/modCases.js";
-import { incrementMessageCount, storeUserMessage } from "../../db/queries/personality.js";
 import { addXp } from "../../db/queries/users.js";
+import { archivedChannelMessages, guildPersonalityProfiles, userMessages, userPersonalityProfiles } from "../../db/schema.js";
+import { db } from "../../lib/database.js";
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
@@ -33,6 +35,8 @@ const SMART_MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds
 // Random chat responder cooldown: Map<guildId, lastFiredAt>
 const randomResponseCooldown = new Map<string, number>();
 const RANDOM_RESPONSE_COOLDOWN_MS = 45 * 1000; // 45 seconds
+const PERSONALITY_MAX_USER_MENTIONS = 5;
+const USER_MENTION_PATTERN = /<@!?\d+>/g;
 
 // Conversation history for LLM context: Map<channelId, messages[]>
 const CONVERSATION_HISTORY_LIMIT = 20;
@@ -42,6 +46,48 @@ const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.l
 const URL_PATTERN = /https?:\/\/\S+/g;
 const HAS_ALPHA_PATTERN = /[A-Za-z]/;
 
+async function recordPersonalityEvidenceIfArchiveLive(input: {
+	messageId: string;
+	userId: string;
+	guildId: string;
+	content: string;
+}): Promise<{ userCount: number; guildCount: number } | null> {
+	return db.transaction(async (tx) => {
+		const [archiveRow] = await tx
+			.select({ deletedAt: archivedChannelMessages.deletedAt })
+			.from(archivedChannelMessages)
+			.where(eq(archivedChannelMessages.messageId, input.messageId))
+			.for("update");
+
+		if (!archiveRow || archiveRow.deletedAt) return null;
+
+		await tx.insert(userMessages).values({ userId: input.userId, guildId: input.guildId, content: input.content });
+		const [userProfile] = await tx
+			.insert(userPersonalityProfiles)
+			.values({ userId: input.userId, guildId: input.guildId, newMessageCount: 1 })
+			.onConflictDoUpdate({
+				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
+				set: { newMessageCount: sql`${userPersonalityProfiles.newMessageCount} + 1` },
+			})
+			.returning({ newMessageCount: userPersonalityProfiles.newMessageCount });
+
+		const [guildProfile] = await tx
+			.insert(guildPersonalityProfiles)
+			.values({ guildId: input.guildId, messageCount: 1 })
+			.onConflictDoUpdate({
+				target: guildPersonalityProfiles.guildId,
+				set: { messageCount: sql`${guildPersonalityProfiles.messageCount} + 1` },
+			})
+			.returning({ messageCount: guildPersonalityProfiles.messageCount });
+
+		if (!userProfile || !guildProfile) {
+			throw new Error(`recordPersonalityEvidence: empty returning for ${input.userId}/${input.guildId}`);
+		}
+
+		return { userCount: userProfile.newMessageCount, guildCount: guildProfile.messageCount };
+	});
+}
+
 export class MessageCreateListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
 		super(context, { ...options, event: "messageCreate" });
@@ -50,8 +96,11 @@ export class MessageCreateListener extends Listener {
 	public async run(message: Message) {
 		if (message.author.bot || !message.guild) return;
 
-		if (message.channelId === GUESS_WHO_CHANNEL_ID) {
-			void upsertArchivedChannelMessage({
+		const isGuessWhoChannel = message.channelId === GUESS_WHO_CHANNEL_ID;
+		let didInsertArchiveMessage = false;
+		let didArchiveDeletedMessage = false;
+		if (isGuessWhoChannel) {
+			const archiveResult = await upsertArchivedChannelMessage({
 				messageId: message.id,
 				guildId: message.guild.id,
 				channelId: message.channelId,
@@ -60,7 +109,12 @@ export class MessageCreateListener extends Listener {
 				authorDisplayName: message.member?.displayName ?? message.author.globalName ?? message.author.username,
 				content: message.content,
 				messageCreatedAt: message.createdAt,
-			}).catch((err) => this.container.logger.error("[guess-who] Failed to archive message:", err));
+			}).catch((err) => {
+				this.container.logger.error("[guess-who] Failed to archive message:", err);
+				return null;
+			});
+			didInsertArchiveMessage = archiveResult?.inserted ?? false;
+			didArchiveDeletedMessage = archiveResult?.deleted ?? false;
 		}
 
 		const settings = await getOrCreateSettings(message.guild.id);
@@ -74,17 +128,32 @@ export class MessageCreateListener extends Listener {
 		const trimmedContent = message.content.trim();
 		const contentWithoutUrls = trimmedContent.replace(URL_PATTERN, "");
 		const alphaCount = (contentWithoutUrls.match(/[A-Za-z]/g) ?? []).length;
+		const userMentionCount = trimmedContent.match(USER_MENTION_PATTERN)?.length ?? 0;
 		const isMeaningfulForPersonality =
 			trimmedContent.length >= 15 &&
 			trimmedContent.length <= 1000 &&
 			!trimmedContent.startsWith("/") &&
 			!trimmedContent.startsWith("!") &&
+			!trimmedContent.includes("@everyone") &&
+			!trimmedContent.includes("@here") &&
+			message.mentions.users.size < PERSONALITY_MAX_USER_MENTIONS &&
+			userMentionCount < PERSONALITY_MAX_USER_MENTIONS &&
 			alphaCount >= 5 &&
 			contentWithoutUrls.length >= 10;
-		if (isTargetTextChannel && settings.personalityEnabled && isMeaningfulForPersonality) {
-			await storeUserMessage(message.author.id, message.guild.id, trimmedContent);
-			const count = await incrementMessageCount(message.author.id, message.guild.id);
-			if (count >= 100) {
+		if (
+			isGuessWhoChannel &&
+			didInsertArchiveMessage &&
+			!didArchiveDeletedMessage &&
+			settings.personalityEnabled &&
+			isMeaningfulForPersonality
+		) {
+			const evidence = await recordPersonalityEvidenceIfArchiveLive({
+				messageId: message.id,
+				userId: message.author.id,
+				guildId: message.guild.id,
+				content: trimmedContent,
+			});
+			if (evidence?.userCount && evidence.userCount >= 100) {
 				// buildPersonalityProfile serialises concurrent calls per user internally.
 				const guildId = message.guild.id;
 				void buildPersonalityProfile(message.author.id, guildId).catch((err) =>
@@ -96,8 +165,7 @@ export class MessageCreateListener extends Listener {
 			}
 			// Also increment guild message count for server-wide personality profiling
 			const guildId = message.guild.id;
-			const guildCount = await incrementGuildMessageCount(guildId);
-			if (guildCount >= 200) {
+			if (evidence?.guildCount && evidence.guildCount >= 200) {
 				void buildGuildPersonalityProfile(guildId).catch((err) =>
 					this.container.logger.error(`[guild-personality] Inline build failed for guildId=${guildId}:`, err),
 				);
@@ -217,14 +285,14 @@ export class MessageCreateListener extends Listener {
 					const reply = await generateAutoResponse(
 						systemWithPersonality,
 						message.content,
-						message.author.username,
+						`<@${message.author.id}>`,
 						conversationContext,
 					);
 					this.container.logger.debug(
 						`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`,
 					);
 					if (reply) {
-						const safeReply = this.substituteVariables(reply, match.captured);
+						const safeReply = this.normalizeKnownUserNames(message, this.substituteVariables(reply, match.captured));
 						await this.sendReply(message, safeReply, match.response.deleteTrigger);
 					}
 				} else {
@@ -255,7 +323,9 @@ export class MessageCreateListener extends Listener {
 	private async sendReply(message: Message, content: string, deletedTrigger: boolean) {
 		const safeReply = content.length > 1990 ? `${content.slice(0, 1989)}…` : content;
 		if (safeReply.length !== content.length) {
-			this.container.logger.warn(`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`);
+			this.container.logger.warn(
+				`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`,
+			);
 		}
 		// If trigger was deleted, send as regular message instead of reply
 		if (deletedTrigger) {
@@ -286,27 +356,23 @@ export class MessageCreateListener extends Listener {
 		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
 		const conversationContext = this.getConversationContext(message.channel.id, 15);
 
-		// Build a guild context if available
-		const guildProfile = client.guildPersonalityCache?.get(message.guild!.id);
-		const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
-
 		const systemPrompt = [
 			`You are a Discord bot named ${message.client.user.username}.`,
 			`You are chatting in the server "${message.guild!.name}".`,
-			`You are savage, unhinged, and brutally funny. You roast users. You mock their bad takes. You never apologise.`,
+			`Be witty and funny. Use jokes or playful roasts, but avoid genuine hostility or harassment.`,
 			personalityCtx,
-			guildContext,
 		].join("\n");
 
 		const reply = await generateMentionReply(
 			systemPrompt,
 			conversationContext,
-			message.author.username,
+			`<@${message.author.id}>`,
 			message.content.replace(new RegExp(`<@!?${message.client.user.id}>`, "g"), "").trim(),
 		);
 
 		if (reply) {
-			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+			const normalizedReply = this.normalizeKnownUserNames(message, reply);
+			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
 			await message
 				.reply(safeReply)
 				.catch((err) => this.container.logger.warn(`[smart-mention] reply send failed:`, err));
@@ -336,9 +402,7 @@ export class MessageCreateListener extends Listener {
 		}
 		randomResponseCooldown.set(guildId, Date.now());
 
-		// Build system prompt from guild personality
-		const client = this.container.client as BhayanakClient;
-		const guildProfile = client.guildPersonalityCache?.get(guildId);
+		const guildProfile = await getGuildPersonalityProfile(guildId);
 		const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
 
 		const systemPrompt = [
@@ -357,12 +421,13 @@ export class MessageCreateListener extends Listener {
 		const reply = await generateMentionReply(
 			systemPrompt,
 			conversationContext,
-			message.author.username,
+			`<@${message.author.id}>`,
 			message.content,
 		);
 
 		if (reply) {
-			const safeReply = reply.length > 1990 ? `${reply.slice(0, 1989)}…` : reply;
+			const normalizedReply = this.normalizeKnownUserNames(message, reply);
+			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
 			await (message.channel as TextChannel)
 				.send(safeReply)
 				.catch((err) => this.container.logger.warn(`[random-response] send failed:`, err));
@@ -377,7 +442,7 @@ export class MessageCreateListener extends Listener {
 			conversationHistory.set(channelId, history);
 		}
 		history.push({
-			author: message.author.username,
+			author: `<@${message.author.id}>`,
 			content: message.content.slice(0, 500), // cap individual message length
 			timestamp: Date.now(),
 		});
@@ -394,6 +459,28 @@ export class MessageCreateListener extends Listener {
 		if (history.length === 0) {
 			conversationHistory.delete(channelId);
 		}
+	}
+
+	private normalizeKnownUserNames(message: Message, content: string): string {
+		const members = message.guild?.members.cache;
+		if (!members) return content;
+
+		const replacements = new Map<string, string>();
+		for (const member of members.values()) {
+			const user = member.user;
+			for (const name of [member.displayName, user.username, user.globalName]) {
+				if (!name || name.length < 3) continue;
+				replacements.set(name, `<@${member.id}>`);
+			}
+		}
+
+		let normalized = content;
+		for (const [name, mention] of [...replacements.entries()].sort((a, b) => b[0].length - a[0].length)) {
+			const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+			normalized = normalized.replace(new RegExp(`(?<![\\w@])${escapedName}(?![\\w])`, "g"), mention);
+		}
+
+		return normalized;
 	}
 
 	private getConversationContext(channelId: string, limit: number): string {

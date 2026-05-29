@@ -1,6 +1,6 @@
 import { BucketScope, Command } from "@sapphire/framework";
 import { EmbedBuilder, SnowflakeUtil, type TextBasedChannel } from "discord.js";
-import { callOllama } from "../../lib/ollama.js";
+import { callInteractiveLlm } from "../../lib/llmProvider.js";
 
 const COOLDOWN_MS = 10 * 60 * 1000;
 const MAX_MESSAGES = 200;
@@ -80,10 +80,10 @@ export class SummarizeCommand extends Command {
 			cooldownDelay: COOLDOWN_MS,
 			cooldownScope: BucketScope.User,
 			cooldownLimit: 1,
-			help: {
+				help: {
 				summary: "Summarize recent messages in this channel using AI.",
 				examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
-				usageNotes: "Uses the local Ollama model. `time` overrides `count` if both are given.",
+				usageNotes: "Uses the configured AI provider. `time` overrides `count` if both are given.",
 			},
 		});
 	}
@@ -159,7 +159,7 @@ export class SummarizeCommand extends Command {
 		}
 
 		const prompt = messages.join("\n");
-		const summary = await callOllama(SYSTEM_PROMPT, prompt, OLLAMA_TIMEOUT_MS);
+		const summary = await callInteractiveLlm(SYSTEM_PROMPT, prompt, OLLAMA_TIMEOUT_MS);
 
 		if (!summary) {
 			return interaction.editReply({
