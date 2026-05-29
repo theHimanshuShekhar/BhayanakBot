@@ -30,7 +30,10 @@ export class MessageUpdateListener extends Listener {
 		}
 
 		if (!newMessage.guild || !newMessage.author || newMessage.author.bot || newMessage.content === null) return;
-		if (newMessage.channelId === GUESS_WHO_CHANNEL_ID && (oldMessage.partial || oldMessage.content !== newMessage.content)) {
+		if (
+			newMessage.channelId === GUESS_WHO_CHANNEL_ID &&
+			(oldMessage.partial || oldMessage.content !== newMessage.content)
+		) {
 			void markArchivedChannelMessageEdited({
 				messageId: newMessage.id,
 				guildId: newMessage.guild.id,

@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { guildPersonalityProfiles, guildSettings, userPersonalityProfiles } from "../../../src/db/schema.js";
-import { db } from "../../../src/lib/database.js";
 import type { BhayanakClient } from "../../../src/lib/BhayanakClient.js";
+import { db } from "../../../src/lib/database.js";
 import { getPersonalityContext } from "../../../src/lib/personality/getPersonalityContext.js";
 
 const GUILD_ID = "context-guild";

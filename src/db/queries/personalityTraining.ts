@@ -1,6 +1,6 @@
-import { and, asc, eq, gt, isNull, sql, type SQL } from "drizzle-orm";
-import { db } from "../../lib/database.js";
+import { and, asc, eq, gt, isNull, type SQL, sql } from "drizzle-orm";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
+import { db } from "../../lib/database.js";
 import { archivedChannelMessages } from "../schema.js";
 
 export interface TrainingMessage {
@@ -112,9 +112,10 @@ export async function getEligibleGuildTrainingMessages(input: GuildTrainingMessa
 			authorUserId: archivedChannelMessages.authorUserId,
 			content: archivedChannelMessages.content,
 			messageCreatedAt: archivedChannelMessages.messageCreatedAt,
-			authorRank: sql<number>`row_number() over (partition by ${archivedChannelMessages.authorUserId} order by ${archivedChannelMessages.messageCreatedAt}, ${archivedChannelMessages.messageId})`.as(
-				"author_rank",
-			),
+			authorRank:
+				sql<number>`row_number() over (partition by ${archivedChannelMessages.authorUserId} order by ${archivedChannelMessages.messageCreatedAt}, ${archivedChannelMessages.messageId})`.as(
+					"author_rank",
+				),
 		})
 		.from(archivedChannelMessages)
 		.where(and(...trainingEligibilityConditions(input.guildId, input.afterMessageCreatedAt, input.afterMessageId)))

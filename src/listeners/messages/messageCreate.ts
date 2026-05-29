@@ -8,11 +8,16 @@ import { getGuildPersonalityProfile } from "../../db/queries/guildPersonality.js
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { addXp } from "../../db/queries/users.js";
-import { archivedChannelMessages, guildPersonalityProfiles, userMessages, userPersonalityProfiles } from "../../db/schema.js";
-import { db } from "../../lib/database.js";
+import {
+	archivedChannelMessages,
+	guildPersonalityProfiles,
+	userMessages,
+	userPersonalityProfiles,
+} from "../../db/schema.js";
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
+import { db } from "../../lib/database.js";
 import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
@@ -323,9 +328,7 @@ export class MessageCreateListener extends Listener {
 	private async sendReply(message: Message, content: string, deletedTrigger: boolean) {
 		const safeReply = content.length > 1990 ? `${content.slice(0, 1989)}…` : content;
 		if (safeReply.length !== content.length) {
-			this.container.logger.warn(
-				`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`,
-			);
+			this.container.logger.warn(`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`);
 		}
 		// If trigger was deleted, send as regular message instead of reply
 		if (deletedTrigger) {

@@ -6,13 +6,13 @@ import {
 	upsertArchivedChannelMessage,
 } from "../../../src/db/queries/archivedChannelMessages.js";
 import {
-	getEligibleGuildTrainingMessageWindow,
 	getEligibleGuildTrainingMessages,
+	getEligibleGuildTrainingMessageWindow,
 	getEligibleUserTrainingMessages,
 } from "../../../src/db/queries/personalityTraining.js";
 import { archivedChannelMessages } from "../../../src/db/schema.js";
-import { db } from "../../../src/lib/database.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
+import { db } from "../../../src/lib/database.js";
 
 const GUILD_ID = "guild-persona-test";
 const CHANNEL_ID = GUESS_WHO_CHANNEL_ID;
@@ -101,7 +101,8 @@ describe("personality training database queries", () => {
 		});
 		await archiveMessage({
 			messageId: "pt-user-mentions",
-			content: "This message calls <@100000000000000001> <@100000000000000002> <@100000000000000003> <@100000000000000004> <@100000000000000005> into the room.",
+			content:
+				"This message calls <@100000000000000001> <@100000000000000002> <@100000000000000003> <@100000000000000004> <@100000000000000005> into the room.",
 			messageCreatedAt: new Date("2026-05-27T12:07:30.000Z"),
 		});
 		await archiveMessage({
@@ -324,11 +325,7 @@ describe("personality training database queries", () => {
 			maxPerAuthor: 2,
 		});
 
-		expect(messages.map((message) => message.messageId)).toEqual([
-			"pt-guild-a-1",
-			"pt-guild-a-2",
-			"pt-guild-b-1",
-		]);
+		expect(messages.map((message) => message.messageId)).toEqual(["pt-guild-a-1", "pt-guild-a-2", "pt-guild-b-1"]);
 		expect(messages.filter((message) => message.authorUserId === USER_A)).toHaveLength(2);
 		expect(messages.filter((message) => message.authorUserId === USER_B)).toHaveLength(1);
 	});
@@ -363,11 +360,6 @@ describe("personality training database queries", () => {
 			maxPerAuthor: 2,
 		});
 
-		expect(messages.map((message) => message.messageId)).toEqual([
-			"pt-a-00",
-			"pt-a-01",
-			"pt-b-late-1",
-			"pt-b-late-2",
-		]);
+		expect(messages.map((message) => message.messageId)).toEqual(["pt-a-00", "pt-a-01", "pt-b-late-1", "pt-b-late-2"]);
 	});
 });

@@ -1,6 +1,7 @@
 import { container } from "@sapphire/framework";
 import { and, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PersonalityCommand } from "../../../src/commands/utility/personality.js";
 import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedChannelMessages.js";
 import {
 	archivedChannelMessages,
@@ -9,12 +10,11 @@ import {
 	userMessages,
 	userPersonalityProfiles,
 } from "../../../src/db/schema.js";
-import { db } from "../../../src/lib/database.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
+import { db } from "../../../src/lib/database.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
 import { createCommandContext, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
-import { PersonalityCommand } from "../../../src/commands/utility/personality.js";
 
 vi.mock("../../../src/lib/personality/buildProfile.js", () => ({
 	buildPersonalityProfile: vi.fn(async () => ({ status: "built" })),
@@ -155,7 +155,9 @@ describe("/personality command", () => {
 
 		await createCommand().chatInputRun(interaction);
 
-		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).toContain("2 eligible archived message(s)");
+		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).toContain(
+			"2 eligible archived message(s)",
+		);
 		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).not.toContain("999");
 	});
 
@@ -187,7 +189,9 @@ describe("/personality command", () => {
 
 		await createCommand().chatInputRun(interaction);
 
-		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).toContain("3 eligible archived message(s)");
+		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).toContain(
+			"3 eligible archived message(s)",
+		);
 		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).not.toContain("999");
 	});
 

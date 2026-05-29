@@ -36,7 +36,10 @@ function formatTimeAgo(date: Date | null): string {
 	return `${days}d ago`;
 }
 
-function formatRefreshResult(result: PersonalityBuildResult | GuildPersonalityBuildResult, evidenceCount: number): string {
+function formatRefreshResult(
+	result: PersonalityBuildResult | GuildPersonalityBuildResult,
+	evidenceCount: number,
+): string {
 	if (result.status === "built") {
 		return `Incremental refresh completed from **${evidenceCount}** eligible archived message(s).`;
 	}
@@ -125,7 +128,9 @@ export class PersonalityCommand extends Command {
 					new EmbedBuilder()
 						.setColor(0xfee75c)
 						.setTitle("Personality Profiles Disabled")
-						.setDescription("Personality profiling is disabled for this server. A server administrator can enable it with `/config`."),
+						.setDescription(
+							"Personality profiling is disabled for this server. A server administrator can enable it with `/config`.",
+						),
 				],
 			});
 		}
@@ -159,7 +164,11 @@ export class PersonalityCommand extends Command {
 		return this.viewUserProfile(interaction, target, guildId);
 	}
 
-	private async refreshUserProfile(interaction: Command.ChatInputCommandInteraction, target: NonNullable<ReturnType<Command.ChatInputCommandInteraction["options"]["getUser"]>>, guildId: string) {
+	private async refreshUserProfile(
+		interaction: Command.ChatInputCommandInteraction,
+		target: NonNullable<ReturnType<Command.ChatInputCommandInteraction["options"]["getUser"]>>,
+		guildId: string,
+	) {
 		const row = await db.query.userPersonalityProfiles.findFirst({
 			where: and(eq(userPersonalityProfiles.userId, target.id), eq(userPersonalityProfiles.guildId, guildId)),
 			columns: { profile: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
@@ -179,7 +188,9 @@ export class PersonalityCommand extends Command {
 					new EmbedBuilder()
 						.setColor(0xfee75c)
 						.setTitle(`Refresh — ${target.displayName}`)
-						.setDescription(`Not enough archived training evidence yet; need at least ${threshold} eligible archived message(s).`),
+						.setDescription(
+							`Not enough archived training evidence yet; need at least ${threshold} eligible archived message(s).`,
+						),
 				],
 			});
 		}
@@ -218,7 +229,9 @@ export class PersonalityCommand extends Command {
 					new EmbedBuilder()
 						.setColor(0xfee75c)
 						.setTitle("Refresh — Server Culture")
-						.setDescription(`Not enough archived training evidence yet; need at least ${threshold} eligible archived message(s).`),
+						.setDescription(
+							`Not enough archived training evidence yet; need at least ${threshold} eligible archived message(s).`,
+						),
 				],
 			});
 		}
@@ -238,7 +251,11 @@ export class PersonalityCommand extends Command {
 		});
 	}
 
-	private async viewUserProfile(interaction: Command.ChatInputCommandInteraction, target: NonNullable<ReturnType<Command.ChatInputCommandInteraction["options"]["getUser"]>>, guildId: string) {
+	private async viewUserProfile(
+		interaction: Command.ChatInputCommandInteraction,
+		target: NonNullable<ReturnType<Command.ChatInputCommandInteraction["options"]["getUser"]>>,
+		guildId: string,
+	) {
 		const profile = await getPersonalityProfile(target.id, guildId);
 
 		if (!profile) {

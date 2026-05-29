@@ -112,27 +112,23 @@ describeOllamaE2e("real local Ollama fallback personality profile generation", (
 		await cleanupRows();
 	});
 
-	it(
-		"builds user and guild profiles from archived training messages through the real local Ollama fallback",
-		async () => {
-			const userSourceMessages = await archiveUserMessages(100);
-			const guildSourceMessages = await archiveGuildMessages(200);
+	it("builds user and guild profiles from archived training messages through the real local Ollama fallback", async () => {
+		const userSourceMessages = await archiveUserMessages(100);
+		const guildSourceMessages = await archiveGuildMessages(200);
 
-			const userResult = await buildPersonalityProfile(USER_ID, GUILD_ID);
-			const guildResult = await buildGuildPersonalityProfile(GUILD_ID);
+		const userResult = await buildPersonalityProfile(USER_ID, GUILD_ID);
+		const guildResult = await buildGuildPersonalityProfile(GUILD_ID);
 
-			expect(userResult.status).toBe("built");
-			expect(guildResult.status).toBe("built");
-			const userProfile = await db.query.userPersonalityProfiles.findFirst({
-				where: and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)),
-			});
-			const guildProfile = await db.query.guildPersonalityProfiles.findFirst({
-				where: eq(guildPersonalityProfiles.guildId, GUILD_ID),
-			});
+		expect(userResult.status).toBe("built");
+		expect(guildResult.status).toBe("built");
+		const userProfile = await db.query.userPersonalityProfiles.findFirst({
+			where: and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)),
+		});
+		const guildProfile = await db.query.guildPersonalityProfiles.findFirst({
+			where: eq(guildPersonalityProfiles.guildId, GUILD_ID),
+		});
 
-			expectGeneratedProfile(userProfile?.profile, userSourceMessages);
-			expectGeneratedProfile(guildProfile?.profile, guildSourceMessages);
-		},
-		240_000,
-	);
+		expectGeneratedProfile(userProfile?.profile, userSourceMessages);
+		expectGeneratedProfile(guildProfile?.profile, guildSourceMessages);
+	}, 240_000);
 });

@@ -3,8 +3,8 @@ import { and, eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedChannelMessages.js";
 import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
-import { db } from "../../../src/lib/database.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
+import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
@@ -28,7 +28,12 @@ async function cleanupBuilderRows(): Promise<void> {
 		.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
 }
 
-async function archiveUserMessages(input: { count: number; idPrefix: string; start: Date; channelId?: string }): Promise<void> {
+async function archiveUserMessages(input: {
+	count: number;
+	idPrefix: string;
+	start: Date;
+	channelId?: string;
+}): Promise<void> {
 	for (let index = 0; index < input.count; index++) {
 		const paddedIndex = String(index).padStart(3, "0");
 		await upsertArchivedChannelMessage({
@@ -44,7 +49,12 @@ async function archiveUserMessages(input: { count: number; idPrefix: string; sta
 	}
 }
 
-async function archiveGuildMessages(input: { count: number; idPrefix: string; start: Date; authorCount: number }): Promise<void> {
+async function archiveGuildMessages(input: {
+	count: number;
+	idPrefix: string;
+	start: Date;
+	authorCount: number;
+}): Promise<void> {
 	for (let index = 0; index < input.count; index++) {
 		const paddedIndex = String(index).padStart(3, "0");
 		const authorIndex = index % input.authorCount;
@@ -274,7 +284,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("does not build an initial guild profile below the archive message threshold", async () => {
-		await archiveGuildMessages({ count: 199, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 199,
+			idPrefix: "gb",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 
 		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
@@ -284,7 +299,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("builds an initial guild profile from 200 archived eligible messages", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gb",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 
 		const result = await buildGuildPersonalityProfile(GUILD_ID);
 
@@ -350,7 +370,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("builds a dominated initial guild profile and caps prompt lines to 10 per anonymized author", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gd", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 5 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gd",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 5,
+		});
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
@@ -363,7 +388,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("uses stable anonymized author labels in the guild prompt", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gb",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 
 		await buildGuildPersonalityProfile(GUILD_ID);
 
@@ -375,7 +405,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("keeps anonymized guild author labels stable across incremental builds", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gs", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gs",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 		await buildGuildPersonalityProfile(GUILD_ID);
 		const firstPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 		const firstBuildLabel = authorLabelForPromptContent(firstPrompt, "guild gs001 context");
@@ -410,9 +445,19 @@ describe("personality profile builders", () => {
 	});
 
 	it("uses only messages after the guild cursor for an incremental build and includes the existing profile in the prompt", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gb",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 		await buildGuildPersonalityProfile(GUILD_ID);
-		await archiveGuildMessages({ count: 40, idPrefix: "gi", start: new Date("2026-05-02T00:00:00.000Z"), authorCount: 4 });
+		await archiveGuildMessages({
+			count: 40,
+			idPrefix: "gi",
+			start: new Date("2026-05-02T00:00:00.000Z"),
+			authorCount: 4,
+		});
 		await db
 			.update(guildPersonalityProfiles)
 			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
@@ -430,7 +475,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("advances guild cursor by contiguous processed windows without permanently skipping balanced-out messages", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gc", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gc",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 		await buildGuildPersonalityProfile(GUILD_ID);
 		await archiveGuildMessagesForAuthor({
 			count: 50,
@@ -467,7 +517,12 @@ describe("personality profile builders", () => {
 	});
 
 	it("sets guild cooldown after a null model result without advancing cursor or reducing messageCount", async () => {
-		await archiveGuildMessages({ count: 200, idPrefix: "gb", start: new Date("2026-05-01T00:00:00.000Z"), authorCount: 20 });
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gb",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
 		await db.insert(guildPersonalityProfiles).values({ guildId: GUILD_ID, messageCount: 250 });
 		mockedCallBackgroundLlm.mockResolvedValueOnce(null);
 

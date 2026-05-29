@@ -1,21 +1,21 @@
 import { container } from "@sapphire/framework";
 import { and, eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
-import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import {
 	archivedChannelMessageTestHooks,
 	markArchivedChannelMessageDeleted,
 } from "../../../src/db/queries/archivedChannelMessages.js";
+import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
+import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import {
 	archivedChannelMessages,
 	guildPersonalityProfiles,
 	userMessages,
 	userPersonalityProfiles,
 } from "../../../src/db/schema.js";
-import { db } from "../../../src/lib/database.js";
-import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { generateAutoResponse, generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
+import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../../src/lib/constants.js";
+import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
@@ -233,7 +233,9 @@ describe("messageCreate personality archive flow", () => {
 	});
 
 	it("does not archive or increment personality evidence outside the Guess Who general channel", async () => {
-		await createListener().run(createMessage({ messageId: "legacy-channel", channelId: TARGET_TEXT_CHANNEL_ID }) as never);
+		await createListener().run(
+			createMessage({ messageId: "legacy-channel", channelId: TARGET_TEXT_CHANNEL_ID }) as never,
+		);
 
 		expect(await getArchiveRow("legacy-channel")).toBeUndefined();
 		expect(await getUserProfile()).toBeUndefined();
@@ -412,7 +414,11 @@ describe("messageCreate personality archive flow", () => {
 		});
 		mockedGetOrCreateSettings.mockImplementationOnce(
 			async (guildId: string) =>
-				createSettings({ guildId, randomResponseChannelId: TARGET_TEXT_CHANNEL_ID, randomResponseChance: 100 }) as never,
+				createSettings({
+					guildId,
+					randomResponseChannelId: TARGET_TEXT_CHANNEL_ID,
+					randomResponseChance: 100,
+				}) as never,
 		);
 		mockedGenerateMentionReply.mockResolvedValueOnce("random reply");
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);

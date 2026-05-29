@@ -1,9 +1,6 @@
 import { container } from "@sapphire/framework";
 import { eq, sql } from "drizzle-orm";
-import {
-	getEligibleGuildTrainingMessageWindow,
-	type TrainingMessage,
-} from "../../db/queries/personalityTraining.js";
+import { getEligibleGuildTrainingMessageWindow, type TrainingMessage } from "../../db/queries/personalityTraining.js";
 import { guildPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
@@ -174,7 +171,8 @@ function buildAuthorLabels(messages: TrainingMessage[]): Map<string, string> {
 	for (const authorId of authorIds) {
 		const baseLabel = `Author ${stableAuthorNumber(authorId)}`;
 		const existingAuthorId = usedLabels.get(baseLabel);
-		const label = existingAuthorId && existingAuthorId !== authorId ? `${baseLabel}.${labelsByAuthorId.size + 1}` : baseLabel;
+		const label =
+			existingAuthorId && existingAuthorId !== authorId ? `${baseLabel}.${labelsByAuthorId.size + 1}` : baseLabel;
 		labelsByAuthorId.set(authorId, label);
 		usedLabels.set(baseLabel, authorId);
 	}

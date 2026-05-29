@@ -36,9 +36,7 @@ export async function getCommandCounter(): Promise<number> {
 	return row?.commandsRun ?? 0;
 }
 
-export async function writePublicBotStatsSnapshot(
-	input: PublicBotStatsSnapshotInput,
-): Promise<PublicBotStatsSnapshot> {
+export async function writePublicBotStatsSnapshot(input: PublicBotStatsSnapshotInput): Promise<PublicBotStatsSnapshot> {
 	const now = new Date();
 	const capturedAt = input.capturedAt ?? now;
 	const [row] = await db
