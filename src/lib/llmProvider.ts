@@ -11,7 +11,6 @@ async function callZenChat(
 	system: string,
 	prompt: string,
 	timeoutMs: number,
-	numPredict?: number,
 ): Promise<{ content: string | null; elapsedMs: number }> {
 	const startedAt = Date.now();
 	const apiKey = process.env.ZEN_API_KEY;
@@ -33,7 +32,6 @@ async function callZenChat(
 					{ role: "system", content: system },
 					{ role: "user", content: prompt },
 				],
-				...(numPredict !== undefined && { max_tokens: numPredict }),
 			}),
 			signal: controller.signal,
 		});
@@ -57,7 +55,9 @@ async function callZenChat(
 }
 
 function isRefusalOnly(content: string): boolean {
-	return /^(i can(?:not|['’]?t) (?:help|assist)(?: with that| with this| with that request| with this request)?|i am unable to|i['’]?m unable to)\b/i.test(content.trim());
+	return /^(i can(?:not|['’]?t) (?:help|assist)(?: with that| with this| with that request| with this request)?|i am unable to|i['’]?m unable to)\b/i.test(
+		content.trim(),
+	);
 }
 
 function fallbackTimeout(timeoutMs: number, elapsedMs: number): number {
@@ -70,7 +70,7 @@ export async function callInteractiveLlm(
 	timeoutMs = 3000,
 	numPredict?: number,
 ): Promise<string | null> {
-	const zenResult = await callZenChat(system, prompt, timeoutMs, numPredict);
+	const zenResult = await callZenChat(system, prompt, timeoutMs);
 	if (zenResult.content) return zenResult.content;
 	return callOllama(system, prompt, fallbackTimeout(timeoutMs, zenResult.elapsedMs), numPredict);
 }
@@ -82,7 +82,7 @@ export async function callBackgroundLlm(
 	numPredict?: number,
 	label?: string,
 ): Promise<string | null> {
-	const zenResult = await callZenChat(system, prompt, timeoutMs, numPredict);
+	const zenResult = await callZenChat(system, prompt, timeoutMs);
 	if (zenResult.content) return zenResult.content;
 	return callOllamaLowPriority(system, prompt, fallbackTimeout(timeoutMs, zenResult.elapsedMs), numPredict, label);
 }

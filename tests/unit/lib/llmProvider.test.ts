@@ -33,7 +33,7 @@ describe("LLM provider", () => {
 		vi.unstubAllGlobals();
 	});
 
-	it("uses Zen chat completions when configured", async () => {
+	it("uses Zen chat completions when configured without forwarding token caps", async () => {
 		mockedFetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({ choices: [{ message: { content: "zen generated reply" } }] }),
@@ -54,7 +54,6 @@ describe("LLM provider", () => {
 						{ role: "system", content: "System prompt" },
 						{ role: "user", content: "User prompt" },
 					],
-					max_tokens: 123,
 				}),
 			}),
 		);
