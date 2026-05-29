@@ -37,7 +37,7 @@ Modifies (existing — add `help` to `super()` options):
 
 - All local imports end with `.js` (ESM resolution on `.ts` sources).
 - Tabs for indent, double quotes, trailing commas, 120-char line width (Biome-enforced).
-- Every task ends with `pnpm check && pnpm build` before commit, matching CLAUDE.md.
+- Every task ends with `pnpm check && pnpm build` before commit, matching AGENTS.md.
 - Commit message style: conventional prefix (`feat:`, `docs:`, `chore:`) — matches recent git log.
 - `customId` delimiter is `:`.
 

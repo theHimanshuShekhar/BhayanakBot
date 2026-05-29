@@ -1,16 +1,16 @@
 # BhayanakBot
 
-A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, message-archive games, giveaways, tickets, polls, and more.
+A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, archive-backed games and personality, giveaways, tickets, polls, and more.
 
 ## Features
 
 | Category | Commands |
 |---|---|
-| **RPG** | `/profile`, `/train`, `/work`, `/crime`, `/shop`, `/inventory`, `/pet`, `/property` |
+| **RPG** | `/profile`, `/train`, `/work`, `/crime`, `/shop`, `/inventory`, `/pet`, `/property`, `/daily`, `/quests` |
 | **Moderation** | `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history` |
 | **Music** | `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop` |
-| **Leveling** | `/rank`, `/leaderboard`, `/rewards`, `/reset` |
-| **Utility** | `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind` |
+| **Leveling** | `/rank`, `/leaderboard`, `/rewards`, `/level-reset` |
+| **Utility** | `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality` |
 | **Fun** | `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll` |
 | **Games** | `/guess_who` |
 | **Tickets** | `/ticket-panel`, `/ticket` |
@@ -19,7 +19,7 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Suggestions** | `/suggest`, `/suggestion` |
 | **Auto-respond** | `/autorespond` |
 | **Config** | `/config` |
-| **AI Personality** | `/personality` |
+| **Minecraft** | `/minecraft` |
 
 ### RPG System
 
@@ -35,13 +35,14 @@ The RPG is an economy and progression system:
 
 ### AI Personality System
 
-The bot builds personality profiles from server conversation to generate contextual responses:
+The bot builds personality profiles from archived server conversation to generate contextual responses:
 
-- **User Profiles**: Per-user personality profiles built from message history (100 messages → rebuild). View with `/personality`
-- **Guild Profiles**: Server-wide cultural profiles built from aggregate message data (200 messages → rebuild)
+- **User Profiles**: Per-user personality profiles built from eligible archived messages. View with `/personality view user`
+- **Guild Profiles**: Server culture profiles built from eligible archived messages. View with `/personality view guild`
+- **Refreshes**: Admin-only incremental refreshes use `/personality refresh user` and `/personality refresh guild`
 - **Smart Mentions**: When @mentioned, the bot uses personality context + conversation history for contextual replies
 - **Random Responder**: Configurable chance-based responses in a designated channel, using guild personality for tone
-- **Privacy**: All profiling is opt-out via `/config set personality-profiling false`. Messages older than 30 days are purged automatically
+- **Operational Toggle**: Server admins can enable or disable personality behavior with `/config`; this is not consent or opt-in/opt-out language
 
 ### Guess Who Game
 
@@ -60,7 +61,7 @@ The bot builds personality profiles from server conversation to generate context
 - **Database**: PostgreSQL via Drizzle ORM
 - **Cache/Queue**: Valkey (Redis-compatible) via BullMQ
 - **Music**: discord-player v7
-- **AI**: Ollama (local LLM, optional)
+- **AI**: opencode Zen for responders, summaries, and personality when configured; local Ollama fallback plus RPG/quest generation
 
 ## Setup
 
@@ -86,16 +87,26 @@ Copy `.env.example` to `.env` and fill in:
 
 ```env
 DISCORD_TOKEN=your_bot_token
+DISCORD_CLIENT_ID=your_client_id
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 VALKEY_URL=redis://localhost:6379
+POSTGRES_PASSWORD=postgres
 OLLAMA_URL=http://localhost:11434   # optional
 OLLAMA_MODEL=phi3:mini              # optional
 ZEN_API_KEY=your_opencode_zen_key   # optional; responder/summary/personality use Zen first, then Ollama fallback
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
 ZEN_MODEL=deepseek-v4-flash
+WEB_PORT=3000
+PUBLIC_BOT_INVITE_URL=https://discord.com/oauth2/authorize
+PUBLIC_STATS_INTERVAL_MS=300000
 NODE_ENV=development
+TARGET_GUILD_ID=199168135935295488
+TARGET_TEXT_CHANNEL_ID=199168135935295488
 GUESS_WHO_CHANNEL_ID=199168135935295488
 GUESS_WHO_BACKFILL_LIMIT=1000
+BOT_OWNER_ID=199168135935295488
+YOUTUBE_COOKIE=
 ```
 
 ### Database
@@ -114,7 +125,7 @@ pnpm build && pnpm start  # production
 
 ## Docker
 
-The included `docker-compose.yml` runs everything (Postgres, Valkey, Ollama, migrations, bot):
+The included `docker-compose.yml` runs everything (Postgres, Valkey, Ollama, bot, and web). The bot container runs migrations before startup:
 
 ```bash
 cp .env.example .env
