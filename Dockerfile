@@ -17,6 +17,8 @@ COPY drizzle/ ./drizzle/
 COPY biome.json ./
 COPY vitest.config.ts ./
 
+RUN pnpm build
+
 # migration: minimal image to run database migrations (no ffmpeg/python/build deps)
 FROM node:22-alpine AS migration
 
@@ -43,15 +45,16 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
-# Full install (not --prod) so drizzle-kit and tsx are available
+# Keep dev tools available for the Compose web service and in-container migrations,
+# but run the bot from compiled JavaScript instead of tsx source.
 RUN pnpm install --frozen-lockfile
 
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
-
-# Copy source and run directly with tsx instead of pre-compiling
-COPY src/ ./src/
 COPY web/ ./web/
 COPY tsconfig.json ./
+COPY --from=base /app/dist ./dist
 
-CMD ["sh", "-c", "pnpm db:migrate && pnpm exec tsx src/index.ts"]
+USER node
+
+CMD ["sh", "-c", "pnpm db:migrate && node dist/index.js"]

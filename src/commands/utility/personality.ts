@@ -1,4 +1,4 @@
-import { Command } from "@sapphire/framework";
+import { Command, container } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
@@ -312,19 +312,27 @@ export class PersonalityCommand extends Command {
 
 		try {
 			return await interaction.editReply({ embeds: [embed], files: [attachment] });
-		} catch {
+		} catch (err) {
+			container.logger.warn("[personality] Failed to edit user profile reply with attachment", err);
 			try {
 				return await interaction.followUp({ embeds: [embed], files: [attachment], ephemeral: true });
-			} catch {
-				return interaction.followUp({
-					embeds: [
-						new EmbedBuilder()
-							.setColor(0xed4245)
-							.setTitle(`User Personality Profile — ${target.displayName}`)
-							.setDescription("Failed to upload the profile. Please try again."),
-					],
-					ephemeral: true,
-				});
+			} catch (followUpErr) {
+				container.logger.warn("[personality] Failed to follow up user profile with attachment", followUpErr);
+				embed.setFooter({ text: "Attachment upload failed; showing profile excerpt only" });
+
+				try {
+					return await interaction.followUp({ embeds: [embed], ephemeral: true });
+				} catch {
+					return interaction.followUp({
+						embeds: [
+							new EmbedBuilder()
+								.setColor(0xed4245)
+								.setTitle(`User Personality Profile — ${target.displayName}`)
+								.setDescription("Failed to upload the profile. Please try again."),
+						],
+						ephemeral: true,
+					});
+				}
 			}
 		}
 	}
@@ -377,19 +385,27 @@ export class PersonalityCommand extends Command {
 
 		try {
 			return await interaction.editReply({ embeds: [embed], files: [attachment] });
-		} catch {
+		} catch (err) {
+			container.logger.warn("[personality] Failed to edit guild profile reply with attachment", err);
 			try {
 				return await interaction.followUp({ embeds: [embed], files: [attachment], ephemeral: true });
-			} catch {
-				return interaction.followUp({
-					embeds: [
-						new EmbedBuilder()
-							.setColor(0xed4245)
-							.setTitle("Server Culture Profile")
-							.setDescription("Failed to upload the profile. Please try again."),
-					],
-					ephemeral: true,
-				});
+			} catch (followUpErr) {
+				container.logger.warn("[personality] Failed to follow up guild profile with attachment", followUpErr);
+				embed.setFooter({ text: "Attachment upload failed; showing profile excerpt only" });
+
+				try {
+					return await interaction.followUp({ embeds: [embed], ephemeral: true });
+				} catch {
+					return interaction.followUp({
+						embeds: [
+							new EmbedBuilder()
+								.setColor(0xed4245)
+								.setTitle("Server Culture Profile")
+								.setDescription("Failed to upload the profile. Please try again."),
+						],
+						ephemeral: true,
+					});
+				}
 			}
 		}
 	}

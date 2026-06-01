@@ -95,6 +95,9 @@ POSTGRES_PASSWORD=postgres
 OLLAMA_URL=http://localhost:11434   # optional
 OLLAMA_MODEL=phi3:mini              # optional
 OLLAMA_DEBUG_CONTENT_LOGS=false     # only true for local debugging; logs raw prompts/responses
+OLLAMA_MAX_QUEUE_LENGTH=25
+OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH=10
+OLLAMA_QUEUE_WAIT_TIMEOUT_MS=60000
 ZEN_API_KEY=your_opencode_zen_key   # optional; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
 ZEN_ALLOW_DISCORD_CONTENT=false      # keep false to force local Ollama for Discord-content prompts
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1

@@ -128,17 +128,13 @@ export async function getInventory(userId: string): Promise<RpgInventoryItem[]> 
 }
 
 export async function addItem(userId: string, itemId: string, quantity = 1): Promise<void> {
-	const existing = await db.query.rpgInventory.findFirst({
-		where: and(eq(rpgInventory.userId, userId), eq(rpgInventory.itemId, itemId)),
-	});
-	if (existing) {
-		await db
-			.update(rpgInventory)
-			.set({ quantity: existing.quantity + quantity })
-			.where(eq(rpgInventory.id, existing.id));
-	} else {
-		await db.insert(rpgInventory).values({ userId, itemId, quantity });
-	}
+	await db
+		.insert(rpgInventory)
+		.values({ userId, itemId, quantity })
+		.onConflictDoUpdate({
+			target: [rpgInventory.userId, rpgInventory.itemId],
+			set: { quantity: sql`${rpgInventory.quantity} + ${quantity}` },
+		});
 }
 
 export async function removeItem(userId: string, itemId: string, quantity = 1): Promise<boolean> {

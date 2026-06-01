@@ -15,17 +15,19 @@ export class IsAdminPrecondition extends AllFlowsPrecondition {
 			: this.error({ message: "You need Administrator permission to use this command." });
 	}
 
-	public override chatInputRun(interaction: CommandInteraction) {
+	public override async chatInputRun(interaction: CommandInteraction) {
 		if (interaction.user.id === BOT_OWNER_ID) return this.ok();
-		const member = interaction.guild?.members.cache.get(interaction.user.id);
+		if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) return this.ok();
+		const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
 		return member?.permissions.has(PermissionFlagsBits.Administrator)
 			? this.ok()
 			: this.error({ message: "You need Administrator permission to use this command." });
 	}
 
-	public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
+	public override async contextMenuRun(interaction: ContextMenuCommandInteraction) {
 		if (interaction.user.id === BOT_OWNER_ID) return this.ok();
-		const member = interaction.guild?.members.cache.get(interaction.user.id);
+		if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) return this.ok();
+		const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
 		return member?.permissions.has(PermissionFlagsBits.Administrator)
 			? this.ok()
 			: this.error({ message: "You need Administrator permission to use this command." });

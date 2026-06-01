@@ -1,6 +1,14 @@
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "phi3:mini";
 const OLLAMA_DEBUG_CONTENT_LOGS = process.env.OLLAMA_DEBUG_CONTENT_LOGS === "true";
+const OLLAMA_MAX_QUEUE_LENGTH = parsePositiveInt(process.env.OLLAMA_MAX_QUEUE_LENGTH, 25);
+const OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH = parsePositiveInt(process.env.OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH, 10);
+const OLLAMA_QUEUE_WAIT_TIMEOUT_MS = parsePositiveInt(process.env.OLLAMA_QUEUE_WAIT_TIMEOUT_MS, 60_000);
+
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+	const parsed = Number.parseInt(value ?? "", 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 export async function ensureOllamaModel(): Promise<void> {
 	console.log(`[ollama] Ensuring model ${OLLAMA_MODEL} is available...`);
@@ -33,12 +41,29 @@ type OllamaJob = {
 	resolve: (value: string | null) => void;
 	priority: "high" | "low";
 	label?: string;
+	enqueuedAt: number;
 };
 
 const queue: OllamaJob[] = [];
 let isRunning = false;
 
 function enqueue(job: OllamaJob): void {
+	const lowPriorityQueued = queue.filter((queued) => queued.priority === "low").length;
+	if (queue.length >= OLLAMA_MAX_QUEUE_LENGTH) {
+		console.warn(
+			`[ollama] dropping ${job.priority}-priority job label=${job.label ?? "none"} reason=max_queue queueLength=${queue.length}`,
+		);
+		job.resolve(null);
+		return;
+	}
+	if (job.priority === "low" && lowPriorityQueued >= OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH) {
+		console.warn(
+			`[ollama] dropping low-priority job label=${job.label ?? "none"} reason=max_low_priority_queue lowPriorityQueued=${lowPriorityQueued}`,
+		);
+		job.resolve(null);
+		return;
+	}
+
 	if (job.priority === "high") {
 		// Insert after the last high-priority job, before any low-priority jobs
 		const firstLowIdx = queue.findIndex((j) => j.priority === "low");
@@ -47,6 +72,7 @@ function enqueue(job: OllamaJob): void {
 	} else {
 		queue.push(job);
 	}
+	console.log(`[ollama] queued priority=${job.priority} label=${job.label ?? "none"} queueLength=${queue.length}`);
 	if (!isRunning) void processQueue();
 }
 
@@ -54,6 +80,14 @@ async function processQueue(): Promise<void> {
 	isRunning = true;
 	while (queue.length > 0) {
 		const job = queue.shift()!;
+		const waitedMs = Date.now() - job.enqueuedAt;
+		if (waitedMs > OLLAMA_QUEUE_WAIT_TIMEOUT_MS) {
+			console.warn(
+				`[ollama] dropping ${job.priority}-priority job label=${job.label ?? "none"} reason=queue_wait_timeout waitedMs=${waitedMs}`,
+			);
+			job.resolve(null);
+			continue;
+		}
 		const result = await callOllamaInternal(job.system, job.prompt, job.timeoutMs, job.numPredict, job.label);
 		job.resolve(result);
 	}
@@ -119,7 +153,7 @@ export async function callOllama(
 	numPredict?: number,
 ): Promise<string | null> {
 	return new Promise((resolve) => {
-		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "high" });
+		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "high", enqueuedAt: Date.now() });
 	});
 }
 
@@ -135,6 +169,6 @@ export async function callOllamaLowPriority(
 	label?: string,
 ): Promise<string | null> {
 	return new Promise((resolve) => {
-		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "low", label });
+		enqueue({ system, prompt, timeoutMs, numPredict, resolve, priority: "low", label, enqueuedAt: Date.now() });
 	});
 }

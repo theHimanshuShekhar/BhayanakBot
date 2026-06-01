@@ -66,8 +66,8 @@ function createInteraction(input: {
 	targetUserId?: string;
 }) {
 	const deferReply = vi.fn(async () => undefined);
-	const editReply = vi.fn(async () => undefined);
-	const followUp = vi.fn(async () => undefined);
+	const editReply = vi.fn(async (_payload?: unknown) => undefined);
+	const followUp = vi.fn(async (_payload?: unknown) => undefined);
 	const targetUser = {
 		id: input.targetUserId ?? USER_ID,
 		displayName: "Target User",
@@ -138,6 +138,33 @@ describe("/personality command", () => {
 		expect(deferReply).toHaveBeenCalledWith({ ephemeral: true });
 		expect(lastEmbedTitle(editReply)).toContain("User Personality Profile");
 		expect(lastEmbedDescription(editReply)).toContain("Target user writes in dry, concise jokes.");
+	});
+
+	it("view user falls back to an embed-only profile when attachment upload fails", async () => {
+		await db.insert(userPersonalityProfiles).values({
+			userId: USER_ID,
+			guildId: GUILD_ID,
+			profile: "Target user writes in dry, concise jokes.",
+		});
+		const { interaction, editReply, followUp } = createInteraction({ subcommandGroup: "view", subcommand: "user" });
+		editReply.mockImplementation(async (payload) => {
+			if ((payload as { files?: unknown[] }).files) throw new Error("upload rejected");
+		});
+		followUp.mockImplementation(async (payload) => {
+			if ((payload as { files?: unknown[] }).files) throw new Error("upload rejected");
+		});
+
+		await createCommand().chatInputRun(interaction);
+
+		const fallbackPayload = followUp.mock.calls.at(-1)?.[0] as {
+			embeds?: Array<{ data?: { description?: string } }>;
+			files?: unknown[];
+			ephemeral?: boolean;
+		};
+		expect(fallbackPayload.files).toBeUndefined();
+		expect(fallbackPayload.ephemeral).toBe(true);
+		expect(fallbackPayload.embeds?.[0]?.data?.description).toContain("Target user writes in dry, concise jokes.");
+		expect(fallbackPayload.embeds?.[0]?.data?.description).not.toContain("Failed to upload the profile");
 	});
 
 	it("view user reports archive-derived evidence after cursor instead of stale counters", async () => {

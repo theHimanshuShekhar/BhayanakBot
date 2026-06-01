@@ -173,17 +173,21 @@ export const levelRewards = pgTable(
 	(t) => [primaryKey({ columns: [t.guildId, t.level] })],
 );
 
-export const polls = pgTable("polls", {
-	id: serial("id").primaryKey(),
-	messageId: varchar("message_id", { length: 20 }).notNull(),
-	channelId: varchar("channel_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	question: text("question").notNull(),
-	options: jsonb("options").notNull(), // { label: string, votes: string[] }[]
-	expiresAt: timestamp("expires_at"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	closed: boolean("closed").default(false).notNull(),
-});
+export const polls = pgTable(
+	"polls",
+	{
+		id: serial("id").primaryKey(),
+		messageId: varchar("message_id", { length: 20 }).notNull(),
+		channelId: varchar("channel_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		question: text("question").notNull(),
+		options: jsonb("options").notNull(), // { label: string, votes: string[] }[]
+		expiresAt: timestamp("expires_at"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		closed: boolean("closed").default(false).notNull(),
+	},
+	(t) => [unique("polls_message_id_unique").on(t.messageId)],
+);
 
 export const reminders = pgTable("reminders", {
 	id: serial("id").primaryKey(),
@@ -196,20 +200,24 @@ export const reminders = pgTable("reminders", {
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const giveaways = pgTable("giveaways", {
-	id: serial("id").primaryKey(),
-	messageId: varchar("message_id", { length: 20 }).notNull(),
-	channelId: varchar("channel_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	prize: text("prize").notNull(),
-	winnerCount: integer("winner_count").default(1).notNull(),
-	endsAt: timestamp("ends_at").notNull(),
-	ended: boolean("ended").default(false).notNull(),
-	hostId: varchar("host_id", { length: 20 }).notNull(),
-	winners: jsonb("winners").$type<string[]>().default([]).notNull(),
-	entries: jsonb("entries").$type<string[]>().default([]).notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const giveaways = pgTable(
+	"giveaways",
+	{
+		id: serial("id").primaryKey(),
+		messageId: varchar("message_id", { length: 20 }).notNull(),
+		channelId: varchar("channel_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		prize: text("prize").notNull(),
+		winnerCount: integer("winner_count").default(1).notNull(),
+		endsAt: timestamp("ends_at").notNull(),
+		ended: boolean("ended").default(false).notNull(),
+		hostId: varchar("host_id", { length: 20 }).notNull(),
+		winners: jsonb("winners").$type<string[]>().default([]).notNull(),
+		entries: jsonb("entries").$type<string[]>().default([]).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => [unique("giveaways_message_id_unique").on(t.messageId)],
+);
 
 export const starredMessages = pgTable("starred_messages", {
 	messageId: varchar("message_id", { length: 20 }).primaryKey(),
@@ -304,7 +312,7 @@ export const userMessages = pgTable(
 		content: text("content").notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
-	(t) => [index().on(t.userId, t.guildId)],
+	(t) => [index("user_messages_user_id_guild_id_index").on(t.userId, t.guildId)],
 );
 
 export const userPersonalityProfiles = pgTable(
@@ -368,13 +376,17 @@ export const rpgCooldowns = pgTable(
 	(t) => [primaryKey({ columns: [t.userId, t.action] })],
 );
 
-export const rpgInventory = pgTable("rpg_inventory", {
-	id: serial("id").primaryKey(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	itemId: varchar("item_id", { length: 50 }).notNull(),
-	quantity: integer("quantity").default(1).notNull(),
-	equippedSlot: varchar("equipped_slot", { length: 30 }),
-});
+export const rpgInventory = pgTable(
+	"rpg_inventory",
+	{
+		id: serial("id").primaryKey(),
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		itemId: varchar("item_id", { length: 50 }).notNull(),
+		quantity: integer("quantity").default(1).notNull(),
+		equippedSlot: varchar("equipped_slot", { length: 30 }),
+	},
+	(t) => [unique("rpg_inventory_user_id_item_id_unique").on(t.userId, t.itemId)],
+);
 
 export const rpgOwnedPets = pgTable("rpg_owned_pets", {
 	id: serial("id").primaryKey(),

@@ -101,6 +101,9 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance |
 | `OLLAMA_MODEL` | `phi3:mini` | Model used by local Ollama features and fallback paths |
 | `OLLAMA_DEBUG_CONTENT_LOGS` | `false` | Set `true` only for local debugging to log raw Ollama prompts/responses |
+| `OLLAMA_MAX_QUEUE_LENGTH` | `25` | Maximum queued Ollama requests before new requests are dropped |
+| `OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH` | `10` | Maximum queued low-priority/background Ollama requests |
+| `OLLAMA_QUEUE_WAIT_TIMEOUT_MS` | `60000` | Maximum time an Ollama request may wait in queue before being dropped |
 | `ZEN_API_KEY` | unset | opencode Zen API key; responder, summary, and personality generation can use Zen when set and explicitly allowed |
 | `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; otherwise Ollama is used |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |

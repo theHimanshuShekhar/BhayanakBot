@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { polls } from "../schema.js";
 
@@ -26,21 +26,25 @@ export async function getPollByMessage(messageId: string): Promise<Poll | undefi
 }
 
 export async function vote(messageId: string, optionIndex: number, userId: string): Promise<Poll | undefined> {
-	const poll = await getPollByMessage(messageId);
-	if (!poll || poll.closed) return undefined;
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`poll:${messageId}`}, 0))`);
 
-	const options = poll.options as PollOption[];
-	// Remove user's previous vote
-	for (const opt of options) {
-		opt.votes = opt.votes.filter((v) => v !== userId);
-	}
-	// Add new vote
-	if (options[optionIndex]) {
-		options[optionIndex].votes.push(userId);
-	}
+		const [poll] = await tx.select().from(polls).where(eq(polls.messageId, messageId)).limit(1);
+		if (!poll || poll.closed) return undefined;
 
-	const [updated] = await db.update(polls).set({ options }).where(eq(polls.messageId, messageId)).returning();
-	return updated;
+		const options = poll.options as PollOption[];
+		// Remove user's previous vote
+		for (const opt of options) {
+			opt.votes = opt.votes.filter((v) => v !== userId);
+		}
+		// Add new vote
+		if (options[optionIndex]) {
+			options[optionIndex].votes.push(userId);
+		}
+
+		const [updated] = await tx.update(polls).set({ options }).where(eq(polls.messageId, messageId)).returning();
+		return updated;
+	});
 }
 
 export async function closePoll(messageId: string): Promise<void> {

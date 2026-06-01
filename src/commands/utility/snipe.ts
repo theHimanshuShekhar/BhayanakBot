@@ -5,9 +5,9 @@ export class SnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly"],
+			preconditions: ["GuildOnly", "IsModerator"],
 			help: {
-				summary: "Show the last deleted message in this channel.",
+				summary: "Privately show moderators the last deleted message in this channel.",
 				examples: ["/snipe"],
 			},
 		});
@@ -34,6 +34,6 @@ export class SnipeCommand extends Command {
 			.setFooter({ text: "Deleted" })
 			.setTimestamp(cached.deletedAt);
 
-		return interaction.reply({ embeds: [embed] });
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}
 }

@@ -5,9 +5,9 @@ export class EditSnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly"],
+			preconditions: ["GuildOnly", "IsModerator"],
 			help: {
-				summary: "Show the last edited message in this channel (before the edit).",
+				summary: "Privately show moderators the last edited message in this channel.",
 				examples: ["/editsnipe"],
 			},
 		});
@@ -37,6 +37,6 @@ export class EditSnipeCommand extends Command {
 			.setFooter({ text: "Edited" })
 			.setTimestamp(cached.editedAt);
 
-		return interaction.reply({ embeds: [embed] });
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}
 }

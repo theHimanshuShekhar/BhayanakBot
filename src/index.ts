@@ -7,11 +7,14 @@ import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
 import { getUsersEligibleForInitialPersonalityBuild } from "./db/queries/personalityTraining.js";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
+import { validateRuntimeConfig } from "./lib/config.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
 import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
 import { getPublicStatsIntervalMs, writePublicBotStatsSnapshotForClient } from "./lib/publicStats.js";
+
+validateRuntimeConfig();
 
 const client = new BhayanakClient();
 

@@ -120,6 +120,13 @@
       "when": 1780310700000,
       "tag": "0016_safe_mod_case_numbers",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780311600000,
+      "tag": "0017_audit_concurrency_constraints",
+      "breakpoints": true
     }
   ]
 }

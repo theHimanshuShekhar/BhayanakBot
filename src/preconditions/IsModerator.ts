@@ -19,6 +19,13 @@ async function isMod(member: GuildMember, guildId: string): Promise<boolean> {
 	return false;
 }
 
+async function fetchInteractionMember(
+	interaction: CommandInteraction | ContextMenuCommandInteraction,
+): Promise<GuildMember | null> {
+	if (!interaction.guild) return null;
+	return interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+}
+
 export class IsModeratorPrecondition extends AllFlowsPrecondition {
 	public override async messageRun(message: Message) {
 		if (message.author.id === BOT_OWNER_ID) return this.ok();
@@ -31,7 +38,7 @@ export class IsModeratorPrecondition extends AllFlowsPrecondition {
 	public override async chatInputRun(interaction: CommandInteraction) {
 		if (interaction.user.id === BOT_OWNER_ID) return this.ok();
 		if (!interaction.guild) return this.error({ message: "This command can only be used in a server." });
-		const member = interaction.guild.members.cache.get(interaction.user.id);
+		const member = await fetchInteractionMember(interaction);
 		if (!member) return this.error({ message: "Could not find your member data." });
 		return (await isMod(member, interaction.guild.id))
 			? this.ok()
@@ -41,7 +48,7 @@ export class IsModeratorPrecondition extends AllFlowsPrecondition {
 	public override async contextMenuRun(interaction: ContextMenuCommandInteraction) {
 		if (interaction.user.id === BOT_OWNER_ID) return this.ok();
 		if (!interaction.guild) return this.error({ message: "This command can only be used in a server." });
-		const member = interaction.guild.members.cache.get(interaction.user.id);
+		const member = await fetchInteractionMember(interaction);
 		if (!member) return this.error({ message: "Could not find your member data." });
 		return (await isMod(member, interaction.guild.id))
 			? this.ok()

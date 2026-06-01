@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { giveaways } from "../schema.js";
 
@@ -22,11 +22,16 @@ export async function getGiveawayByMessage(messageId: string): Promise<Giveaway 
 }
 
 export async function addEntry(messageId: string, userId: string): Promise<Giveaway | undefined> {
-	const giveaway = await getGiveawayByMessage(messageId);
-	if (!giveaway || giveaway.ended) return undefined;
-	const entries = [...new Set([...giveaway.entries, userId])];
-	const [updated] = await db.update(giveaways).set({ entries }).where(eq(giveaways.messageId, messageId)).returning();
-	return updated;
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`giveaway:${messageId}`}, 0))`);
+
+		const [giveaway] = await tx.select().from(giveaways).where(eq(giveaways.messageId, messageId)).limit(1);
+		if (!giveaway || giveaway.ended) return undefined;
+
+		const entries = [...new Set([...giveaway.entries, userId])];
+		const [updated] = await tx.update(giveaways).set({ entries }).where(eq(giveaways.messageId, messageId)).returning();
+		return updated;
+	});
 }
 
 export async function endGiveaway(messageId: string, winners: string[]): Promise<void> {

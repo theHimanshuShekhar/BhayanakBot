@@ -274,15 +274,17 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/snipe",
-		description: "Show the last deleted message in this channel.",
+		description: "Privately show moderators the last deleted message cached for this channel.",
 		examples: ["/snipe"],
 		category: "utility",
+		usageNotes: "Moderator-only. The response is ephemeral and only shows cached content for the current channel.",
 	},
 	{
 		name: "/editsnipe",
-		description: "Show the last edited message in this channel, including before and after content.",
+		description: "Privately show moderators the last edited message cached for this channel.",
 		examples: ["/editsnipe"],
 		category: "utility",
+		usageNotes: "Moderator-only. The response is ephemeral and only shows cached before/after content for the current channel.",
 	},
 	{
 		name: "/afk",
@@ -327,7 +329,7 @@ export const RAW_COMMANDS: Command[] = [
 		],
 		category: "utility",
 		usageNotes:
-			"Refresh runs an incremental update from eligible archived training evidence and reports if it is skipped. Server administrators can disable personality profiling with /config.",
+			"Refresh runs an incremental update from eligible archived training evidence and reports if it is skipped. Server administrators can disable personality features with /config.",
 		subcommands: {
 			"view user": {
 				summary: "View your own user personality profile or another member's profile.",

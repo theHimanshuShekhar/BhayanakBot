@@ -35,11 +35,11 @@ examples:
       - ["Tone", "chaotic casual"]
       - ["Humor", "inside jokes"]
 related:
-  - { n: "/config", d: "Toggle profiling" }
+  - { n: "/config", d: "Toggle features" }
   - { n: "/summarize", d: "AI channel summaries" }
   - { n: "/userinfo", d: "Account info" }
 ---
 
 Use `/personality view user` to see your own user personality profile, or `/personality view user user:@someone` for another member. Use `/personality view guild` to see this server's culture profile.
 
-Administrators can run `/personality refresh user user:@someone` or `/personality refresh guild` to run an incremental refresh from new eligible archived training evidence. If there is not enough archived training evidence, the profile is in cooldown, another refresh is already running, or the model returns no profile text, the command reports that the refresh was skipped.
+Administrators can run `/personality refresh user user:@someone` or `/personality refresh guild` to run an incremental refresh from new eligible archived training evidence. The `/config` personality setting is an operational feature toggle, not consent or opt-in/opt-out language. If there is not enough archived training evidence, the profile is in cooldown, another refresh is already running, or the model returns no profile text, the command reports that the refresh was skipped.

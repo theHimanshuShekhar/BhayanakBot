@@ -68,7 +68,7 @@ export class RewardsCommand extends Subcommand {
 	}
 
 	public async runAdd(interaction: Subcommand.ChatInputCommandInteraction) {
-		const member = interaction.guild!.members.cache.get(interaction.user.id);
+		const member = await interaction.guild!.members.fetch(interaction.user.id).catch(() => null);
 		if (!member?.permissions.has("Administrator")) {
 			return interaction.reply({ content: "You need Administrator permission.", flags: MessageFlags.Ephemeral });
 		}
@@ -81,7 +81,7 @@ export class RewardsCommand extends Subcommand {
 	}
 
 	public async runRemove(interaction: Subcommand.ChatInputCommandInteraction) {
-		const member = interaction.guild!.members.cache.get(interaction.user.id);
+		const member = await interaction.guild!.members.fetch(interaction.user.id).catch(() => null);
 		if (!member?.permissions.has("Administrator")) {
 			return interaction.reply({ content: "You need Administrator permission.", flags: MessageFlags.Ephemeral });
 		}
