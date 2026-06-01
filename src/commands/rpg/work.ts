@@ -137,7 +137,7 @@ export class WorkCommand extends Command {
 
 			const dropText =
 				droppedItems.length > 0
-					? "\n\n**Item drop:** " + droppedItems.map((id) => ITEMS[id]?.name ?? id).join(", ")
+					? `\n\n**Item drop:** ${droppedItems.map((id) => ITEMS[id]?.name ?? id).join(", ")}`
 					: "";
 			const levelText = leveledUp ? `\n\n⭐ **Level up! You're now level ${newLevel}!**` : "";
 			const charmText = hasCharm ? "\n🍀 *Lucky Charm bonus applied!*" : "";

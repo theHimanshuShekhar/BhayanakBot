@@ -26,7 +26,7 @@ export class EndPollsTask extends ScheduledTask {
 				const winner = sorted[0];
 
 				const embed = new EmbedBuilder()
-					.setTitle("📊 Poll Ended — " + poll.question)
+					.setTitle(`📊 Poll Ended — ${poll.question}`)
 					.setDescription(
 						optionData
 							.map((o, i) => {

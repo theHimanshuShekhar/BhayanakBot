@@ -18,7 +18,7 @@ const VALID_JOBS = new Set([
 	"rob_bank",
 ]);
 
-function pickFallbackQuests(date: string, guildId: string): QuestTemplate[] {
+function pickFallbackQuests(_date: string, _guildId: string): QuestTemplate[] {
 	const shuffled = [...QUEST_TEMPLATES].sort(() => Math.random() - 0.5);
 	return shuffled.slice(0, 3);
 }

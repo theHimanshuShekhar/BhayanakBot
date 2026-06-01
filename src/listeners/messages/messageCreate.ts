@@ -1,5 +1,5 @@
 import { Listener } from "@sapphire/framework";
-import { EmbedBuilder, type Message, PermissionFlagsBits, type TextChannel, userMention } from "discord.js";
+import { type Message, PermissionFlagsBits, type TextChannel, userMention } from "discord.js";
 import { eq, sql } from "drizzle-orm";
 import { clearAfk, getAfk } from "../../db/queries/afk.js";
 import { upsertArchivedChannelMessage } from "../../db/queries/archivedChannelMessages.js";
@@ -50,7 +50,7 @@ const conversationHistory = new Map<string, { author: string; content: string; t
 
 const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.ly|tinyurl\.com)\//i;
 const URL_PATTERN = /https?:\/\/\S+/g;
-const HAS_ALPHA_PATTERN = /[A-Za-z]/;
+const _HAS_ALPHA_PATTERN = /[A-Za-z]/;
 
 async function recordPersonalityEvidenceIfArchiveLive(input: {
 	messageId: string;
@@ -129,7 +129,7 @@ export class MessageCreateListener extends Listener {
 		// --- Store conversation history ---
 		this.addToConversationHistory(message);
 
-		// --- Personality profiling: store message + trigger rebuild when threshold hit ---
+		// --- Personality features: store message + trigger rebuild when threshold hit ---
 		// Filter: skip commands, very short/long messages, URL-only posts, and spam
 		const trimmedContent = message.content.trim();
 		const contentWithoutUrls = trimmedContent.replace(URL_PATTERN, "");
@@ -169,7 +169,7 @@ export class MessageCreateListener extends Listener {
 					),
 				);
 			}
-			// Also increment guild message count for server-wide personality profiling
+			// Also increment guild message count for server-wide personality features
 			const guildId = message.guild.id;
 			if (evidence?.guildCount && evidence.guildCount >= 200) {
 				void buildGuildPersonalityProfile(guildId).catch((err) =>
@@ -344,7 +344,7 @@ export class MessageCreateListener extends Listener {
 	}
 
 	private async handleSmartMention(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
-		// Skip if personality profiling is disabled or not in a guild
+		// Skip if personality features are disabled or not in a guild
 		if (!settings.personalityEnabled || !message.guild) return;
 
 		// Per-user cooldown to prevent Ollama spam
@@ -575,7 +575,7 @@ export class MessageCreateListener extends Listener {
 		await targetChannel?.send(levelUpMsg).catch(() => null);
 
 		// Assign level reward roles
-		const client = this.container.client as BhayanakClient;
+		const _client = this.container.client as BhayanakClient;
 		const { getLevelRewards } = await import("../../db/queries/users.js");
 		const rewards = await getLevelRewards(message.guild!.id);
 		const reward = rewards.find((r) => r.level === newLevel);

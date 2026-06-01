@@ -258,9 +258,6 @@ export class ConfigCommand extends Subcommand {
 		return interaction.editReply(`✅ Setting **${setting}** updated successfully.`);
 	}
 
-	// Setting name map kept for type reference
-	// biome-ignore lint/correctness/noUnusedVariables: used for type safety
-
 	public async chatInputAutoMod(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		const setting = interaction.options.getString("setting", true);

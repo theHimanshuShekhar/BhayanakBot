@@ -1,5 +1,5 @@
 import { container } from "@sapphire/framework";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PersonalityCommand } from "../../../src/commands/utility/personality.js";
 import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedChannelMessages.js";
@@ -303,7 +303,7 @@ describe("/personality command", () => {
 
 		await createCommand().chatInputRun(interaction);
 
-		expect(lastEmbedDescription(editReply)).toContain("Personality profiling is disabled for this server");
+		expect(lastEmbedDescription(editReply)).toContain("Personality features are disabled for this server");
 		expect(lastEmbedDescription(editReply)).not.toMatch(/opt\s*-?in|consent/i);
 	});
 });

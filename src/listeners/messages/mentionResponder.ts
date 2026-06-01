@@ -29,7 +29,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		if (!message.inGuild()) return;
 		if (!message.mentions.has(message.client.user)) return;
 
-		// Skip if personality profiling is enabled — messageCreate.ts handles smart mentions instead
+		// Skip if personality features are enabled — messageCreate.ts handles smart mentions instead
 		const settings = await getOrCreateSettings(message.guildId!);
 		if (settings.personalityEnabled) return;
 

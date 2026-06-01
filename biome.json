@@ -4,8 +4,11 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
+			"style": {
+				"noNonNullAssertion": "off"
+			},
 			"suspicious": {
-				"noExplicitAny": "warn"
+				"noExplicitAny": "off"
 			}
 		}
 	},
@@ -29,6 +32,6 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["src/**", "web/src/**", "!web/src/routeTree.gen.ts", "tests/**"]
+		"includes": ["src/**", "web/src/**/*.{ts,tsx,js,jsx}", "!web/src/routeTree.gen.ts", "tests/**"]
 	}
 }

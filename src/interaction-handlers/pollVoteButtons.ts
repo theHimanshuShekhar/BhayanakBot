@@ -18,7 +18,7 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 
 	public override async run(interaction: ButtonInteraction) {
 		const optionIndex = parseInt(interaction.customId.split(":")[1], 10);
-		if (isNaN(optionIndex) || optionIndex < 0) {
+		if (Number.isNaN(optionIndex) || optionIndex < 0) {
 			return interaction.reply({ content: "Invalid poll option.", flags: MessageFlags.Ephemeral });
 		}
 
@@ -45,7 +45,7 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 		const totalVotes = updatedOptionData.reduce((sum, o) => sum + o.votes.length, 0);
 
 		const embed = new EmbedBuilder()
-			.setTitle("📊 " + updatedPoll.question)
+			.setTitle(`📊 ${updatedPoll.question}`)
 			.setDescription(
 				updatedOptionData
 					.map((o, i) => `${emojis[i]} ${o.label} — **${o.votes.length}** vote${o.votes.length !== 1 ? "s" : ""}`)

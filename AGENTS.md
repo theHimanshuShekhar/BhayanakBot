@@ -188,7 +188,7 @@ Real-Ollama personality e2e coverage is opt-in with `RUN_OLLAMA_E2E=1 pnpm vites
 
 ## Deployment
 
-`docker-compose.yml` runs Postgres, Valkey, Ollama, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs `pnpm db:migrate && pnpm exec tsx src/index.ts` as its command.
+`docker-compose.yml` runs Postgres, Valkey, Ollama, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `node dist/index.js`.
 
 The `Dockerfile` has these stages:
 

@@ -51,7 +51,7 @@ export class PollCommand extends Command {
 
 		const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"];
 		const embed = new EmbedBuilder()
-			.setTitle("📊 " + question)
+			.setTitle(`📊 ${question}`)
 			.setDescription(optionData.map((o, i) => `${emojis[i]} ${o.label} — **0 votes**`).join("\n"))
 			.setColor(0x5865f2)
 			.setFooter({ text: expiresAt ? `Ends at ${expiresAt.toUTCString()}` : "No expiry" });

@@ -284,7 +284,8 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Privately show moderators the last edited message cached for this channel.",
 		examples: ["/editsnipe"],
 		category: "utility",
-		usageNotes: "Moderator-only. The response is ephemeral and only shows cached before/after content for the current channel.",
+		usageNotes:
+			"Moderator-only. The response is ephemeral and only shows cached before/after content for the current channel.",
 	},
 	{
 		name: "/afk",

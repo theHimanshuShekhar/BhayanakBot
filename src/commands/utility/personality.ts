@@ -129,7 +129,7 @@ export class PersonalityCommand extends Command {
 						.setColor(0xfee75c)
 						.setTitle("Personality Profiles Disabled")
 						.setDescription(
-							"Personality profiling is disabled for this server. A server administrator can enable it with `/config`.",
+							"Personality features are disabled for this server. A server administrator can enable them with `/config`.",
 						),
 				],
 			});
@@ -284,7 +284,7 @@ export class PersonalityCommand extends Command {
 			limit: REFRESH_USER_PROFILE_THRESHOLD,
 		});
 
-		const excerpt = profile.length > EXCERPT_LIMIT ? profile.slice(0, EXCERPT_LIMIT) + "..." : profile;
+		const excerpt = profile.length > EXCERPT_LIMIT ? `${profile.slice(0, EXCERPT_LIMIT)}...` : profile;
 
 		const embed = new EmbedBuilder()
 			.setColor(0x5865f2)
@@ -357,7 +357,7 @@ export class PersonalityCommand extends Command {
 			});
 		}
 
-		const excerpt = row.profile.length > EXCERPT_LIMIT ? row.profile.slice(0, EXCERPT_LIMIT) + "..." : row.profile;
+		const excerpt = row.profile.length > EXCERPT_LIMIT ? `${row.profile.slice(0, EXCERPT_LIMIT)}...` : row.profile;
 		const archivedEvidence = await getEligibleGuildTrainingMessageWindow({
 			guildId,
 			afterMessageCreatedAt: row.lastTrainingMessageAt ?? null,

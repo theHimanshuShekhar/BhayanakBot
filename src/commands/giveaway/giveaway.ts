@@ -139,7 +139,7 @@ export class GiveawayCommand extends Subcommand {
 		const messageId = interaction.options.getString("message-id", true);
 		const giveaway = await getGiveawayByMessage(messageId);
 
-		if (!giveaway || !giveaway.ended) {
+		if (!giveaway?.ended) {
 			return interaction.reply({ content: "Giveaway not found or hasn't ended yet.", flags: MessageFlags.Ephemeral });
 		}
 

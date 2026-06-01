@@ -1,6 +1,6 @@
 import { Listener } from "@sapphire/framework";
 import type { MessageReaction, User } from "discord.js";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getMessageReactionRoles, getReactionRole } from "../../db/queries/roles.js";
 import { guildSettings, starredMessages } from "../../db/schema.js";
 import { db } from "../../lib/database.js";

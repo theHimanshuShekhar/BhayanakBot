@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { LogLevel, SapphireClient } from "@sapphire/framework";
 import { LoaderStrategy, Store } from "@sapphire/pieces";
-import { GatewayIntentBits, Message, Partials } from "discord.js";
+import { GatewayIntentBits, Partials } from "discord.js";
 import { Player } from "discord-player";
 
 class TypeScriptLoaderStrategy extends LoaderStrategy<any> {

@@ -7,7 +7,7 @@ import {
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder,
 } from "discord.js";
-import type { CollectedCommand, HelpSnapshot } from "./collect.js";
+import type { HelpSnapshot } from "./collect.js";
 
 export const PAGE_SIZE = 8;
 const EMBED_COLOR = 0x5865f2;

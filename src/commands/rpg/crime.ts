@@ -175,7 +175,7 @@ export class CrimeCommand extends Command {
 				const { droppedItems } = await applyJobRewards(interaction.user.id, pay, job.dropTable);
 				dropText =
 					droppedItems.length > 0
-						? "\n\n**Item drop:** " + droppedItems.map((id) => ITEMS[id]?.name ?? id).join(", ")
+						? `\n\n**Item drop:** ${droppedItems.map((id) => ITEMS[id]?.name ?? id).join(", ")}`
 						: "";
 			}
 

@@ -189,7 +189,7 @@ export class PropertyCommand extends Command {
 					new EmbedBuilder()
 						.setColor(0x57f287)
 						.setTitle("💰 Income Collected!")
-						.setDescription(lines.join("\n") + `\n\n**Total: +${total.toLocaleString()} coins**`),
+						.setDescription(`${lines.join("\n")}\n\n**Total: +${total.toLocaleString()} coins**`),
 				],
 			});
 		}

@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-const optionalSnowflake = z.string().trim().regex(/^\d{17,20}$/).optional().or(z.literal(""));
+const optionalSnowflake = z
+	.string()
+	.trim()
+	.regex(/^\d{17,20}$/)
+	.optional()
+	.or(z.literal(""));
 
 const envSchema = z.object({
 	NODE_ENV: z.string().optional(),
