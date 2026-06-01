@@ -6,14 +6,18 @@ export type ModCase = typeof modCases.$inferSelect;
 export type ModCaseInsert = typeof modCases.$inferInsert;
 
 export async function createCase(data: Omit<ModCaseInsert, "caseNumber" | "id">): Promise<ModCase> {
-	const [created] = await db
-		.insert(modCases)
-		.values({
-			...data,
-			caseNumber: sql`COALESCE((SELECT MAX(case_number) FROM mod_cases WHERE guild_id = ${data.guildId}), 0) + 1`,
-		})
-		.returning();
-	return created;
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${data.guildId}, 0))`);
+
+		const [created] = await tx
+			.insert(modCases)
+			.values({
+				...data,
+				caseNumber: sql`COALESCE((SELECT MAX(case_number) FROM mod_cases WHERE guild_id = ${data.guildId}), 0) + 1`,
+			})
+			.returning();
+		return created;
+	});
 }
 
 export async function getCase(guildId: string, caseNumber: number): Promise<ModCase | undefined> {

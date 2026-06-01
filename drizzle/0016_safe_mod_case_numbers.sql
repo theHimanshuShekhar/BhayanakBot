@@ -1,0 +1,1 @@
+ALTER TABLE "mod_cases" ADD CONSTRAINT "mod_cases_guild_id_case_number_unique" UNIQUE("guild_id","case_number");

@@ -100,7 +100,9 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password |
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance |
 | `OLLAMA_MODEL` | `phi3:mini` | Model used by local Ollama features and fallback paths |
-| `ZEN_API_KEY` | unset | opencode Zen API key; responder, summary, and personality generation use Zen first when set |
+| `OLLAMA_DEBUG_CONTENT_LOGS` | `false` | Set `true` only for local debugging to log raw Ollama prompts/responses |
+| `ZEN_API_KEY` | unset | opencode Zen API key; responder, summary, and personality generation can use Zen when set and explicitly allowed |
+| `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; otherwise Ollama is used |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
 | `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder, summaries, and user/guild personality generation |
 | `WEB_PORT` | `3000` in `.env.example`, `4321` Compose fallback | Host port for the web service |
@@ -112,7 +114,7 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `TARGET_TEXT_CHANNEL_ID` | `199168135935295488` | Text-channel gate for responder features |
 | `GUESS_WHO_CHANNEL_ID` | `199168135935295488` | Channel whose messages are archived and where `/guess_who` can run |
 | `GUESS_WHO_BACKFILL_LIMIT` | `1000` | Maximum Discord messages scanned during startup backfill for Guess Who archive |
-| `BOT_OWNER_ID` | `199168135935295488` | Bot owner ID |
+| `BOT_OWNER_ID` | unset | Optional privileged Discord user ID; blank/unset disables owner bypasses |
 
 ## Message Archive And Personality
 
@@ -124,7 +126,7 @@ Personality profile builders read eligible archived messages in bounded cursor w
 
 `personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. `/personality refresh user` and `/personality refresh guild` run admin-only incremental refreshes.
 
-Responder, summarize, and personality LLM calls use `src/lib/llmProvider.ts`: Zen first when configured, then local Ollama fallback. RPG flavor and quest generation remain local-Ollama features.
+Responder, summarize, and personality LLM calls use `src/lib/llmProvider.ts`: Zen first only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`, then local Ollama fallback. RPG flavor and quest generation remain local-Ollama features.
 
 ## RPG Module
 

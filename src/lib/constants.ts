@@ -4,5 +4,5 @@ export const TARGET_TEXT_CHANNEL_ID = process.env.TARGET_TEXT_CHANNEL_ID ?? "199
 export const GUESS_WHO_CHANNEL_ID = process.env.GUESS_WHO_CHANNEL_ID ?? "199168135935295488";
 export const GUESS_WHO_BACKFILL_LIMIT = Number.parseInt(process.env.GUESS_WHO_BACKFILL_LIMIT ?? "1000", 10);
 
-// Bot owner ID — overridable via env var
-export const BOT_OWNER_ID = process.env.BOT_OWNER_ID ?? "199168135935295488";
+// Optional bot owner ID. When unset or blank, owner bypasses are disabled.
+export const BOT_OWNER_ID = process.env.BOT_OWNER_ID?.trim() || undefined;

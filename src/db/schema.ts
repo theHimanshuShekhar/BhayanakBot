@@ -98,19 +98,23 @@ export const users = pgTable(
 	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
 );
 
-export const modCases = pgTable("mod_cases", {
-	id: serial("id").primaryKey(),
-	caseNumber: integer("case_number").notNull(), // sequential per guild
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	moderatorId: varchar("moderator_id", { length: 20 }).notNull(),
-	type: modCaseTypeEnum("type").notNull(),
-	reason: text("reason"),
-	duration: integer("duration"), // ms, for timed actions
-	expiresAt: timestamp("expires_at"),
-	active: boolean("active").default(true).notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const modCases = pgTable(
+	"mod_cases",
+	{
+		id: serial("id").primaryKey(),
+		caseNumber: integer("case_number").notNull(), // sequential per guild
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		moderatorId: varchar("moderator_id", { length: 20 }).notNull(),
+		type: modCaseTypeEnum("type").notNull(),
+		reason: text("reason"),
+		duration: integer("duration"), // ms, for timed actions
+		expiresAt: timestamp("expires_at"),
+		active: boolean("active").default(true).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => [unique("mod_cases_guild_id_case_number_unique").on(t.guildId, t.caseNumber)],
+);
 
 export const tickets = pgTable("tickets", {
 	id: serial("id").primaryKey(),

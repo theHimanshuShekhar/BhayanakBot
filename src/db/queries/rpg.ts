@@ -270,35 +270,43 @@ export async function checkAndAdvanceQuestProgress(opts: {
 	);
 	if (matching.length === 0) return;
 
-	const progressRows = await getUserQuestProgress(
-		opts.userId,
-		matching.map((q) => q.id),
-	);
-	const progressMap = new Map(progressRows.map((p) => [p.questId, p]));
-
 	for (const quest of matching) {
-		const existing = progressMap.get(quest.id);
-		if (existing?.completedAt) continue; // already done
+		const completedQuest = await db.transaction(async (tx) => {
+			await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${quest.id}:${opts.userId}`}, 0))`);
 
-		const currentProgress = existing?.progress ?? 0;
-		const newProgress = currentProgress + 1;
-		const completedAt = newProgress >= quest.objectiveCount ? new Date() : undefined;
+			const [existing] = await tx
+				.select()
+				.from(questProgress)
+				.where(and(eq(questProgress.questId, quest.id), eq(questProgress.userId, opts.userId)))
+				.limit(1);
+			if (existing?.completedAt) return false;
 
-		await upsertQuestProgress(quest.id, opts.userId, opts.guildId, newProgress, completedAt);
+			const currentProgress = existing?.progress ?? 0;
+			const newProgress = Math.min(currentProgress + 1, quest.objectiveCount);
+			const completedAt = newProgress >= quest.objectiveCount ? new Date() : undefined;
 
-		if (completedAt) {
-			await updateCoins(opts.userId, quest.rewardCoins);
-			const [updated] = await db
+			await tx
+				.insert(questProgress)
+				.values({ questId: quest.id, userId: opts.userId, guildId: opts.guildId, progress: newProgress, completedAt })
+				.onConflictDoUpdate({
+					target: [questProgress.questId, questProgress.userId],
+					set: { progress: newProgress, completedAt: completedAt ?? null },
+				});
+
+			if (!completedAt) return false;
+
+			await tx
 				.update(rpgProfiles)
 				.set({
+					coins: sql`${rpgProfiles.coins} + ${quest.rewardCoins}`,
 					xp: sql`${rpgProfiles.xp} + ${quest.rewardXp}`,
 					level: sql`FLOOR(0.05 * SQRT(${rpgProfiles.xp} + ${quest.rewardXp}))::int`,
 				})
-				.where(eq(rpgProfiles.userId, opts.userId))
-				.returning({ level: rpgProfiles.level });
-			void updated; // level-up notification handled by caller if desired
-			await opts.onComplete(quest);
-		}
+				.where(eq(rpgProfiles.userId, opts.userId));
+			return true;
+		});
+
+		if (completedQuest) await opts.onComplete(quest);
 	}
 }
 
@@ -344,33 +352,51 @@ export function shouldResetStreak(lastDailyAt: Date | null): boolean {
 	return Date.now() - lastDailyAt.getTime() > DAILY_GRACE_PERIOD_MS;
 }
 
-export async function claimDaily(userId: string): Promise<{
-	streak: number;
-	reward: { coins: number; xp: number };
-	leveledUp: boolean;
-}> {
-	const profile = await db.query.rpgProfiles.findFirst({ where: eq(rpgProfiles.userId, userId) });
-	if (!profile) throw new Error(`RPG profile not found for userId: ${userId}`);
+export async function claimDaily(userId: string): Promise<
+	| {
+			claimed: true;
+			streak: number;
+			reward: { coins: number; xp: number };
+			leveledUp: boolean;
+	  }
+	| { claimed: false; streak: number; remainingMs: number }
+> {
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`);
 
-	const resetStreak = shouldResetStreak(profile.lastDailyAt);
-	const newStreak = resetStreak ? 1 : profile.dailyStreak + 1;
-	const reward = getDailyReward(newStreak);
+		const [profile] = await tx.select().from(rpgProfiles).where(eq(rpgProfiles.userId, userId)).limit(1);
+		if (!profile) throw new Error(`RPG profile not found for userId: ${userId}`);
 
-	const [updated] = await db
-		.update(rpgProfiles)
-		.set({
-			coins: sql`${rpgProfiles.coins} + ${reward.coins}`,
-			xp: sql`${rpgProfiles.xp} + ${reward.xp}`,
-			level: sql`FLOOR(0.05 * SQRT(${rpgProfiles.xp} + ${reward.xp}))::int`,
-			dailyStreak: newStreak,
-			lastDailyAt: new Date(),
-		})
-		.where(eq(rpgProfiles.userId, userId))
-		.returning({ coins: rpgProfiles.coins, xp: rpgProfiles.xp, level: rpgProfiles.level });
+		const { canClaim, remainingMs } = canClaimDaily(profile.lastDailyAt);
+		if (!canClaim) return { claimed: false, streak: profile.dailyStreak, remainingMs };
 
-	if (!updated) throw new Error(`Failed to claim daily for userId: ${userId}`);
-	const oldLevel = Math.floor(0.05 * Math.sqrt(updated.xp - reward.xp));
-	const leveledUp = updated.level > oldLevel;
+		const resetStreak = shouldResetStreak(profile.lastDailyAt);
+		const newStreak = resetStreak ? 1 : profile.dailyStreak + 1;
+		const reward = getDailyReward(newStreak);
+		const claimedAt = new Date();
+		const cooldownCutoff = new Date(claimedAt.getTime() - DAILY_COOLDOWN_MS);
 
-	return { streak: newStreak, reward, leveledUp };
+		const [updated] = await tx
+			.update(rpgProfiles)
+			.set({
+				coins: sql`${rpgProfiles.coins} + ${reward.coins}`,
+				xp: sql`${rpgProfiles.xp} + ${reward.xp}`,
+				level: sql`FLOOR(0.05 * SQRT(${rpgProfiles.xp} + ${reward.xp}))::int`,
+				dailyStreak: newStreak,
+				lastDailyAt: claimedAt,
+			})
+			.where(
+				and(
+					eq(rpgProfiles.userId, userId),
+					sql`(${rpgProfiles.lastDailyAt} is null or ${rpgProfiles.lastDailyAt} <= ${cooldownCutoff})`,
+				),
+			)
+			.returning({ coins: rpgProfiles.coins, xp: rpgProfiles.xp, level: rpgProfiles.level });
+
+		if (!updated) return { claimed: false, streak: profile.dailyStreak, remainingMs: DAILY_COOLDOWN_MS };
+		const oldLevel = Math.floor(0.05 * Math.sqrt(updated.xp - reward.xp));
+		const leveledUp = updated.level > oldLevel;
+
+		return { claimed: true, streak: newStreak, reward, leveledUp };
+	});
 }

@@ -61,7 +61,7 @@ The bot builds personality profiles from archived server conversation to generat
 - **Database**: PostgreSQL via Drizzle ORM
 - **Cache/Queue**: Valkey (Redis-compatible) via BullMQ
 - **Music**: discord-player v7
-- **AI**: opencode Zen for responders, summaries, and personality when configured; local Ollama fallback plus RPG/quest generation
+- **AI**: opencode Zen for responders, summaries, and personality only when configured and explicitly allowed for Discord content; local Ollama fallback plus RPG/quest generation
 
 ## Setup
 
@@ -94,7 +94,9 @@ VALKEY_URL=redis://localhost:6379
 POSTGRES_PASSWORD=postgres
 OLLAMA_URL=http://localhost:11434   # optional
 OLLAMA_MODEL=phi3:mini              # optional
-ZEN_API_KEY=your_opencode_zen_key   # optional; responder/summary/personality use Zen first, then Ollama fallback
+OLLAMA_DEBUG_CONTENT_LOGS=false     # only true for local debugging; logs raw prompts/responses
+ZEN_API_KEY=your_opencode_zen_key   # optional; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
+ZEN_ALLOW_DISCORD_CONTENT=false      # keep false to force local Ollama for Discord-content prompts
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
 ZEN_MODEL=deepseek-v4-flash
 ZEN_TIMEOUT_MS=15000

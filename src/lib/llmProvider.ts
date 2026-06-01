@@ -10,7 +10,7 @@ type ZenChatResponse = {
 };
 
 type LlmMode = "interactive" | "background";
-type ZenFailureReason = "not_configured" | "http_error" | "fetch_error" | "empty" | "refusal";
+type ZenFailureReason = "not_configured" | "privacy_disabled" | "http_error" | "fetch_error" | "empty" | "refusal";
 
 type ZenResult = {
 	content: string | null;
@@ -34,6 +34,10 @@ function safeUrlHost(url: string): string {
 
 function logLlm(message: string): void {
 	console.log(`[llm] ${message}`);
+}
+
+function isExternalDiscordContentAllowed(): boolean {
+	return process.env.ZEN_ALLOW_DISCORD_CONTENT === "true";
 }
 
 function resolveZenTimeoutMs(totalTimeoutMs: number): number {
@@ -60,6 +64,13 @@ async function callZenChat(
 			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=skipped reason=not_configured`,
 		);
 		return { content: null, elapsedMs: 0, reason: "not_configured" };
+	}
+
+	if (!isExternalDiscordContentAllowed()) {
+		logLlm(
+			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=skipped reason=privacy_disabled`,
+		);
+		return { content: null, elapsedMs: 0, reason: "privacy_disabled" };
 	}
 
 	const baseUrl = (process.env.ZEN_BASE_URL ?? DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");

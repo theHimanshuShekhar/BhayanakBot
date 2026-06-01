@@ -20,6 +20,7 @@ describe("LLM provider", () => {
 	beforeEach(() => {
 		process.env = { ...originalEnv };
 		process.env.ZEN_API_KEY = "zen-test-key";
+		process.env.ZEN_ALLOW_DISCORD_CONTENT = "true";
 		delete process.env.ZEN_BASE_URL;
 		delete process.env.ZEN_MODEL;
 		mockedFetch.mockReset();
@@ -65,6 +66,17 @@ describe("LLM provider", () => {
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("label=summarize"));
 		expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("User prompt"));
 		logSpy.mockRestore();
+	});
+
+	it("falls back to high-priority Ollama when external Discord content is not explicitly allowed", async () => {
+		delete process.env.ZEN_ALLOW_DISCORD_CONTENT;
+		const { callInteractiveLlm } = await importProvider();
+
+		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123, "summarize");
+
+		expect(result).toBe("ollama interactive fallback");
+		expect(mockedFetch).not.toHaveBeenCalled();
+		expect(mockedCallOllama).toHaveBeenCalledWith("System prompt", "User prompt", expect.any(Number), 123);
 	});
 
 	it("falls back to high-priority Ollama when Zen is not configured", async () => {

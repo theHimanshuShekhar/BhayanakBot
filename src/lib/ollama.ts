@@ -1,5 +1,6 @@
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "phi3:mini";
+const OLLAMA_DEBUG_CONTENT_LOGS = process.env.OLLAMA_DEBUG_CONTENT_LOGS === "true";
 
 export async function ensureOllamaModel(): Promise<void> {
 	console.log(`[ollama] Ensuring model ${OLLAMA_MODEL} is available...`);
@@ -73,7 +74,10 @@ async function callOllamaInternal(
 	if (label) {
 		console.log(`[ollama] label="${label}"`);
 	}
-	console.log(`[ollama] system="${system.slice(0, 80)}" prompt="${prompt.slice(0, 80)}"`);
+	console.log(`[ollama] input systemLength=${system.length} promptLength=${prompt.length}`);
+	if (OLLAMA_DEBUG_CONTENT_LOGS) {
+		console.log(`[ollama] debug system="${system.slice(0, 80)}" prompt="${prompt.slice(0, 80)}"`);
+	}
 
 	try {
 		const res = await fetch(`${OLLAMA_URL}/api/generate`, {
@@ -95,7 +99,10 @@ async function callOllamaInternal(
 			return null;
 		}
 		const data = (await res.json()) as { response?: string };
-		console.log(`[ollama] raw response="${String(data.response).slice(0, 200)}"`);
+		console.log(`[ollama] responseLength=${data.response?.length ?? 0}`);
+		if (OLLAMA_DEBUG_CONTENT_LOGS) {
+			console.log(`[ollama] debug raw response="${String(data.response).slice(0, 200)}"`);
+		}
 		return data.response?.trim() || null;
 	} catch (err) {
 		console.log(`[ollama] fetch failed: ${err instanceof Error ? err.message : String(err)}`);

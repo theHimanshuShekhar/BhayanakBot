@@ -17,7 +17,16 @@ export class ExpireTempBansTask extends ScheduledTask {
 					continue;
 				}
 
-				await guild.members.unban(modCase.userId, "Temporary ban expired").catch(() => null);
+				const unbanned = await guild.members
+					.unban(modCase.userId, "Temporary ban expired")
+					.then(() => true)
+					.catch(() => false);
+				if (!unbanned) {
+					this.container.logger.warn(
+						`[ExpireTempBans] Failed to unban ${modCase.userId} in ${modCase.guildId} — will retry`,
+					);
+					continue;
+				}
 
 				await deactivateCase(modCase.id);
 

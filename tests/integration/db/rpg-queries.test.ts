@@ -1,22 +1,34 @@
 import { eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	addItem,
+	checkAndAdvanceQuestProgress,
+	claimDaily,
 	clearCooldown,
 	getCooldown,
 	getInventory,
 	getOrCreateProfile,
+	insertDailyQuests,
 	setCooldown,
 	tryDebitCoins,
 	updateCoins,
 } from "../../../src/db/queries/rpg.js";
-import { rpgCooldowns, rpgInventory, rpgProfiles, rpgStats } from "../../../src/db/schema.js";
+import {
+	dailyQuests,
+	questProgress,
+	rpgCooldowns,
+	rpgInventory,
+	rpgProfiles,
+	rpgStats,
+} from "../../../src/db/schema.js";
 import { db } from "../../../src/lib/database.js";
 import { getRemainingCooldown } from "../../../src/lib/rpg/helpers/cooldown.js";
 
 const TEST_USER_ID = "test-user-123";
 
 async function cleanupTestUser(): Promise<void> {
+	await db.delete(questProgress).where(eq(questProgress.userId, TEST_USER_ID));
+	await db.delete(dailyQuests).where(eq(dailyQuests.guildId, "rpg-test-guild"));
 	await db.delete(rpgCooldowns).where(eq(rpgCooldowns.userId, TEST_USER_ID));
 	await db.delete(rpgInventory).where(eq(rpgInventory.userId, TEST_USER_ID));
 	await db.delete(rpgStats).where(eq(rpgStats.userId, TEST_USER_ID));
@@ -149,6 +161,73 @@ describe("RPG database queries", () => {
 			await clearCooldown(TEST_USER_ID, "work");
 			const expiresAt = await getCooldown(TEST_USER_ID, "work");
 			expect(expiresAt).toBeNull();
+		});
+	});
+
+	describe("claimDaily", () => {
+		it("awards a daily reward only once under concurrent claim attempts", async () => {
+			await getOrCreateProfile(TEST_USER_ID);
+
+			const results = await Promise.all(Array.from({ length: 8 }, () => claimDaily(TEST_USER_ID)));
+
+			const claimed = results.filter((result) => result.claimed);
+			const profile = await db.query.rpgProfiles.findFirst({ where: eq(rpgProfiles.userId, TEST_USER_ID) });
+			expect(claimed).toHaveLength(1);
+			expect(profile?.coins).toBe(550);
+			expect(profile?.xp).toBe(110);
+			expect(profile?.dailyStreak).toBe(1);
+		});
+
+		it("returns a cooldown result without incrementing messages or rewards", async () => {
+			await getOrCreateProfile(TEST_USER_ID);
+			await claimDaily(TEST_USER_ID);
+
+			const result = await claimDaily(TEST_USER_ID);
+			const profile = await db.query.rpgProfiles.findFirst({ where: eq(rpgProfiles.userId, TEST_USER_ID) });
+			expect(result.claimed).toBe(false);
+			expect(profile?.coins).toBe(550);
+			expect(profile?.xp).toBe(110);
+			expect(profile?.dailyStreak).toBe(1);
+		});
+	});
+
+	describe("checkAndAdvanceQuestProgress", () => {
+		it("awards quest completion rewards only once under concurrent completion attempts", async () => {
+			await getOrCreateProfile(TEST_USER_ID);
+			await insertDailyQuests([
+				{
+					guildId: "rpg-test-guild",
+					title: "Concurrent Work Quest",
+					description: "Complete one work action.",
+					objectiveType: "work",
+					objectiveJob: "fishing",
+					objectiveCount: 1,
+					rewardCoins: 250,
+					rewardXp: 75,
+					date: new Date().toISOString().slice(0, 10),
+				},
+			]);
+			const onComplete = vi.fn(async () => undefined);
+
+			await Promise.all(
+				Array.from({ length: 8 }, () =>
+					checkAndAdvanceQuestProgress({
+						userId: TEST_USER_ID,
+						guildId: "rpg-test-guild",
+						objectiveType: "work",
+						objectiveJob: "fishing",
+						onComplete,
+					}),
+				),
+			);
+
+			const profile = await db.query.rpgProfiles.findFirst({ where: eq(rpgProfiles.userId, TEST_USER_ID) });
+			const [progress] = await db.query.questProgress.findMany({ where: eq(questProgress.userId, TEST_USER_ID) });
+			expect(profile?.coins).toBe(250);
+			expect(profile?.xp).toBe(75);
+			expect(progress.progress).toBe(1);
+			expect(progress.completedAt).toBeInstanceOf(Date);
+			expect(onComplete).toHaveBeenCalledOnce();
 		});
 	});
 });

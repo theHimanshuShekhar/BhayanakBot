@@ -37,18 +37,31 @@ export class DailyCommand extends Command {
 			});
 		}
 
-		const { streak, reward, leveledUp } = await claimDaily(interaction.user.id);
-		const streakEmoji = streak >= 30 ? "🔥🔥🔥" : streak >= 7 ? "🔥🔥" : "🔥";
+		const result = await claimDaily(interaction.user.id);
+		if (!result.claimed) {
+			return interaction.editReply({
+				embeds: [
+					new EmbedBuilder()
+						.setColor(0xfee75c)
+						.setTitle("⏳ Daily Reward on Cooldown")
+						.setDescription(
+							`You can claim your next daily reward in **${formatDuration(result.remainingMs)}**.\n\nCurrent streak: **${result.streak}** 🔥`,
+						),
+				],
+			});
+		}
+
+		const streakEmoji = result.streak >= 30 ? "🔥🔥🔥" : result.streak >= 7 ? "🔥🔥" : "🔥";
 
 		const embed = new EmbedBuilder()
 			.setColor(0x57f287)
 			.setTitle("✅ Daily Reward Claimed!")
 			.setDescription(
-				`You received **${reward.coins.toLocaleString()} coins** and **${reward.xp} XP**!\n\nStreak: **${streak}** ${streakEmoji}`,
+				`You received **${result.reward.coins.toLocaleString()} coins** and **${result.reward.xp} XP**!\n\nStreak: **${result.streak}** ${streakEmoji}`,
 			)
 			.setFooter({ text: "Come back tomorrow to keep your streak alive!" });
 
-		if (leveledUp) {
+		if (result.leveledUp) {
 			embed.addFields({ name: "⭐ Level Up!", value: `You leveled up! Check your profile with \`/profile\`.` });
 		}
 

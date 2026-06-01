@@ -259,7 +259,7 @@ export class MessageCreateListener extends Listener {
 		const botMentioned = message.mentions.has(message.client.user);
 		const match = await findMatchingResponse(message.guild.id, message.content, message.channel.id, botMentioned);
 		this.container.logger.debug(
-			`[autoresponder] guild=${message.guild.id} content="${message.content.slice(0, 50)}" match=${match ? `trigger="${match.response.trigger}" type=${match.response.responseType}` : "none"}`,
+			`[autoresponder] guild=${message.guild.id} contentLength=${message.content.length} match=${match ? `triggerLength=${match.response.trigger.length} type=${match.response.responseType}` : "none"}`,
 		);
 
 		if (match) {
@@ -295,7 +295,7 @@ export class MessageCreateListener extends Listener {
 						conversationContext,
 					);
 					this.container.logger.debug(
-						`[autoresponder] LLM reply=${reply ? `"${reply.slice(0, 50)}"` : "null (skipping)"}`,
+						`[autoresponder] LLM reply=${reply ? `present length=${reply.length}` : "null (skipping)"}`,
 					);
 					if (reply) {
 						const safeReply = this.normalizeKnownUserNames(message, this.substituteVariables(reply, match.captured));

@@ -5,12 +5,14 @@ import { levelRewards, users } from "../schema.js";
 export type User = typeof users.$inferSelect;
 
 export async function getOrCreateUser(userId: string, guildId: string): Promise<User> {
+	const [created] = await db.insert(users).values({ userId, guildId }).onConflictDoNothing().returning();
+	if (created) return created;
+
 	const existing = await db.query.users.findFirst({
 		where: and(eq(users.userId, userId), eq(users.guildId, guildId)),
 	});
-	if (existing) return existing;
-	const [created] = await db.insert(users).values({ userId, guildId }).returning();
-	return created;
+	if (!existing) throw new Error(`Failed to create or load user ${userId} in guild ${guildId}`);
+	return existing;
 }
 
 export async function addXp(
@@ -24,17 +26,20 @@ export async function addXp(
 		return { user, leveledUp: false, newLevel: user.level };
 	}
 
-	const newXp = user.xp + amount;
-	const newLevel = Math.floor(0.1 * Math.sqrt(newXp));
-	const leveledUp = newLevel > user.level;
-
 	const [updated] = await db
 		.update(users)
-		.set({ xp: newXp, level: newLevel, totalMessages: sql`${users.totalMessages} + 1`, lastMessageAt: new Date() })
+		.set({
+			xp: sql`${users.xp} + ${amount}`,
+			level: sql`FLOOR(0.1 * SQRT(${users.xp} + ${amount}))::int`,
+			totalMessages: sql`${users.totalMessages} + 1`,
+			lastMessageAt: new Date(),
+		})
 		.where(and(eq(users.userId, userId), eq(users.guildId, guildId)))
 		.returning();
+	if (!updated) throw new Error(`Failed to update XP for user ${userId} in guild ${guildId}`);
 
-	return { user: updated, leveledUp, newLevel };
+	const previousLevel = Math.floor(0.1 * Math.sqrt(updated.xp - amount));
+	return { user: updated, leveledUp: updated.level > previousLevel, newLevel: updated.level };
 }
 
 export async function getLeaderboard(guildId: string, limit = 10, offset = 0): Promise<User[]> {
