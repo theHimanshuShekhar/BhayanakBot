@@ -1,7 +1,7 @@
-import { and, asc, eq, gt, isNull, type SQL, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, or, type SQL, sql } from "drizzle-orm";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 import { db } from "../../lib/database.js";
-import { archivedChannelMessages } from "../schema.js";
+import { archivedChannelMessages, guildSettings, userPersonalityProfiles } from "../schema.js";
 
 export interface TrainingMessage {
 	messageId: string;
@@ -36,18 +36,17 @@ interface GuildTrainingMessageWindowInput {
 	limit: number;
 }
 
+interface UsersEligibleForInitialPersonalityBuildInput {
+	minimumMessageCount: number;
+}
+
 const trimPattern = String.raw`^\s+|\s+$`;
 const trimmedContent = sql<string>`regexp_replace(${archivedChannelMessages.content}, ${trimPattern}, '', 'g')`;
 const contentWithoutUrls = sql<string>`regexp_replace(${trimmedContent}, 'https?://[^[:space:]]+', '', 'g')`;
 const alphaContent = sql<string>`regexp_replace(${contentWithoutUrls}, '[^A-Za-z]', '', 'g')`;
 
-function trainingEligibilityConditions(
-	guildId: string,
-	afterMessageCreatedAt: Date | null,
-	afterMessageId?: string | null,
-): SQL[] {
+function baseTrainingEligibilityConditions(afterMessageCreatedAt: Date | null, afterMessageId?: string | null): SQL[] {
 	const conditions: SQL[] = [
-		eq(archivedChannelMessages.guildId, guildId),
 		eq(archivedChannelMessages.channelId, GUESS_WHO_CHANNEL_ID),
 		isNull(archivedChannelMessages.deletedAt),
 		sql`length(${trimmedContent}) between 15 and 1000`,
@@ -72,6 +71,17 @@ function trainingEligibilityConditions(
 	return conditions;
 }
 
+function trainingEligibilityConditions(
+	guildId: string,
+	afterMessageCreatedAt: Date | null,
+	afterMessageId?: string | null,
+): SQL[] {
+	return [
+		eq(archivedChannelMessages.guildId, guildId),
+		...baseTrainingEligibilityConditions(afterMessageCreatedAt, afterMessageId),
+	];
+}
+
 function selectTrainingMessages(where: SQL | undefined, limit: number): Promise<TrainingMessage[]> {
 	return db
 		.select({
@@ -94,6 +104,35 @@ export async function getEligibleUserTrainingMessages(input: UserTrainingMessage
 		),
 		input.limit,
 	);
+}
+
+export async function getUsersEligibleForInitialPersonalityBuild(
+	input: UsersEligibleForInitialPersonalityBuildInput,
+): Promise<{ userId: string; guildId: string }[]> {
+	return db
+		.select({
+			userId: archivedChannelMessages.authorUserId,
+			guildId: archivedChannelMessages.guildId,
+		})
+		.from(archivedChannelMessages)
+		.leftJoin(
+			userPersonalityProfiles,
+			and(
+				eq(userPersonalityProfiles.userId, archivedChannelMessages.authorUserId),
+				eq(userPersonalityProfiles.guildId, archivedChannelMessages.guildId),
+			),
+		)
+		.leftJoin(guildSettings, eq(guildSettings.guildId, archivedChannelMessages.guildId))
+		.where(
+			and(
+				...baseTrainingEligibilityConditions(null),
+				isNull(userPersonalityProfiles.profile),
+				or(isNull(guildSettings.guildId), eq(guildSettings.personalityEnabled, true)),
+			),
+		)
+		.groupBy(archivedChannelMessages.guildId, archivedChannelMessages.authorUserId)
+		.having(sql`count(*) >= ${input.minimumMessageCount}`)
+		.orderBy(sql`count(*) desc`, asc(archivedChannelMessages.guildId), asc(archivedChannelMessages.authorUserId));
 }
 
 export async function getEligibleGuildTrainingMessageWindow(

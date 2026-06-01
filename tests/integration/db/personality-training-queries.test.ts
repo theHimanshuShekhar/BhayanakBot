@@ -9,8 +9,9 @@ import {
 	getEligibleGuildTrainingMessages,
 	getEligibleGuildTrainingMessageWindow,
 	getEligibleUserTrainingMessages,
+	getUsersEligibleForInitialPersonalityBuild,
 } from "../../../src/db/queries/personalityTraining.js";
-import { archivedChannelMessages } from "../../../src/db/schema.js";
+import { archivedChannelMessages, guildSettings, userPersonalityProfiles } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
 
@@ -22,6 +23,8 @@ const USER_B = "user-b";
 
 async function cleanupPersonalityTrainingMessages(): Promise<void> {
 	await db.delete(archivedChannelMessages).where(eq(archivedChannelMessages.guildId, GUILD_ID));
+	await db.delete(userPersonalityProfiles).where(eq(userPersonalityProfiles.guildId, GUILD_ID));
+	await db.delete(guildSettings).where(eq(guildSettings.guildId, GUILD_ID));
 }
 
 async function archiveMessage(input: {
@@ -290,6 +293,56 @@ describe("personality training database queries", () => {
 		});
 
 		expect(messages.map((message) => message.messageId)).toEqual(["pt-cursor-b"]);
+	});
+
+	it("finds users eligible for initial personality builds from archived training messages", async () => {
+		const start = new Date("2026-05-27T12:00:00.000Z");
+		for (let index = 0; index < 3; index++) {
+			await archiveMessage({
+				messageId: `pt-i-a-${index}`,
+				authorUserId: USER_A,
+				content: `Author A initial training message ${index}.`,
+				messageCreatedAt: new Date(start.getTime() + index * 1000),
+			});
+		}
+		for (let index = 0; index < 2; index++) {
+			await archiveMessage({
+				messageId: `pt-i-b-${index}`,
+				authorUserId: USER_B,
+				content: `Author B insufficient training message ${index}.`,
+				messageCreatedAt: new Date(start.getTime() + (index + 10) * 1000),
+			});
+		}
+
+		const users = await getUsersEligibleForInitialPersonalityBuild({ minimumMessageCount: 3 });
+
+		expect(users.filter((user) => user.guildId === GUILD_ID)).toEqual([{ userId: USER_A, guildId: GUILD_ID }]);
+	});
+
+	it("does not find users with existing profiles or disabled personality settings for initial startup builds", async () => {
+		const start = new Date("2026-05-27T12:00:00.000Z");
+		for (let index = 0; index < 3; index++) {
+			await archiveMessage({
+				messageId: `pt-p-a-${index}`,
+				authorUserId: USER_A,
+				content: `Author A already profiled training message ${index}.`,
+				messageCreatedAt: new Date(start.getTime() + index * 1000),
+			});
+		}
+		await db.insert(userPersonalityProfiles).values({
+			userId: USER_A,
+			guildId: GUILD_ID,
+			profile: "Existing profile.",
+		});
+
+		let users = await getUsersEligibleForInitialPersonalityBuild({ minimumMessageCount: 3 });
+		expect(users.filter((user) => user.guildId === GUILD_ID)).toEqual([]);
+
+		await db.delete(userPersonalityProfiles).where(eq(userPersonalityProfiles.guildId, GUILD_ID));
+		await db.insert(guildSettings).values({ guildId: GUILD_ID, personalityEnabled: false });
+
+		users = await getUsersEligibleForInitialPersonalityBuild({ minimumMessageCount: 3 });
+		expect(users.filter((user) => user.guildId === GUILD_ID)).toEqual([]);
 	});
 
 	it("caps guild training messages per author while including other authors", async () => {

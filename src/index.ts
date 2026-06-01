@@ -5,10 +5,12 @@ import "@sapphire/plugin-scheduled-tasks/register";
 
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
+import { getUsersEligibleForInitialPersonalityBuild } from "./db/queries/personalityTraining.js";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
+import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
 import { getPublicStatsIntervalMs, writePublicBotStatsSnapshotForClient } from "./lib/publicStats.js";
 
 const client = new BhayanakClient();
@@ -27,6 +29,31 @@ function formatDuration(ms: number): string {
 	if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
 	if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
 	return `${seconds}s`;
+}
+
+async function buildEligibleBackfilledPersonalityProfiles(): Promise<void> {
+	const users = await getUsersEligibleForInitialPersonalityBuild({
+		minimumMessageCount: INITIAL_USER_PROFILE_THRESHOLD,
+	});
+	if (users.length === 0) return;
+
+	client.logger.info(`[personality] Building initial profiles for ${users.length} backfilled user(s)`);
+
+	for (const { userId, guildId } of users) {
+		try {
+			const result = await buildPersonalityProfile(userId, guildId);
+			if (result.status !== "built") {
+				client.logger.debug(
+					`[personality] Backfilled initial build skipped for userId=${userId} guildId=${guildId}: ${result.status}`,
+				);
+			}
+		} catch (err) {
+			client.logger.error(
+				`[personality] Backfilled initial build failed for userId=${userId} guildId=${guildId}:`,
+				err,
+			);
+		}
+	}
 }
 
 async function main() {
@@ -74,7 +101,10 @@ async function main() {
 			);
 
 			void backfillGuessWhoMessages(client)
-				.then((count) => client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`))
+				.then(async (count) => {
+					client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`);
+					await buildEligibleBackfilledPersonalityProfiles();
+				})
 				.catch((err) => client.logger.error("[guess-who] Backfill failed:", err));
 		});
 		await client.login(process.env.DISCORD_TOKEN);
