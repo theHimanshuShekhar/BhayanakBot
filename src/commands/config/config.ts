@@ -75,7 +75,7 @@ export class ConfigCommand extends Subcommand {
 									{ name: "welcome-message", value: "welcomeMessage" },
 									{ name: "goodbye-message", value: "goodbyeMessage" },
 									{ name: "level-up-message", value: "levelUpMessage" },
-									{ name: "personality-profiling", value: "personalityEnabled" },
+									{ name: "personality-features", value: "personalityEnabled" },
 									{ name: "random-response-channel", value: "randomResponseChannelId" },
 									{ name: "random-response-chance", value: "randomResponseChance" },
 								),

@@ -1,21 +1,29 @@
+import { readdirSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Listener } from "@sapphire/framework";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createListenerContext, loadListenerClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
 
-const listenerFiles = [
-	"../../../src/listeners/commands/commandSuccess.js",
-	"../../../src/listeners/guild/guildMemberAdd.js",
-	"../../../src/listeners/guild/guildMemberRemove.js",
-	"../../../src/listeners/guild/guildAuditLogEntryCreate.js",
-	"../../../src/listeners/messages/messageCreate.js",
-	"../../../src/listeners/messages/messageUpdate.js",
-	"../../../src/listeners/messages/messageDelete.js",
-	"../../../src/listeners/messages/randomResponder.js",
-	"../../../src/listeners/messages/mentionResponder.js",
-	"../../../src/listeners/reactions/messageReactionAdd.js",
-	"../../../src/listeners/reactions/messageReactionRemove.js",
-	"../../../src/listeners/voice/voiceStateUpdate.js",
-];
+function discoverListenerFiles(): string[] {
+	const root = fileURLToPath(new URL("../../../src/listeners", import.meta.url));
+	const files: string[] = [];
+	const walk = (dir: string) => {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const fullPath = join(dir, entry.name);
+			if (entry.isDirectory()) {
+				walk(fullPath);
+			} else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+				const rel = relative(root, fullPath).split(sep).join("/").replace(/\.ts$/, ".js");
+				files.push(`../../../src/listeners/${rel}`);
+			}
+		}
+	};
+	walk(root);
+	return files.sort();
+}
+
+const listenerFiles = discoverListenerFiles();
 
 describe("listener structure", () => {
 	beforeAll(() => {

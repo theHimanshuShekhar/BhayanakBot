@@ -6,7 +6,6 @@ import {
 	ChannelType,
 	EmbedBuilder,
 	MessageFlags,
-	OverwriteType,
 	PermissionFlagsBits,
 	type TextChannel,
 } from "discord.js";

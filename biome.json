@@ -29,6 +29,6 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": ["src/**", "web/src/**", "tests/**"]
+		"includes": ["src/**", "web/src/**", "!web/src/routeTree.gen.ts", "tests/**"]
 	}
 }

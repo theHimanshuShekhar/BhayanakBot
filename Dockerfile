@@ -52,9 +52,11 @@ RUN pnpm install --frozen-lockfile
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 COPY web/ ./web/
+COPY src/db/ ./src/db/
 COPY tsconfig.json ./
 COPY --from=base /app/dist ./dist
 
+RUN chown -R node:node /app
 USER node
 
 CMD ["sh", "-c", "pnpm db:migrate && node dist/index.js"]

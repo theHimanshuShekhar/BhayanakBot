@@ -1,68 +1,31 @@
+import { readdirSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "@sapphire/framework";
 import { SlashCommandBuilder } from "discord.js";
 import { beforeAll, describe, expect, it } from "vitest";
 import { GUESS_WHO_MAX_WRONG_GUESSES } from "../../../src/lib/guessWho/session.js";
 import { createCommandContext, loadCommandClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
 
-const commandFiles = [
-	"../../../src/commands/music/play.js",
-	"../../../src/commands/music/controls.js",
-	"../../../src/commands/music/queue.js",
-	"../../../src/commands/music/nowplaying.js",
-	"../../../src/commands/music/volume.js",
-	"../../../src/commands/music/shuffle.js",
-	"../../../src/commands/music/loop.js",
-	"../../../src/commands/rpg/work.js",
-	"../../../src/commands/rpg/crime.js",
-	"../../../src/commands/rpg/shop.js",
-	"../../../src/commands/rpg/inventory.js",
-	"../../../src/commands/rpg/profile.js",
-	"../../../src/commands/rpg/train.js",
-	"../../../src/commands/rpg/pet.js",
-	"../../../src/commands/rpg/property.js",
-	"../../../src/commands/rpg/daily.js",
-	"../../../src/commands/rpg/quests.js",
-	"../../../src/commands/moderation/ban.js",
-	"../../../src/commands/moderation/kick.js",
-	"../../../src/commands/moderation/mute.js",
-	"../../../src/commands/moderation/unmute.js",
-	"../../../src/commands/moderation/warn.js",
-	"../../../src/commands/moderation/unban.js",
-	"../../../src/commands/moderation/purge.js",
-	"../../../src/commands/moderation/case.js",
-	"../../../src/commands/moderation/history.js",
-	"../../../src/commands/leveling/rank.js",
-	"../../../src/commands/leveling/leaderboard.js",
-	"../../../src/commands/leveling/rewards.js",
-	"../../../src/commands/leveling/reset.js",
-	"../../../src/commands/utility/ping.js",
-	"../../../src/commands/utility/serverinfo.js",
-	"../../../src/commands/utility/userinfo.js",
-	"../../../src/commands/utility/avatar.js",
-	"../../../src/commands/utility/snipe.js",
-	"../../../src/commands/utility/editsnipe.js",
-	"../../../src/commands/utility/afk.js",
-	"../../../src/commands/utility/remind.js",
-	"../../../src/commands/utility/help.js",
-	"../../../src/commands/utility/summarize.js",
-	"../../../src/commands/utility/personality.js",
-	"../../../src/commands/fun/8ball.js",
-	"../../../src/commands/fun/coinflip.js",
-	"../../../src/commands/fun/choose.js",
-	"../../../src/commands/fun/meme.js",
-	"../../../src/commands/fun/poll.js",
-	"../../../src/commands/tickets/ticket.js",
-	"../../../src/commands/tickets/ticket-panel.js",
-	"../../../src/commands/roles/reaction-roles.js",
-	"../../../src/commands/roles/role-menu.js",
-	"../../../src/commands/giveaway/giveaway.js",
-	"../../../src/commands/suggestions/suggest.js",
-	"../../../src/commands/suggestions/suggestion.js",
-	"../../../src/commands/autorespond/autorespond.js",
-	"../../../src/commands/config/config.js",
-	"../../../src/commands/minecraft/status.js",
-	"../../../src/commands/games/guess-who.js",
-];
+function discoverCommandFiles(): string[] {
+	const root = fileURLToPath(new URL("../../../src/commands", import.meta.url));
+	const files: string[] = [];
+	const walk = (dir: string) => {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const fullPath = join(dir, entry.name);
+			if (entry.isDirectory()) {
+				walk(fullPath);
+			} else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+				const rel = relative(root, fullPath).split(sep).join("/").replace(/\.ts$/, ".js");
+				files.push(`../../../src/commands/${rel}`);
+			}
+		}
+	};
+	walk(root);
+	return files.sort();
+}
+
+const commandFiles = discoverCommandFiles();
 
 const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "TicketChannel", "Cooldown"];
 
