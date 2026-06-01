@@ -1,5 +1,5 @@
 import { Listener } from "@sapphire/framework";
-import { EmbedBuilder, type Message, PermissionFlagsBits, type TextChannel } from "discord.js";
+import { EmbedBuilder, type Message, PermissionFlagsBits, type TextChannel, userMention } from "discord.js";
 import { eq, sql } from "drizzle-orm";
 import { clearAfk, getAfk } from "../../db/queries/afk.js";
 import { upsertArchivedChannelMessage } from "../../db/queries/archivedChannelMessages.js";
@@ -42,6 +42,7 @@ const randomResponseCooldown = new Map<string, number>();
 const RANDOM_RESPONSE_COOLDOWN_MS = 45 * 1000; // 45 seconds
 const PERSONALITY_MAX_USER_MENTIONS = 5;
 const USER_MENTION_PATTERN = /<@!?\d+>/g;
+const MALFORMED_USER_ID_MENTION_PATTERN = /(?<![<\w])@(\d{17,20})(?![>\w])/g;
 
 // Conversation history for LLM context: Map<channelId, messages[]>
 const CONVERSATION_HISTORY_LIMIT = 20;
@@ -469,15 +470,20 @@ export class MessageCreateListener extends Listener {
 		if (!members) return content;
 
 		const replacements = new Map<string, string>();
+		const knownUserIds = new Set<string>([message.author.id]);
 		for (const member of members.values()) {
+			knownUserIds.add(member.id);
 			const user = member.user;
 			for (const name of [member.displayName, user.username, user.globalName]) {
 				if (!name || name.length < 3) continue;
-				replacements.set(name, `<@${member.id}>`);
+				replacements.set(name, userMention(member.id));
 			}
 		}
 
 		let normalized = content;
+		normalized = normalized.replace(MALFORMED_USER_ID_MENTION_PATTERN, (match, userId: string) =>
+			knownUserIds.has(userId) ? userMention(userId) : match,
+		);
 		for (const [name, mention] of [...replacements.entries()].sort((a, b) => b[0].length - a[0].length)) {
 			const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 			normalized = normalized.replace(new RegExp(`(?<![\\w@])${escapedName}(?![\\w])`, "g"), mention);

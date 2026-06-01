@@ -488,4 +488,42 @@ describe("messageCreate personality archive flow", () => {
 		expect(mockedGenerateAutoResponse.mock.calls[0]?.[2]).toBe(`<@${USER_ID}>`);
 		expect(reply).toHaveBeenCalledWith("<@111> and <@222> are both in this generated reply.");
 	});
+
+	it("normalizes malformed known user ID mentions in generated autoresponder replies", async () => {
+		mockedFindMatchingResponse.mockResolvedValueOnce({
+			response: {
+				id: 1,
+				guildId: GUILD_ID,
+				trigger: "racing",
+				response: "Be playful.",
+				matchType: "contains",
+				responseType: "llm",
+				useRegex: false,
+				channelIds: [],
+				requireMention: false,
+				chancePercent: 100,
+				deleteTrigger: false,
+				createdAt: new Date("2026-05-28T12:00:00.000Z"),
+			},
+		});
+		mockedGenerateAutoResponse.mockResolvedValueOnce(
+			"Just kidding, @177390168829984768, now I'm cruising at your level.",
+		);
+		const reply = vi.fn(async () => null);
+		const message = createMessage({
+			messageId: "llm-autoresponse-id-mention",
+			channelId: TARGET_TEXT_CHANNEL_ID,
+			authorId: "listener-id-mention-user",
+		});
+		message.reply = reply;
+		message.guild.members.cache.set("177390168829984768", {
+			id: "177390168829984768",
+			displayName: "Adineo",
+			user: { username: "adineo", globalName: "Adineo" },
+		});
+
+		await createListener().run(message as never);
+
+		expect(reply).toHaveBeenCalledWith("Just kidding, <@177390168829984768>, now I'm cruising at your level.");
+	});
 });
