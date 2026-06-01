@@ -17,6 +17,7 @@ describe(".env.example", () => {
 			"ZEN_API_KEY",
 			"ZEN_BASE_URL",
 			"ZEN_MODEL",
+			"ZEN_TIMEOUT_MS",
 			"WEB_PORT",
 			"PUBLIC_BOT_INVITE_URL",
 			"PUBLIC_STATS_INTERVAL_MS",

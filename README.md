@@ -97,6 +97,7 @@ OLLAMA_MODEL=phi3:mini              # optional
 ZEN_API_KEY=your_opencode_zen_key   # optional; responder/summary/personality use Zen first, then Ollama fallback
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
 ZEN_MODEL=deepseek-v4-flash
+ZEN_TIMEOUT_MS=15000
 WEB_PORT=3000
 PUBLIC_BOT_INVITE_URL=https://discord.com/oauth2/authorize
 PUBLIC_STATS_INTERVAL_MS=300000
@@ -105,7 +106,7 @@ TARGET_GUILD_ID=199168135935295488
 TARGET_TEXT_CHANNEL_ID=199168135935295488
 GUESS_WHO_CHANNEL_ID=199168135935295488
 GUESS_WHO_BACKFILL_LIMIT=1000
-BOT_OWNER_ID=199168135935295488
+BOT_OWNER_ID=                         # optional privileged Discord user ID; blank disables owner bypasses
 YOUTUBE_COOKIE=
 ```
 

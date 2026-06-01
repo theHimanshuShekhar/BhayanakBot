@@ -30,6 +30,7 @@ describe("LLM provider", () => {
 
 	afterEach(() => {
 		process.env = { ...originalEnv };
+		vi.useRealTimers();
 		vi.unstubAllGlobals();
 	});
 
@@ -84,6 +85,33 @@ describe("LLM provider", () => {
 		const result = await callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
 
 		expect(result).toBe("ollama background fallback");
+		expect(mockedCallOllamaLowPriority).toHaveBeenCalledWith(
+			"System prompt",
+			"User prompt",
+			expect.any(Number),
+			undefined,
+			"personality:user",
+		);
+	});
+
+	it("caps Zen timeout before falling back", async () => {
+		vi.useFakeTimers();
+		process.env.ZEN_TIMEOUT_MS = "2000";
+		mockedFetch.mockImplementationOnce((_url, init) => {
+			const signal = (init as RequestInit).signal;
+			return new Promise((_resolve, reject) => {
+				signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+			});
+		});
+		const { callBackgroundLlm } = await importProvider();
+
+		const resultPromise = callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
+
+		await vi.advanceTimersByTimeAsync(1999);
+		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(1);
+
+		await expect(resultPromise).resolves.toBe("ollama background fallback");
 		expect(mockedCallOllamaLowPriority).toHaveBeenCalledWith(
 			"System prompt",
 			"User prompt",

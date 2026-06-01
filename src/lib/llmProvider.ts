@@ -2,6 +2,8 @@ import { callOllama, callOllamaLowPriority } from "./ollama.js";
 
 const DEFAULT_ZEN_BASE_URL = "https://opencode.ai/zen/go/v1";
 const DEFAULT_ZEN_MODEL = "deepseek-v4-flash";
+const DEFAULT_ZEN_TIMEOUT_MS = 15_000;
+const MIN_ZEN_TIMEOUT_MS = 1000;
 
 type ZenChatResponse = {
 	choices?: Array<{ message?: { content?: string | null } }>;
@@ -34,6 +36,15 @@ function logLlm(message: string): void {
 	console.log(`[llm] ${message}`);
 }
 
+function resolveZenTimeoutMs(totalTimeoutMs: number): number {
+	const configuredTimeoutMs = Number.parseInt(process.env.ZEN_TIMEOUT_MS ?? "", 10);
+	const providerTimeoutMs =
+		Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs >= MIN_ZEN_TIMEOUT_MS
+			? configuredTimeoutMs
+			: DEFAULT_ZEN_TIMEOUT_MS;
+	return Math.min(totalTimeoutMs, providerTimeoutMs);
+}
+
 async function callZenChat(
 	requestId: string,
 	mode: LlmMode,
@@ -54,7 +65,7 @@ async function callZenChat(
 	const baseUrl = (process.env.ZEN_BASE_URL ?? DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");
 	const model = process.env.ZEN_MODEL ?? DEFAULT_ZEN_MODEL;
 	const controller = new AbortController();
-	const zenTimeoutMs = Math.max(1000, Math.floor(timeoutMs / 2));
+	const zenTimeoutMs = resolveZenTimeoutMs(timeoutMs);
 	const timeout = setTimeout(() => controller.abort(), zenTimeoutMs);
 	logLlm(
 		`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen event=start model=${model} host=${safeUrlHost(baseUrl)} timeoutMs=${zenTimeoutMs}`,

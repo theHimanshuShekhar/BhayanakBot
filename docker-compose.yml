@@ -85,8 +85,10 @@ services:
       ZEN_API_KEY: ${ZEN_API_KEY}
       ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/zen/go/v1}
       ZEN_MODEL: ${ZEN_MODEL:-deepseek-v4-flash}
+      ZEN_TIMEOUT_MS: ${ZEN_TIMEOUT_MS:-15000}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      BOT_OWNER_ID: ${BOT_OWNER_ID:-}
       NODE_ENV: ${NODE_ENV:-production}
     networks:
       - botnet
