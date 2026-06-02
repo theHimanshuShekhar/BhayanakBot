@@ -14,6 +14,12 @@ import {
 	userMessages,
 	userPersonalityProfiles,
 } from "../../db/schema.js";
+import {
+	addConversationHistoryMessage,
+	getConversationContext,
+	getConversationContextMessageCount,
+	getReplyAnchoredConversationContext,
+} from "../../lib/autoresponder/conversationHistory.js";
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
@@ -44,13 +50,8 @@ const PERSONALITY_MAX_USER_MENTIONS = 5;
 const USER_MENTION_PATTERN = /<@!?\d+>/g;
 const MALFORMED_USER_ID_MENTION_PATTERN = /(?<![<\w])@(\d{17,20})(?![>\w])/g;
 
-// Conversation history for LLM context: Map<channelId, messages[]>
-const CONVERSATION_HISTORY_LIMIT = 20;
-const conversationHistory = new Map<string, { author: string; content: string; timestamp: number }[]>();
-
 const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.ly|tinyurl\.com)\//i;
 const URL_PATTERN = /https?:\/\/\S+/g;
-const _HAS_ALPHA_PATTERN = /[A-Za-z]/;
 
 async function recordPersonalityEvidenceIfArchiveLive(input: {
 	messageId: string;
@@ -126,8 +127,8 @@ export class MessageCreateListener extends Listener {
 		const settings = await getOrCreateSettings(message.guild.id);
 		const isTargetTextChannel = message.channelId === TARGET_TEXT_CHANNEL_ID;
 
-		// --- Store conversation history ---
-		this.addToConversationHistory(message);
+		// --- Store eligible conversation history for LLM context ---
+		addConversationHistoryMessage(message.channel.id, message, this.container.logger);
 
 		// --- Personality features: store message + trigger rebuild when threshold hit ---
 		// Filter: skip commands, very short/long messages, URL-only posts, and spam
@@ -135,17 +136,34 @@ export class MessageCreateListener extends Listener {
 		const contentWithoutUrls = trimmedContent.replace(URL_PATTERN, "");
 		const alphaCount = (contentWithoutUrls.match(/[A-Za-z]/g) ?? []).length;
 		const userMentionCount = trimmedContent.match(USER_MENTION_PATTERN)?.length ?? 0;
-		const isMeaningfulForPersonality =
-			trimmedContent.length >= 15 &&
-			trimmedContent.length <= 1000 &&
-			!trimmedContent.startsWith("/") &&
-			!trimmedContent.startsWith("!") &&
-			!trimmedContent.includes("@everyone") &&
-			!trimmedContent.includes("@here") &&
-			message.mentions.users.size < PERSONALITY_MAX_USER_MENTIONS &&
-			userMentionCount < PERSONALITY_MAX_USER_MENTIONS &&
-			alphaCount >= 5 &&
-			contentWithoutUrls.length >= 10;
+		const personalitySkipReason = !isGuessWhoChannel
+			? "not-guess-who-channel"
+			: !didInsertArchiveMessage
+				? "archive-not-inserted"
+				: didArchiveDeletedMessage
+					? "archive-marked-deleted"
+					: !settings.personalityEnabled
+						? "personality-disabled"
+						: trimmedContent.length < 15
+							? "too-short"
+							: trimmedContent.length > 1000
+								? "too-long"
+								: trimmedContent.startsWith("/") || trimmedContent.startsWith("!")
+									? "bot-command-prefix"
+									: trimmedContent.includes("@everyone") || trimmedContent.includes("@here")
+										? "broadcast-mention"
+										: message.mentions.users.size >= PERSONALITY_MAX_USER_MENTIONS ||
+												userMentionCount >= PERSONALITY_MAX_USER_MENTIONS
+											? "too-many-user-mentions"
+											: alphaCount < 5
+												? "low-alpha-content"
+												: contentWithoutUrls.length < 10
+													? "url-only-or-low-signal"
+													: null;
+		const isMeaningfulForPersonality = personalitySkipReason === null;
+		this.container.logger.debug(
+			`[personality-ingest] evaluate guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id} contentLength=${trimmedContent.length} alphaCount=${alphaCount} mentionCount=${message.mentions.users.size} archiveInserted=${didInsertArchiveMessage} archiveDeleted=${didArchiveDeletedMessage} enabled=${settings.personalityEnabled} eligible=${isMeaningfulForPersonality} reason=${personalitySkipReason ?? "eligible"}`,
+		);
 		if (
 			isGuessWhoChannel &&
 			didInsertArchiveMessage &&
@@ -153,15 +171,24 @@ export class MessageCreateListener extends Listener {
 			settings.personalityEnabled &&
 			isMeaningfulForPersonality
 		) {
+			this.container.logger.debug(
+				`[personality-ingest] storage start guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id}`,
+			);
 			const evidence = await recordPersonalityEvidenceIfArchiveLive({
 				messageId: message.id,
 				userId: message.author.id,
 				guildId: message.guild.id,
 				content: trimmedContent,
 			});
+			this.container.logger.debug(
+				`[personality-ingest] storage result guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id} stored=${evidence ? "yes" : "no"} userCount=${evidence?.userCount ?? "none"} guildCount=${evidence?.guildCount ?? "none"}`,
+			);
 			if (evidence?.userCount && evidence.userCount >= 100) {
 				// buildPersonalityProfile serialises concurrent calls per user internally.
 				const guildId = message.guild.id;
+				this.container.logger.debug(
+					`[personality-ingest] trigger-user-build userId=${message.author.id} guildId=${guildId} newMessageCount=${evidence.userCount}`,
+				);
 				void buildPersonalityProfile(message.author.id, guildId).catch((err) =>
 					this.container.logger.error(
 						`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
@@ -172,6 +199,9 @@ export class MessageCreateListener extends Listener {
 			// Also increment guild message count for server-wide personality features
 			const guildId = message.guild.id;
 			if (evidence?.guildCount && evidence.guildCount >= 200) {
+				this.container.logger.debug(
+					`[personality-ingest] trigger-guild-build guildId=${guildId} messageCount=${evidence.guildCount}`,
+				);
 				void buildGuildPersonalityProfile(guildId).catch((err) =>
 					this.container.logger.error(`[guild-personality] Inline build failed for guildId=${guildId}:`, err),
 				);
@@ -257,9 +287,12 @@ export class MessageCreateListener extends Listener {
 
 		// --- Auto-responder ---
 		const botMentioned = message.mentions.has(message.client.user);
+		this.container.logger.debug(
+			`[responder] evaluate guild=${message.guild.id} channel=${message.channel.id} message=${message.id} author=${message.author.id} contentLength=${message.content.length} botMentioned=${botMentioned} targetChannel=${isTargetTextChannel}`,
+		);
 		const match = await findMatchingResponse(message.guild.id, message.content, message.channel.id, botMentioned);
 		this.container.logger.debug(
-			`[autoresponder] guild=${message.guild.id} contentLength=${message.content.length} match=${match ? `triggerLength=${match.response.trigger.length} type=${match.response.responseType}` : "none"}`,
+			`[autoresponder] match guild=${message.guild.id} channel=${message.channel.id} message=${message.id} result=${match ? `id=${match.response.id} triggerLength=${match.response.trigger.length} type=${match.response.responseType} deleteTrigger=${match.response.deleteTrigger}` : "none"}`,
 		);
 
 		if (match) {
@@ -271,23 +304,43 @@ export class MessageCreateListener extends Listener {
 			const onUserCooldown = Date.now() - lastUserFired < USER_AUTO_RESPONDER_COOLDOWN_MS;
 
 			if (onCooldown && !botMentioned) {
-				this.container.logger.debug(`[autoresponder] trigger="${match.response.trigger}" skipped (cooldown)`);
+				this.container.logger.debug(
+					`[autoresponder] skip reason=trigger-cooldown guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} remainingMs=${AUTO_RESPONDER_COOLDOWN_MS - (Date.now() - lastFired)}`,
+				);
 			} else if (onUserCooldown) {
-				this.container.logger.debug(`[autoresponder] trigger="${match.response.trigger}" skipped (user cooldown)`);
+				this.container.logger.debug(
+					`[autoresponder] skip reason=user-cooldown guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} user=${message.author.id} remainingMs=${USER_AUTO_RESPONDER_COOLDOWN_MS - (Date.now() - lastUserFired)}`,
+				);
 			} else {
+				this.container.logger.debug(
+					`[autoresponder] fire guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} type=${match.response.responseType} botMentioned=${botMentioned}`,
+				);
 				autoResponderCooldown.set(cooldownKey, Date.now());
 				userAutoResponderCooldown.set(userCooldownKey, Date.now());
 
 				// Delete trigger if configured
 				if (match.response.deleteTrigger) {
-					await message.delete().catch(() => null);
+					this.container.logger.debug(
+						`[autoresponder] delete-trigger attempt guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
+					);
+					await message
+						.delete()
+						.catch((err) =>
+							this.container.logger.warn(`[autoresponder] delete-trigger failed message=${message.id}:`, err),
+						);
 				}
 
 				if (isTargetTextChannel && match.response.responseType === "llm") {
 					const client = this.container.client as BhayanakClient;
+					this.container.logger.debug(
+						`[autoresponder:llm] prepare guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
+					);
 					const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
 					const systemWithPersonality = personalityCtx + match.response.response;
-					const conversationContext = this.getConversationContext(message.channel.id, 10);
+					const conversationContext = getConversationContext(message.channel.id, 20, message.id);
+					this.container.logger.debug(
+						`[autoresponder:llm] context guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} personalityLength=${personalityCtx.length} systemLength=${systemWithPersonality.length}`,
+					);
 					const reply = await generateAutoResponse(
 						systemWithPersonality,
 						message.content,
@@ -295,20 +348,30 @@ export class MessageCreateListener extends Listener {
 						conversationContext,
 					);
 					this.container.logger.debug(
-						`[autoresponder] LLM reply=${reply ? `present length=${reply.length}` : "null (skipping)"}`,
+						`[autoresponder:llm] result guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
 					);
 					if (reply) {
 						const safeReply = this.normalizeKnownUserNames(message, this.substituteVariables(reply, match.captured));
 						await this.sendReply(message, safeReply, match.response.deleteTrigger);
 					}
 				} else {
+					this.container.logger.debug(
+						`[autoresponder:static] prepare guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} targetChannel=${isTargetTextChannel}`,
+					);
 					const responseText = this.substituteVariables(match.response.response, match.captured);
 					await this.sendReply(message, responseText, match.response.deleteTrigger);
 				}
 			}
 		} else if (isTargetTextChannel && botMentioned && !message.content.match(/^\s*<@!?\d+>\s*$/)) {
 			// Smart mention reply when bot is @mentioned but no autoresponder matched
+			this.container.logger.debug(
+				`[smart-mention] handoff guild=${message.guild.id} channel=${message.channel.id} message=${message.id} reason=no-autoresponder-match`,
+			);
 			await this.handleSmartMention(message, settings);
+		} else if (botMentioned) {
+			this.container.logger.debug(
+				`[smart-mention] skip guild=${message.guild.id} channel=${message.channel.id} message=${message.id} targetChannel=${isTargetTextChannel} reason=${isTargetTextChannel ? "mention-only" : "non-target-channel"}`,
+			);
 		}
 
 		// --- Random contextual chat responder ---
@@ -331,24 +394,51 @@ export class MessageCreateListener extends Listener {
 		if (safeReply.length !== content.length) {
 			this.container.logger.warn(`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`);
 		}
+		const mode = deletedTrigger ? "channel-send" : "message-reply";
+		this.container.logger.debug(
+			`[autoresponder] send attempt mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id} length=${safeReply.length}`,
+		);
 		// If trigger was deleted, send as regular message instead of reply
 		if (deletedTrigger) {
 			await (message.channel as TextChannel)
 				.send(safeReply)
-				.catch((err) => this.container.logger.warn(`[autoresponder] send failed:`, err));
+				.then(() =>
+					this.container.logger.debug(
+						`[autoresponder] send success mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id}`,
+					),
+				)
+				.catch((err) =>
+					this.container.logger.warn(`[autoresponder] send failed mode=${mode} message=${message.id}:`, err),
+				);
 		} else {
 			await message
 				.reply(safeReply)
-				.catch((err) => this.container.logger.warn(`[autoresponder] reply send failed:`, err));
+				.then(() =>
+					this.container.logger.debug(
+						`[autoresponder] send success mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id}`,
+					),
+				)
+				.catch((err) =>
+					this.container.logger.warn(`[autoresponder] reply send failed mode=${mode} message=${message.id}:`, err),
+				);
 		}
 	}
 
 	private async handleSmartMention(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
+		this.container.logger.debug(
+			`[smart-mention] evaluate guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} personalityEnabled=${settings.personalityEnabled} reference=${message.reference?.messageId ?? "none"}`,
+		);
 		// Skip if personality features are disabled or not in a guild
-		if (!settings.personalityEnabled || !message.guild) return;
+		if (!settings.personalityEnabled || !message.guild) {
+			this.container.logger.debug(
+				`[smart-mention] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=${message.guild ? "personality-disabled" : "missing-guild"}`,
+			);
+			return;
+		}
 
+		const guildId = message.guild.id;
 		// Per-user cooldown to prevent Ollama spam
-		const cooldownKey = `${message.guild.id}:${message.author.id}`;
+		const cooldownKey = `${guildId}:${message.author.id}`;
 		const lastFired = smartMentionCooldown.get(cooldownKey) ?? 0;
 		if (Date.now() - lastFired < SMART_MENTION_COOLDOWN_MS) {
 			this.container.logger.debug(`[smart-mention] cooldown active for ${cooldownKey}`);
@@ -357,8 +447,19 @@ export class MessageCreateListener extends Listener {
 		smartMentionCooldown.set(cooldownKey, Date.now());
 
 		const client = this.container.client as BhayanakClient;
-		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
-		const conversationContext = this.getConversationContext(message.channel.id, 15);
+		this.container.logger.debug(
+			`[smart-mention] prepare guild=${guildId} channel=${message.channel.id} message=${message.id} user=${message.author.id}`,
+		);
+		const personalityCtx = await getPersonalityContext(client, message.author.id, guildId);
+		const replyAnchoredContext = getReplyAnchoredConversationContext(
+			message.channel.id,
+			message.reference?.messageId,
+			10,
+		);
+		const conversationContext = replyAnchoredContext ?? getConversationContext(message.channel.id, 15, message.id);
+		this.container.logger.debug(
+			`[smart-mention] context guild=${guildId} channel=${message.channel.id} message=${message.id} mode=${replyAnchoredContext ? "reply-anchored" : "recent"} reference=${message.reference?.messageId ?? "none"} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} personalityLength=${personalityCtx.length}`,
+		);
 
 		const systemPrompt = [
 			`You are a Discord bot named ${message.client.user.username}.`,
@@ -367,6 +468,9 @@ export class MessageCreateListener extends Listener {
 			personalityCtx,
 		].join("\n");
 
+		this.container.logger.debug(
+			`[smart-mention] llm-call guild=${guildId} channel=${message.channel.id} message=${message.id}`,
+		);
 		const reply = await generateMentionReply(
 			systemPrompt,
 			conversationContext,
@@ -374,25 +478,49 @@ export class MessageCreateListener extends Listener {
 			message.content.replace(new RegExp(`<@!?${message.client.user.id}>`, "g"), "").trim(),
 		);
 
+		this.container.logger.debug(
+			`[smart-mention] llm-result guild=${guildId} channel=${message.channel.id} message=${message.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
+		);
 		if (reply) {
 			const normalizedReply = this.normalizeKnownUserNames(message, reply);
 			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
+			this.container.logger.debug(
+				`[smart-mention] send attempt guild=${guildId} channel=${message.channel.id} message=${message.id} length=${safeReply.length}`,
+			);
 			await message
 				.reply(safeReply)
-				.catch((err) => this.container.logger.warn(`[smart-mention] reply send failed:`, err));
+				.then(() =>
+					this.container.logger.debug(
+						`[smart-mention] send success guild=${guildId} channel=${message.channel.id} message=${message.id}`,
+					),
+				)
+				.catch((err) => this.container.logger.warn(`[smart-mention] reply send failed message=${message.id}:`, err));
 		}
 	}
 
 	private async handleRandomResponse(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
+		this.container.logger.debug(
+			`[random-response] evaluate guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} configuredChannel=${settings.randomResponseChannelId ?? "none"} chance=${settings.randomResponseChance}`,
+		);
 		// Must have a configured channel and non-zero chance
-		if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) return;
-		if (message.channel.id !== settings.randomResponseChannelId) return;
+		if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) {
+			this.container.logger.debug(
+				`[random-response] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=not-configured`,
+			);
+			return;
+		}
+		if (message.channel.id !== settings.randomResponseChannelId) {
+			this.container.logger.debug(
+				`[random-response] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=wrong-channel configuredChannel=${settings.randomResponseChannelId}`,
+			);
+			return;
+		}
 
 		// Roll against the configured chance
 		const roll = Math.random() * 100;
 		if (roll > settings.randomResponseChance) {
 			this.container.logger.debug(
-				`[random-response] roll=${roll.toFixed(2)}% > chance=${settings.randomResponseChance}% (skipped)`,
+				`[random-response] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=chance roll=${roll.toFixed(2)} chance=${settings.randomResponseChance}`,
 			);
 			return;
 		}
@@ -401,10 +529,15 @@ export class MessageCreateListener extends Listener {
 		const guildId = message.guild!.id;
 		const lastFired = randomResponseCooldown.get(guildId) ?? 0;
 		if (Date.now() - lastFired < RANDOM_RESPONSE_COOLDOWN_MS) {
-			this.container.logger.debug(`[random-response] cooldown active for guild=${guildId}`);
+			this.container.logger.debug(
+				`[random-response] skip guild=${guildId} channel=${message.channel.id} message=${message.id} reason=cooldown remainingMs=${RANDOM_RESPONSE_COOLDOWN_MS - (Date.now() - lastFired)}`,
+			);
 			return;
 		}
 		randomResponseCooldown.set(guildId, Date.now());
+		this.container.logger.debug(
+			`[random-response] fire guild=${guildId} channel=${message.channel.id} message=${message.id} roll=${roll.toFixed(2)} chance=${settings.randomResponseChance}`,
+		);
 
 		const guildProfile = await getGuildPersonalityProfile(guildId);
 		const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
@@ -418,9 +551,14 @@ export class MessageCreateListener extends Listener {
 			guildContext,
 		].join("\n");
 
-		const conversationContext = this.getConversationContext(message.channel.id, 10);
+		const conversationContext = getConversationContext(message.channel.id, 10, message.id);
 
-		this.container.logger.debug(`[random-response] triggered roll=${roll.toFixed(2)}% channel=${message.channel.id}`);
+		this.container.logger.debug(
+			`[random-response] context guild=${guildId} channel=${message.channel.id} message=${message.id} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} guildProfile=${guildProfile ? "present" : "missing"} guildContextLength=${guildContext.length}`,
+		);
+		this.container.logger.debug(
+			`[random-response] llm-call guild=${guildId} channel=${message.channel.id} message=${message.id}`,
+		);
 
 		const reply = await generateMentionReply(
 			systemPrompt,
@@ -429,39 +567,23 @@ export class MessageCreateListener extends Listener {
 			message.content,
 		);
 
+		this.container.logger.debug(
+			`[random-response] llm-result guild=${guildId} channel=${message.channel.id} message=${message.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
+		);
 		if (reply) {
 			const normalizedReply = this.normalizeKnownUserNames(message, reply);
 			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
+			this.container.logger.debug(
+				`[random-response] send attempt guild=${guildId} channel=${message.channel.id} message=${message.id} length=${safeReply.length}`,
+			);
 			await (message.channel as TextChannel)
 				.send(safeReply)
-				.catch((err) => this.container.logger.warn(`[random-response] send failed:`, err));
-		}
-	}
-
-	private addToConversationHistory(message: Message) {
-		const channelId = message.channel.id;
-		let history = conversationHistory.get(channelId);
-		if (!history) {
-			history = [];
-			conversationHistory.set(channelId, history);
-		}
-		history.push({
-			author: `<@${message.author.id}>`,
-			content: message.content.slice(0, 500), // cap individual message length
-			timestamp: Date.now(),
-		});
-		// Trim old messages
-		if (history.length > CONVERSATION_HISTORY_LIMIT) {
-			history.shift();
-		}
-		// Also remove messages older than 30 minutes
-		const cutoff = Date.now() - 30 * 60 * 1000;
-		while (history.length > 0 && history[0].timestamp < cutoff) {
-			history.shift();
-		}
-		// Clean up empty entries to prevent unbounded Map growth
-		if (history.length === 0) {
-			conversationHistory.delete(channelId);
+				.then(() =>
+					this.container.logger.debug(
+						`[random-response] send success guild=${guildId} channel=${message.channel.id} message=${message.id}`,
+					),
+				)
+				.catch((err) => this.container.logger.warn(`[random-response] send failed message=${message.id}:`, err));
 		}
 	}
 
@@ -490,15 +612,6 @@ export class MessageCreateListener extends Listener {
 		}
 
 		return normalized;
-	}
-
-	private getConversationContext(channelId: string, limit: number): string {
-		const history = conversationHistory.get(channelId);
-		if (!history || history.length === 0) return "";
-		return history
-			.slice(-limit)
-			.map((m) => `${m.author}: ${m.content}`)
-			.join("\n");
 	}
 
 	private async takeAutoModAction(
@@ -575,7 +688,6 @@ export class MessageCreateListener extends Listener {
 		await targetChannel?.send(levelUpMsg).catch(() => null);
 
 		// Assign level reward roles
-		const _client = this.container.client as BhayanakClient;
 		const { getLevelRewards } = await import("../../db/queries/users.js");
 		const rewards = await getLevelRewards(message.guild!.id);
 		const reward = rewards.find((r) => r.level === newLevel);

@@ -5,9 +5,13 @@ import "@sapphire/plugin-scheduled-tasks/register";
 
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
+import { getGuildAutoResponses } from "./db/queries/autoResponses.js";
+import { getOrCreateSettings } from "./db/queries/guildSettings.js";
 import { getUsersEligibleForInitialPersonalityBuild } from "./db/queries/personalityTraining.js";
+import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conversationHistory.js";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
+import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
@@ -32,6 +36,27 @@ function formatDuration(ms: number): string {
 	if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
 	if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
 	return `${seconds}s`;
+}
+
+async function preloadConversationHistoryCache(): Promise<void> {
+	const channelIds = new Set<string>([TARGET_TEXT_CHANNEL_ID]);
+	for (const guild of client.guilds.cache.values()) {
+		try {
+			const settings = await getOrCreateSettings(guild.id);
+			if (settings.randomResponseChannelId) channelIds.add(settings.randomResponseChannelId);
+
+			const autoResponses = await getGuildAutoResponses(guild.id);
+			for (const autoResponse of autoResponses) {
+				for (const channelId of autoResponse.channelIds) {
+					channelIds.add(channelId);
+				}
+			}
+		} catch (err) {
+			client.logger.warn(`[conversation-history] Failed to collect preload channels for guild=${guild.id}:`, err);
+		}
+	}
+
+	await preloadConversationHistoryForChannels(client, channelIds, client.logger);
 }
 
 async function buildEligibleBackfilledPersonalityProfiles(): Promise<void> {
@@ -98,6 +123,9 @@ async function main() {
 			}
 
 			void writePublicStats();
+			void preloadConversationHistoryCache().catch((err) =>
+				client.logger.error("[conversation-history] Startup preload failed:", err),
+			);
 			setInterval(
 				() => void writePublicStats(),
 				getPublicStatsIntervalMs({ PUBLIC_STATS_INTERVAL_MS: process.env.PUBLIC_STATS_INTERVAL_MS }),

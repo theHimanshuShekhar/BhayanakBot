@@ -2,7 +2,7 @@
 name: "/autorespond"
 cat: "Autoresponders"
 tags: ["ADMIN", "AUTO"]
-summary: "Add, remove, and list static or LLM auto-responses with keyword or regex triggers."
+summary: "Add, remove, and list static or context-aware LLM auto-responses with keyword or regex triggers."
 syntax:
   cmd: "/autorespond"
   args:
@@ -31,4 +31,4 @@ related:
   - { n: "/personality", d: "AI personality context" }
 ---
 
-Requires admin access. `add` supports `match-type`, `use-llm`, `use-regex`, channel filters, mention requirements, chance, and trigger deletion. `remove` deletes by trigger and `list` shows configured responses.
+Requires admin access. `add` supports `match-type`, `use-llm`, `use-regex`, channel filters, mention requirements, chance, and trigger deletion. LLM auto-responses use the recent channel conversation cache for context before replying. `remove` deletes by trigger and `list` shows configured responses.

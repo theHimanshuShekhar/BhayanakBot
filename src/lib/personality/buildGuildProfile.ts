@@ -40,12 +40,22 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 export async function buildGuildPersonalityProfile(guildId: string): Promise<GuildPersonalityBuildResult> {
-	if (rebuildInProgress.has(guildId)) return { status: "skipped_in_progress" };
+	container.logger.debug(`[guild-personality] build requested guildId=${guildId}`);
+	if (rebuildInProgress.has(guildId)) {
+		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=in-progress`);
+		return { status: "skipped_in_progress" };
+	}
 	rebuildInProgress.add(guildId);
+	const startedAt = Date.now();
 	try {
-		return await buildGuildPersonalityProfileUnguarded(guildId);
+		const result = await buildGuildPersonalityProfileUnguarded(guildId);
+		container.logger.debug(
+			`[guild-personality] build finished guildId=${guildId} status=${result.status} durationMs=${Date.now() - startedAt}`,
+		);
+		return result;
 	} finally {
 		rebuildInProgress.delete(guildId);
+		container.logger.debug(`[guild-personality] build lock released guildId=${guildId}`);
 	}
 }
 
@@ -55,33 +65,66 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 		columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
 	});
 
+	container.logger.debug(
+		`[guild-personality] profile-row guildId=${guildId} exists=${row ? "yes" : "no"} hasProfile=${row?.profile ? "yes" : "no"} lastRefreshedAt=${row?.lastRefreshedAt?.toISOString() ?? "none"} cursorAt=${row?.lastTrainingMessageAt?.toISOString() ?? "none"} cursorId=${row?.lastTrainingMessageId ?? "none"}`,
+	);
+
 	const existingProfile = row?.profile ?? null;
 	const threshold = existingProfile ? REFRESH_GUILD_PROFILE_THRESHOLD : INITIAL_GUILD_PROFILE_THRESHOLD;
+	container.logger.debug(
+		`[guild-personality] threshold guildId=${guildId} mode=${existingProfile ? "refresh" : "initial"} threshold=${threshold}`,
+	);
 	const messages = await getEligibleGuildTrainingMessageWindow({
 		guildId,
 		afterMessageCreatedAt: row?.lastTrainingMessageAt ?? null,
 		afterMessageId: row?.lastTrainingMessageId ?? null,
 		limit: threshold,
 	});
-	if (messages.length === 0) return { status: "skipped_insufficient_evidence" };
+	container.logger.debug(
+		`[guild-personality] evidence-window guildId=${guildId} fetched=${messages.length} threshold=${threshold} firstMessageAt=${messages[0]?.messageCreatedAt.toISOString() ?? "none"} lastMessageAt=${messages.at(-1)?.messageCreatedAt.toISOString() ?? "none"}`,
+	);
+	if (messages.length === 0) {
+		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=no-eligible-messages`);
+		return { status: "skipped_insufficient_evidence" };
+	}
 
-	if (messages.length < threshold) return { status: "skipped_insufficient_evidence" };
+	if (messages.length < threshold) {
+		container.logger.debug(
+			`[guild-personality] build skip guildId=${guildId} reason=insufficient-evidence fetched=${messages.length} threshold=${threshold}`,
+		);
+		return { status: "skipped_insufficient_evidence" };
+	}
 
 	// Cooldown: don't hammer Ollama if builds fail or server is extremely active
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
-		container.logger.debug(`[guild-personality] Skipping build for guildId=${guildId}: cooldown active`);
+		container.logger.debug(
+			`[guild-personality] build skip guildId=${guildId} reason=cooldown remainingMs=${MIN_BUILD_INTERVAL_MS - (Date.now() - row.lastRefreshedAt.getTime())}`,
+		);
 		return { status: "skipped_cooldown" };
 	}
 
 	const sampledMessages = selectBalancedGuildPromptMessages(messages);
 	const authorLabels = buildAuthorLabels(messages);
+	container.logger.debug(
+		`[guild-personality] sampling guildId=${guildId} fetched=${messages.length} sampled=${sampledMessages.length} uniqueAuthors=${authorLabels.size} maxMessages=${MAX_MESSAGES_PER_BUILD}`,
+	);
 	let messageBlock = "";
+	let messageBlockLines = 0;
 	for (const m of sampledMessages) {
 		const line = `${authorLabels.get(m.authorUserId)}: ${m.content}`;
 		if (messageBlock.length + line.length > MAX_CHARS_PER_BUILD) break;
 		messageBlock += (messageBlock ? "\n" : "") + line;
+		messageBlockLines++;
 	}
-	if (messageBlock.length === 0) return { status: "skipped_insufficient_evidence" };
+	if (messageBlock.length === 0) {
+		container.logger.debug(
+			`[guild-personality] build skip guildId=${guildId} reason=message-block-empty sampled=${sampledMessages.length} maxChars=${MAX_CHARS_PER_BUILD}`,
+		);
+		return { status: "skipped_insufficient_evidence" };
+	}
+	container.logger.debug(
+		`[guild-personality] prompt-evidence guildId=${guildId} messageBlockLines=${messageBlockLines} messageBlockLength=${messageBlock.length} maxChars=${MAX_CHARS_PER_BUILD}`,
+	);
 
 	const userPrompt = existingProfile
 		? [
@@ -99,9 +142,17 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 
 	const client = container.client as BhayanakClient;
 
+	container.logger.debug(
+		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${OLLAMA_TIMEOUT_MS}`,
+	);
+	const llmStartedAt = Date.now();
 	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, "personality:guild");
+	container.logger.debug(
+		`[guild-personality] llm-result guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
+	);
 	if (!result) {
 		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
+		container.logger.debug(`[guild-personality] storage-empty-result guildId=${guildId} action=touch-lastRefreshedAt`);
 		await db
 			.insert(guildPersonalityProfiles)
 			.values({ guildId, lastRefreshedAt: new Date() })
@@ -113,8 +164,14 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 	}
 
 	const newestProcessedMessage = messages[messages.length - 1];
-	if (!newestProcessedMessage) return { status: "skipped_insufficient_evidence" };
+	if (!newestProcessedMessage) {
+		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=no-newest-processed-message`);
+		return { status: "skipped_insufficient_evidence" };
+	}
 	const refreshedAt = new Date();
+	container.logger.debug(
+		`[guild-personality] storage-upsert start guildId=${guildId} absorbed=${messages.length} sampled=${sampledMessages.length} profileLength=${result.length} cursorAt=${newestProcessedMessage.messageCreatedAt.toISOString()} cursorId=${newestProcessedMessage.messageId}`,
+	);
 
 	await db.transaction(async (tx) => {
 		await tx
@@ -138,9 +195,11 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 				},
 			});
 	});
+	container.logger.debug(`[guild-personality] storage-upsert complete guildId=${guildId}`);
 
 	// Invalidate cache
-	client.guildPersonalityCache.delete(guildId);
+	const hadCacheEntry = client.guildPersonalityCache.delete(guildId);
+	container.logger.debug(`[guild-personality] cache invalidate guildId=${guildId} hadEntry=${hadCacheEntry}`);
 
 	container.logger.debug(
 		`[guild-personality] Profile updated for guildId=${guildId} (${sampledMessages.length}/${messages.length} messages sampled)`,

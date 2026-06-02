@@ -46,25 +46,41 @@ const SYSTEM_PROMPT = [
 
 export async function buildPersonalityProfile(userId: string, guildId: string): Promise<PersonalityBuildResult> {
 	const rebuildKey = `${userId}:${guildId}`;
-	if (rebuildInProgress.has(rebuildKey)) return { status: "skipped_in_progress" };
+	container.logger.debug(`[personality] build requested userId=${userId} guildId=${guildId}`);
+	if (rebuildInProgress.has(rebuildKey)) {
+		container.logger.debug(`[personality] build skip userId=${userId} guildId=${guildId} reason=in-progress`);
+		return { status: "skipped_in_progress" };
+	}
 	rebuildInProgress.add(rebuildKey);
+	const startedAt = Date.now();
 	try {
-		return await buildPersonalityProfileUnguarded(userId, guildId);
+		const result = await buildPersonalityProfileUnguarded(userId, guildId);
+		container.logger.debug(
+			`[personality] build finished userId=${userId} guildId=${guildId} status=${result.status} durationMs=${Date.now() - startedAt}`,
+		);
+		return result;
 	} finally {
 		rebuildInProgress.delete(rebuildKey);
+		container.logger.debug(`[personality] build lock released userId=${userId} guildId=${guildId}`);
 	}
 }
 
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<PersonalityBuildResult> {
+	container.logger.debug(`[personality] cleanup-old-messages start userId=${userId} guildId=${guildId}`);
 	// Clean up stale messages before building to keep the table lean
 	await cleanupOldMessages();
+	container.logger.debug(`[personality] cleanup-old-messages complete userId=${userId} guildId=${guildId}`);
 
 	const row = await db.query.userPersonalityProfiles.findFirst({
 		where: and(eq(userPersonalityProfiles.userId, userId), eq(userPersonalityProfiles.guildId, guildId)),
 		columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
 	});
+
+	container.logger.debug(
+		`[personality] profile-row userId=${userId} guildId=${guildId} exists=${row ? "yes" : "no"} hasProfile=${row?.profile ? "yes" : "no"} lastRefreshedAt=${row?.lastRefreshedAt?.toISOString() ?? "none"} cursorAt=${row?.lastTrainingMessageAt?.toISOString() ?? "none"} cursorId=${row?.lastTrainingMessageId ?? "none"}`,
+	);
 
 	const messages = await getEligibleUserTrainingMessages({
 		guildId,
@@ -73,15 +89,31 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		afterMessageId: row?.lastTrainingMessageId ?? null,
 		limit: MAX_MESSAGES_PER_BUILD,
 	});
-	if (messages.length === 0) return { status: "skipped_insufficient_evidence" };
+	container.logger.debug(
+		`[personality] evidence-window userId=${userId} guildId=${guildId} fetched=${messages.length} max=${MAX_MESSAGES_PER_BUILD} firstMessageAt=${messages[0]?.messageCreatedAt.toISOString() ?? "none"} lastMessageAt=${messages.at(-1)?.messageCreatedAt.toISOString() ?? "none"}`,
+	);
+	if (messages.length === 0) {
+		container.logger.debug(`[personality] build skip userId=${userId} guildId=${guildId} reason=no-eligible-messages`);
+		return { status: "skipped_insufficient_evidence" };
+	}
 
 	const existingProfile = row?.profile ?? null;
 	const threshold = existingProfile ? REFRESH_USER_PROFILE_THRESHOLD : INITIAL_USER_PROFILE_THRESHOLD;
-	if (messages.length < threshold) return { status: "skipped_insufficient_evidence" };
+	container.logger.debug(
+		`[personality] threshold userId=${userId} guildId=${guildId} mode=${existingProfile ? "refresh" : "initial"} threshold=${threshold} fetched=${messages.length}`,
+	);
+	if (messages.length < threshold) {
+		container.logger.debug(
+			`[personality] build skip userId=${userId} guildId=${guildId} reason=insufficient-evidence fetched=${messages.length} threshold=${threshold}`,
+		);
+		return { status: "skipped_insufficient_evidence" };
+	}
 
 	// Cooldown: don't hammer Ollama if builds fail or user spams messages
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
-		container.logger.debug(`[personality] Skipping build for userId=${userId} guildId=${guildId}: cooldown active`);
+		container.logger.debug(
+			`[personality] build skip userId=${userId} guildId=${guildId} reason=cooldown remainingMs=${MIN_BUILD_INTERVAL_MS - (Date.now() - row.lastRefreshedAt.getTime())}`,
+		);
 		return { status: "skipped_cooldown" };
 	}
 
@@ -93,7 +125,15 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		messageBlock += (messageBlock ? "\n" : "") + m.content;
 		processed.push(m);
 	}
-	if (processed.length === 0) return { status: "skipped_insufficient_evidence" };
+	if (processed.length === 0) {
+		container.logger.debug(
+			`[personality] build skip userId=${userId} guildId=${guildId} reason=message-block-empty fetched=${messages.length} maxChars=${MAX_CHARS_PER_BUILD}`,
+		);
+		return { status: "skipped_insufficient_evidence" };
+	}
+	container.logger.debug(
+		`[personality] prompt-evidence userId=${userId} guildId=${guildId} processed=${processed.length} fetched=${messages.length} messageBlockLength=${messageBlock.length} maxChars=${MAX_CHARS_PER_BUILD}`,
+	);
 
 	const userPrompt = existingProfile
 		? [
@@ -114,10 +154,20 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 
 	const client = container.client as BhayanakClient;
 
+	container.logger.debug(
+		`[personality] llm-call userId=${userId} guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${OLLAMA_TIMEOUT_MS}`,
+	);
+	const llmStartedAt = Date.now();
 	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, "personality:user");
+	container.logger.debug(
+		`[personality] llm-result userId=${userId} guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
+	);
 	if (!result) {
 		container.logger.warn(
 			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,
+		);
+		container.logger.debug(
+			`[personality] storage-empty-result userId=${userId} guildId=${guildId} action=touch-lastRefreshedAt`,
 		);
 		await db
 			.insert(userPersonalityProfiles)
@@ -130,8 +180,16 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	}
 
 	const newestProcessedMessage = processed[processed.length - 1];
-	if (!newestProcessedMessage) return { status: "skipped_insufficient_evidence" };
+	if (!newestProcessedMessage) {
+		container.logger.debug(
+			`[personality] build skip userId=${userId} guildId=${guildId} reason=no-newest-processed-message`,
+		);
+		return { status: "skipped_insufficient_evidence" };
+	}
 	const refreshedAt = new Date();
+	container.logger.debug(
+		`[personality] storage-upsert start userId=${userId} guildId=${guildId} processed=${processed.length} profileLength=${result.length} cursorAt=${newestProcessedMessage.messageCreatedAt.toISOString()} cursorId=${newestProcessedMessage.messageId}`,
+	);
 
 	// Atomic: upsert profile and advance the archive cursor in one transaction.
 	// Decrement counter by absorbed count instead of resetting to 0 — this preserves
@@ -159,9 +217,14 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 				},
 			});
 	});
+	container.logger.debug(`[personality] storage-upsert complete userId=${userId} guildId=${guildId}`);
 
 	// Invalidate in-memory cache so the next response picks up the fresh profile
-	client.personalityCache.delete(`${userId}:${guildId}`);
+	const cacheKey = `${userId}:${guildId}`;
+	const hadCacheEntry = client.personalityCache.delete(cacheKey);
+	container.logger.debug(
+		`[personality] cache invalidate userId=${userId} guildId=${guildId} hadEntry=${hadCacheEntry}`,
+	);
 
 	container.logger.debug(
 		`[personality] Profile updated for userId=${userId} guildId=${guildId} (${processed.length}/${messages.length} messages processed)`,

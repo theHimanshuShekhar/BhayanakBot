@@ -553,7 +553,7 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/autorespond",
-		description: "Add, remove, and list static or LLM auto-responses with keyword or regex triggers.",
+		description: "Add, remove, and list static or context-aware LLM auto-responses with keyword or regex triggers.",
 		examples: [
 			"/autorespond add trigger:hello response:Hi there!",
 			"/autorespond add trigger:^my name is (?<name>.+)$ response:Nice to meet you, {name}! use-regex:true",
@@ -564,7 +564,7 @@ export const RAW_COMMANDS: Command[] = [
 		category: "autorespond",
 		subcommands: {
 			add: {
-				summary: "Add a static or LLM-backed auto-response trigger.",
+				summary: "Add a static or LLM-backed auto-response trigger. LLM replies use recent channel context.",
 				examples: [
 					'/autorespond add trigger:"hello" response:"Hi there!"',
 					'/autorespond add trigger:"bug" response:"Please file a bug report!" require-mention:true',

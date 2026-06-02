@@ -99,6 +99,7 @@ function createMessage(input: {
 	createdAt?: Date;
 	bot?: boolean;
 	mentionCount?: number;
+	referencedMessageId?: string;
 }) {
 	const authorId = input.authorId ?? USER_ID;
 	const channelId = input.channelId ?? GUESS_WHO_CHANNEL_ID;
@@ -108,6 +109,9 @@ function createMessage(input: {
 	return {
 		id: input.messageId,
 		channelId,
+		reference: input.referencedMessageId
+			? { channelId, guildId: GUILD_ID, messageId: input.referencedMessageId }
+			: null,
 		content: input.content ?? `Listener archived personality message ${input.messageId} with enough context.`,
 		createdAt: input.createdAt ?? new Date("2026-05-28T12:00:00.000Z"),
 		author: {
@@ -132,6 +136,7 @@ function createMessage(input: {
 		channel: {
 			id: channelId,
 			send: vi.fn(async () => null),
+			messages: { fetch: vi.fn() },
 		},
 		mentions: {
 			users: mentionedUsers,
@@ -142,7 +147,7 @@ function createMessage(input: {
 		},
 		reply: vi.fn(async () => ({ delete: vi.fn(async () => null) })),
 		delete: vi.fn(async () => null),
-	} as never;
+	};
 }
 
 function createListener(): MessageCreateListener {
@@ -440,7 +445,7 @@ describe("messageCreate personality archive flow", () => {
 		mockedGenerateMentionReply.mockResolvedValueOnce(
 			"piss off, excal11bur. goti is catching strays, and Adineo17 is wise beyond her years. excal11burrito stays plain and <@222> stays mentioned.",
 		);
-		const reply = vi.fn(async () => null);
+		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
 		const message = createMessage({
 			messageId: "mention-normalize",
 			channelId: TARGET_TEXT_CHANNEL_ID,
@@ -457,6 +462,41 @@ describe("messageCreate personality archive flow", () => {
 		expect(reply).toHaveBeenCalledWith(
 			"piss off, <@111>. <@222> is catching strays, and <@333> is wise beyond her years. excal11burrito stays plain and <@222> stays mentioned.",
 		);
+	});
+
+	it("anchors bot-tagged reply context on the replied message and up to 10 messages before it", async () => {
+		const listener = createListener();
+		mockedFindMatchingResponse.mockResolvedValue(undefined);
+		for (let index = 1; index <= 12; index++) {
+			await listener.run(
+				createMessage({
+					messageId: `reply-prior-${index}`,
+					channelId: "reply-context-channel",
+					authorId: `reply-user-${index}`,
+					content: `reply context message ${index}`,
+				}) as never,
+			);
+		}
+		mockedGenerateMentionReply.mockResolvedValueOnce("reply context answer");
+		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
+		const message = createMessage({
+			messageId: "reply-mention-current",
+			channelId: "reply-context-channel",
+			authorId: "reply-mention-author",
+			content: "<@bot-user> what do you think?",
+			referencedMessageId: "reply-prior-12",
+		});
+		message.reply = reply;
+		message.mentions.has = vi.fn(() => true);
+
+		await listener.run(message as never);
+
+		expect(mockedGenerateMentionReply.mock.calls[0]?.[1]).toBe(
+			Array.from({ length: 11 }, (_, index) => `<@reply-user-${index + 2}>: reply context message ${index + 2}`).join(
+				"\n",
+			),
+		);
+		expect(reply).toHaveBeenCalledWith("reply context answer");
 	});
 
 	it("normalizes known user names in generated autoresponder replies", async () => {
@@ -477,7 +517,7 @@ describe("messageCreate personality archive flow", () => {
 			},
 		});
 		mockedGenerateAutoResponse.mockResolvedValueOnce("excal11bur and goti are both in this generated reply.");
-		const reply = vi.fn(async () => null);
+		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
 		const message = createMessage({ messageId: "llm-autoresponse-normalize", channelId: TARGET_TEXT_CHANNEL_ID });
 		message.reply = reply;
 		message.guild.members.cache.set("111", { id: "111", displayName: "excal11bur", user: { username: "excal11bur" } });
@@ -487,6 +527,56 @@ describe("messageCreate personality archive flow", () => {
 
 		expect(mockedGenerateAutoResponse.mock.calls[0]?.[2]).toBe(`<@${USER_ID}>`);
 		expect(reply).toHaveBeenCalledWith("<@111> and <@222> are both in this generated reply.");
+	});
+
+	it("passes the last 20 cached prior channel messages to LLM auto-responses", async () => {
+		const listener = createListener();
+		mockedFindMatchingResponse.mockResolvedValue(undefined);
+		for (let index = 1; index <= 21; index++) {
+			await listener.run(
+				createMessage({
+					messageId: `prior-${index}`,
+					channelId: TARGET_TEXT_CHANNEL_ID,
+					authorId: `user-${index}`,
+					content: `previous channel message ${index}`,
+				}) as never,
+			);
+		}
+		mockedFindMatchingResponse.mockResolvedValueOnce({
+			response: {
+				id: 1,
+				guildId: GUILD_ID,
+				trigger: "context",
+				response: "Use context.",
+				matchType: "contains",
+				responseType: "llm",
+				useRegex: false,
+				channelIds: [],
+				requireMention: false,
+				chancePercent: 100,
+				deleteTrigger: false,
+				createdAt: new Date("2026-05-28T12:00:00.000Z"),
+			},
+		});
+		mockedGenerateAutoResponse.mockResolvedValueOnce("context-aware reply");
+		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
+		const message = createMessage({
+			messageId: "llm-autoresponse-context",
+			channelId: TARGET_TEXT_CHANNEL_ID,
+			authorId: "context-trigger-user",
+			content: "context trigger message",
+		});
+		message.reply = reply;
+
+		await listener.run(message as never);
+
+		expect(message.channel.messages.fetch).not.toHaveBeenCalled();
+		expect(mockedGenerateAutoResponse.mock.calls[0]?.[3]).toBe(
+			Array.from({ length: 20 }, (_, index) => `<@user-${index + 2}>: previous channel message ${index + 2}`).join(
+				"\n",
+			),
+		);
+		expect(reply).toHaveBeenCalledWith("context-aware reply");
 	});
 
 	it("normalizes malformed known user ID mentions in generated autoresponder replies", async () => {
@@ -509,7 +599,7 @@ describe("messageCreate personality archive flow", () => {
 		mockedGenerateAutoResponse.mockResolvedValueOnce(
 			"Just kidding, @177390168829984768, now I'm cruising at your level.",
 		);
-		const reply = vi.fn(async () => null);
+		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
 		const message = createMessage({
 			messageId: "llm-autoresponse-id-mention",
 			channelId: TARGET_TEXT_CHANNEL_ID,
