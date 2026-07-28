@@ -10,14 +10,13 @@ const FAILURES_BEFORE_UNREACHABLE = 2;
 // while saving the world. See docs/adr/0003-delete-category-when-palworld-unreachable.md
 let consecutiveFailures = 0;
 
-/** `Character - Account - Lv 80`, collapsing to one name when both spellings match. */
+/**
+ * `Steam name - Lv 80`. `accountName` is the Steam account; the in-game character name
+ * (`name`) is only a fallback for the window before the account name has synced.
+ */
 export function playerChannelName(player: PalworldPlayer): string {
-	const character = player.name.trim();
-	const account = player.accountName.trim();
-	const parts = [character, account].filter(Boolean);
-	if (parts.length === 2 && character.toLowerCase() === account.toLowerCase()) parts.pop();
 	// A channel with no name cannot exist, so fall back to something derived from the identity key
-	const label = parts.join(" - ") || `pal-${player.userId.slice(-6)}`;
+	const label = player.accountName.trim() || player.name.trim() || `pal-${player.userId.slice(-6)}`;
 	const suffix = ` - Lv ${player.level}`;
 	return `${label.slice(0, MAX_CHANNEL_NAME_LENGTH - suffix.length)}${suffix}`;
 }
