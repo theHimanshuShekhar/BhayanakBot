@@ -108,7 +108,9 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 				type: ChannelType.GuildCategory,
 				// Player channels are deleted when their player logs off, so anything written in
 				// them would be lost. Read-only makes that plain instead of relying on members to infer it.
-				permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages] }],
+				// The @everyone role id is always the guild id. `guild.roles.everyone` reads the
+				// role cache, which is still empty when this task runs on startup before ready.
+				permissionOverwrites: [{ id: guild.id, deny: [PermissionFlagsBits.SendMessages] }],
 				reason: "Palworld tracker",
 			});
 			this.container.logger.info("[palworld-tracker] Created tracker category");
