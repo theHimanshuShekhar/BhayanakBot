@@ -20,18 +20,12 @@ describe("isPalworldConfigured", () => {
 });
 
 describe("playerChannelName", () => {
-	it("pairs the character and account names", () => {
-		expect(playerChannelName(player())).toBe("Z1N1 - Athena - Lv 80");
+	it("uses the Steam account name, not the in-game character name", () => {
+		expect(playerChannelName(player())).toBe("Athena - Lv 80");
 	});
 
-	it("collapses the pair when both names are the same person", () => {
-		expect(playerChannelName(player({ name: "Ash Wednesday", accountName: "Ash Wednesday", level: 30 }))).toBe(
-			"Ash Wednesday - Lv 30",
-		);
-	});
-
-	it("falls back to the account name while the character is still connecting", () => {
-		expect(playerChannelName(player({ name: "" }))).toBe("Athena - Lv 80");
+	it("falls back to the character name while the account name is still syncing", () => {
+		expect(playerChannelName(player({ accountName: "" }))).toBe("Z1N1 - Lv 80");
 	});
 
 	it("falls back to the identity key when neither name is present", () => {
@@ -39,7 +33,7 @@ describe("playerChannelName", () => {
 	});
 
 	it("stays within Discord's 100 character limit without losing the level", () => {
-		const name = playerChannelName(player({ name: "x".repeat(200), accountName: "" }));
+		const name = playerChannelName(player({ accountName: "x".repeat(200) }));
 		expect(name.length).toBeLessThanOrEqual(100);
 		expect(name.endsWith(" - Lv 80")).toBe(true);
 	});
