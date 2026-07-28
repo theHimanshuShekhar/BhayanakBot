@@ -58,9 +58,20 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 			return;
 		}
 
-		const guild = this.container.client.guilds.cache.get(guildId);
+		const guild = await this.container.client.guilds.fetch(guildId).catch(() => null);
 		if (!guild) {
-			this.container.logger.warn(`[palworld-tracker] Guild ${guildId} not in cache — skipping`);
+			this.container.logger.warn(`[palworld-tracker] Guild ${guildId} is unavailable — skipping`);
+			return;
+		}
+
+		// index.ts runs this task once at startup, before the ready event has filled the
+		// caches. Without these fetches the sweep sees a guild with no channels — it would
+		// miss the existing category and create a duplicate — and no roles, which makes
+		// Discord reject the @everyone permission overwrite as an uncached role.
+		try {
+			await Promise.all([guild.channels.fetch(), guild.roles.fetch()]);
+		} catch (err) {
+			this.container.logger.warn("[palworld-tracker] Failed to load guild channels/roles — skipping:", err);
 			return;
 		}
 
@@ -108,9 +119,7 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 				type: ChannelType.GuildCategory,
 				// Player channels are deleted when their player logs off, so anything written in
 				// them would be lost. Read-only makes that plain instead of relying on members to infer it.
-				// The @everyone role id is always the guild id. `guild.roles.everyone` reads the
-				// role cache, which is still empty when this task runs on startup before ready.
-				permissionOverwrites: [{ id: guild.id, deny: [PermissionFlagsBits.SendMessages] }],
+				permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages] }],
 				reason: "Palworld tracker",
 			});
 			this.container.logger.info("[palworld-tracker] Created tracker category");
