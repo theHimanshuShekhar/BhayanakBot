@@ -2,7 +2,7 @@ import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { type CategoryChannel, ChannelType, type Guild, type GuildBasedChannel, PermissionFlagsBits } from "discord.js";
 import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from "../lib/palworld.js";
 
-const CATEGORY_PREFIX = "Bhayanak Palworld";
+const CATEGORY_PREFIX = "Palworld";
 const MAX_CHANNEL_NAME_LENGTH = 100;
 const FAILURES_BEFORE_UNREACHABLE = 2;
 

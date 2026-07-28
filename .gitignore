@@ -10,3 +10,4 @@ web/src/routeTree.gen.ts
 .worktrees/
 coverage/
 thoughts/ledgers/
+.tokensave
