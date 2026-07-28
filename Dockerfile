@@ -52,7 +52,9 @@ RUN pnpm install --frozen-lockfile
 COPY drizzle.config.ts ./
 COPY drizzle/ ./drizzle/
 COPY web/ ./web/
-COPY src/db/ ./src/db/
+# The web service builds Astro at runtime and imports src/db queries, which in
+# turn reach into src/lib, so the whole source tree has to be here.
+COPY src/ ./src/
 COPY tsconfig.json ./
 COPY --from=base /app/dist ./dist
 

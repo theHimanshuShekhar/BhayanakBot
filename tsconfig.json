@@ -12,8 +12,10 @@
 		"emitDecoratorMetadata": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
-		"declaration": true,
-		"declarationMap": true,
+		// Nothing consumes dist as a library, and .d.ts files in dist make the
+		// Sapphire piece loader log EMPTY_MODULE for every command.
+		"declaration": false,
+		"declarationMap": false,
 		"sourceMap": true,
 		"paths": {
 			"#/*": ["./src/*"]
