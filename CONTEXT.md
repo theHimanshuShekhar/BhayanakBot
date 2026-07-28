@@ -70,7 +70,7 @@ A Discord text channel inside the Palworld Tracker Category representing one pla
 
 A player's account name can be absent while they are still connecting, so the name falls back to the character name, and to a `userId`-derived label when neither is present — a channel with no name cannot exist.
 
-The level in the name is live, not a login snapshot: a sweep that observes a player at a different level renames their channel to match. A channel is renamed only when what it says has actually stopped being true, so a player who does not level up is never renamed at all. Because the channel is deleted on disconnect, any messages posted in it would be lost; the channel is therefore readable by everyone but writable by no one. It is a presence indicator, not a conversation, and its permissions say so rather than relying on members to infer it.
+The name is live, not a login snapshot: a sweep that observes a player under a different account name or at a different level renames their channel to match. A channel is renamed only when what it says has actually stopped being true, so a player whose name and level are unchanged is never renamed at all. Because Discord rewrites the name it is given, "unchanged" is judged on the letters and digits alone — a name that differs only in punctuation or spacing is left as it is, rather than being renamed on every sweep by a comparison that can never agree with itself. Because the channel is deleted on disconnect, any messages posted in it would be lost; the channel is therefore readable by everyone but writable by no one. It is a presence indicator, not a conversation, and its permissions say so rather than relying on members to infer it.
 
 ## Public Bot Stats Snapshot
 

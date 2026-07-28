@@ -26,14 +26,15 @@ function categoryName(onlineCount: number): string {
 }
 
 /**
- * Reads the level back out of a live channel name. Discord lowercases names and turns
- * spaces into dashes, so the name we sent is not the name we get back — but the digits
- * survive intact. Comparing the level this way avoids re-sending a rename every sweep
- * just because our idea of the sanitised name differs from Discord's.
+ * Reduces a channel name to a form both we and Discord agree on. Discord lowercases names,
+ * turns spaces into dashes and silently drops characters it dislikes, so the name we sent
+ * is never the name we read back. Keeping only letters and digits means every separator
+ * Discord might rewrite or drop is gone from both sides, so a rename that can never
+ * converge is never re-sent on every sweep. Lossy on purpose: two names differing only in
+ * punctuation compare equal and simply keep the name they already have.
  */
-export function levelFromChannelName(name: string): number | null {
-	const match = name.match(/lv-(\d+)$/);
-	return match ? Number(match[1]) : null;
+export function channelNameSlug(name: string): string {
+	return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function findCategory(guild: Guild): CategoryChannel | undefined {
@@ -161,8 +162,9 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 						reason: "Player joined the Palworld server",
 					});
 					created++;
-				} else if (channel.type === ChannelType.GuildText && levelFromChannelName(channel.name) !== player.level) {
-					await channel.setName(name, "Palworld level changed");
+				} else if (channel.type === ChannelType.GuildText && channelNameSlug(channel.name) !== channelNameSlug(name)) {
+					// Covers a level change and a display name that has changed under us
+					await channel.setName(name, "Palworld player name or level changed");
 					renamed++;
 				}
 			} catch (err) {
