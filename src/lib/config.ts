@@ -16,6 +16,8 @@ const envSchema = z.object({
 	GUESS_WHO_CHANNEL_ID: optionalSnowflake,
 	BOT_OWNER_ID: optionalSnowflake,
 	ZEN_ALLOW_DISCORD_CONTENT: z.enum(["true", "false"]).optional(),
+	PALWORLD_API_URL: z.string().trim().url().optional().or(z.literal("")),
+	PALWORLD_ADMIN_KEY: z.string().trim().optional(),
 	OLLAMA_MAX_QUEUE_LENGTH: z.coerce.number().int().positive().optional(),
 	OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH: z.coerce.number().int().positive().optional(),
 	OLLAMA_QUEUE_WAIT_TIMEOUT_MS: z.coerce.number().int().positive().optional(),

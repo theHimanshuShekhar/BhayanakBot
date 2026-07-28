@@ -1,0 +1,60 @@
+import { describe, expect, it } from "vitest";
+import { isPalworldConfigured, type PalworldPlayer } from "../../../src/lib/palworld.js";
+import { levelFromChannelName, playerChannelName } from "../../../src/scheduled-tasks/syncPalworldTracker.js";
+
+function player(overrides: Partial<PalworldPlayer> = {}): PalworldPlayer {
+	return { name: "Z1N1", accountName: "Athena", userId: "steam_76561198271516743", level: 80, ...overrides };
+}
+
+/** Approximates what Discord does to a text channel name it is given. */
+function discordSanitize(name: string): string {
+	return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+describe("isPalworldConfigured", () => {
+	it("needs only the admin key, since the URL falls back to the local server", () => {
+		expect(isPalworldConfigured({ PALWORLD_ADMIN_KEY: "secret" })).toBe(true);
+		expect(isPalworldConfigured({ PALWORLD_API_URL: "http://10.1.1.160:8212" })).toBe(false);
+		expect(isPalworldConfigured({})).toBe(false);
+	});
+});
+
+describe("playerChannelName", () => {
+	it("pairs the character and account names", () => {
+		expect(playerChannelName(player())).toBe("Z1N1 - Athena - Lv 80");
+	});
+
+	it("collapses the pair when both names are the same person", () => {
+		expect(playerChannelName(player({ name: "Ash Wednesday", accountName: "Ash Wednesday", level: 30 }))).toBe(
+			"Ash Wednesday - Lv 30",
+		);
+	});
+
+	it("falls back to the account name while the character is still connecting", () => {
+		expect(playerChannelName(player({ name: "" }))).toBe("Athena - Lv 80");
+	});
+
+	it("falls back to the identity key when neither name is present", () => {
+		expect(playerChannelName(player({ name: "", accountName: "" }))).toBe("pal-516743 - Lv 80");
+	});
+
+	it("stays within Discord's 100 character limit without losing the level", () => {
+		const name = playerChannelName(player({ name: "x".repeat(200), accountName: "" }));
+		expect(name.length).toBeLessThanOrEqual(100);
+		expect(name.endsWith(" - Lv 80")).toBe(true);
+	});
+});
+
+describe("levelFromChannelName", () => {
+	// If this round trip breaks, every sweep sees a level mismatch and renames every
+	// channel, burning the 2-per-10-minutes rename budget for no reason.
+	it("recovers the level from the name Discord actually stores", () => {
+		for (const p of [player(), player({ name: "", accountName: "" }), player({ level: 1 })]) {
+			expect(levelFromChannelName(discordSanitize(playerChannelName(p)))).toBe(p.level);
+		}
+	});
+
+	it("returns null for a channel that carries no level", () => {
+		expect(levelFromChannelName("general")).toBeNull();
+	});
+});

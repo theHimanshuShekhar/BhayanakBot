@@ -1,0 +1,184 @@
+import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
+import { type CategoryChannel, ChannelType, type Guild, type GuildBasedChannel, PermissionFlagsBits } from "discord.js";
+import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from "../lib/palworld.js";
+
+const CATEGORY_PREFIX = "Bhayanak Palworld";
+const MAX_CHANNEL_NAME_LENGTH = 100;
+const FAILURES_BEFORE_UNREACHABLE = 2;
+
+// A single failed sweep is not enough to tear down the roster — Palworld servers stall
+// while saving the world. See docs/adr/0003-delete-category-when-palworld-unreachable.md
+let consecutiveFailures = 0;
+
+/** `Character - Account - Lv 80`, collapsing to one name when both spellings match. */
+export function playerChannelName(player: PalworldPlayer): string {
+	const character = player.name.trim();
+	const account = player.accountName.trim();
+	const parts = [character, account].filter(Boolean);
+	if (parts.length === 2 && character.toLowerCase() === account.toLowerCase()) parts.pop();
+	// A channel with no name cannot exist, so fall back to something derived from the identity key
+	const label = parts.join(" - ") || `pal-${player.userId.slice(-6)}`;
+	const suffix = ` - Lv ${player.level}`;
+	return `${label.slice(0, MAX_CHANNEL_NAME_LENGTH - suffix.length)}${suffix}`;
+}
+
+function categoryName(onlineCount: number): string {
+	return `${CATEGORY_PREFIX} — ${onlineCount} online`;
+}
+
+/**
+ * Reads the level back out of a live channel name. Discord lowercases names and turns
+ * spaces into dashes, so the name we sent is not the name we get back — but the digits
+ * survive intact. Comparing the level this way avoids re-sending a rename every sweep
+ * just because our idea of the sanitised name differs from Discord's.
+ */
+export function levelFromChannelName(name: string): number | null {
+	const match = name.match(/lv-(\d+)$/);
+	return match ? Number(match[1]) : null;
+}
+
+function findCategory(guild: Guild): CategoryChannel | undefined {
+	return guild.channels.cache.find(
+		(channel): channel is CategoryChannel =>
+			channel.type === ChannelType.GuildCategory && channel.name.startsWith(CATEGORY_PREFIX),
+	);
+}
+
+export class SyncPalworldTrackerTask extends ScheduledTask {
+	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
+		super(context, { ...options, name: "syncPalworldTracker" });
+	}
+
+	public async run(): Promise<void> {
+		if (!isPalworldConfigured()) return;
+
+		const guildId = process.env.TARGET_GUILD_ID?.trim();
+		if (!guildId) {
+			this.container.logger.warn("[palworld-tracker] TARGET_GUILD_ID is not set — skipping");
+			return;
+		}
+
+		const guild = this.container.client.guilds.cache.get(guildId);
+		if (!guild) {
+			this.container.logger.warn(`[palworld-tracker] Guild ${guildId} not in cache — skipping`);
+			return;
+		}
+
+		const startedAt = Date.now();
+		this.container.logger.debug("[palworld-tracker] sweep start");
+
+		let players: PalworldPlayer[];
+		try {
+			players = await fetchPalworldPlayers();
+		} catch (err) {
+			consecutiveFailures++;
+			this.container.logger.warn(`[palworld-tracker] fetch failed (${consecutiveFailures} in a row):`, err);
+			if (consecutiveFailures >= FAILURES_BEFORE_UNREACHABLE) await this.removeCategory(guild);
+			return;
+		}
+
+		consecutiveFailures = 0;
+		await this.syncCategory(guild, players);
+		this.container.logger.debug(
+			`[palworld-tracker] sweep complete online=${players.length} durationMs=${Date.now() - startedAt}`,
+		);
+	}
+
+	/** The server is unreachable: the category's absence is how that state is expressed. */
+	private async removeCategory(guild: Guild): Promise<void> {
+		const category = findCategory(guild);
+		if (!category) return;
+
+		this.container.logger.info("[palworld-tracker] Server unreachable — removing tracker category");
+		for (const child of category.children.cache.values()) {
+			await this.deleteChannel(child, "Palworld server unreachable");
+		}
+		try {
+			await category.delete("Palworld server unreachable");
+		} catch (err) {
+			this.container.logger.error("[palworld-tracker] Failed to delete category:", err);
+		}
+	}
+
+	private async syncCategory(guild: Guild, players: PalworldPlayer[]): Promise<void> {
+		let category = findCategory(guild);
+		if (!category) {
+			category = await guild.channels.create({
+				name: categoryName(players.length),
+				type: ChannelType.GuildCategory,
+				// Player channels are deleted when their player logs off, so anything written in
+				// them would be lost. Read-only makes that plain instead of relying on members to infer it.
+				permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages] }],
+				reason: "Palworld tracker",
+			});
+			this.container.logger.info("[palworld-tracker] Created tracker category");
+		}
+
+		// The topic holds the player's Palworld userId — the only reliable identity key,
+		// since display names collide and Discord mangles channel names.
+		const byUserId = new Map<string, GuildBasedChannel>();
+		const strays: GuildBasedChannel[] = [];
+		for (const child of category.children.cache.values()) {
+			const userId = child.type === ChannelType.GuildText ? child.topic?.trim() : undefined;
+			if (userId && !byUserId.has(userId)) byUserId.set(userId, child);
+			else strays.push(child);
+		}
+
+		const online = new Set(players.map((player) => player.userId));
+		let created = 0;
+		let deleted = 0;
+		let renamed = 0;
+
+		for (const [userId, channel] of byUserId) {
+			if (online.has(userId)) continue;
+			if (await this.deleteChannel(channel, "Player left the Palworld server")) deleted++;
+		}
+		// The bot owns this category outright, so anything it did not create does not belong here
+		for (const channel of strays) {
+			if (await this.deleteChannel(channel, "Not a Palworld player channel")) deleted++;
+		}
+
+		for (const player of players) {
+			const name = playerChannelName(player);
+			const channel = byUserId.get(player.userId);
+			try {
+				if (!channel) {
+					await guild.channels.create({
+						name,
+						type: ChannelType.GuildText,
+						parent: category.id,
+						topic: player.userId,
+						reason: "Player joined the Palworld server",
+					});
+					created++;
+				} else if (channel.type === ChannelType.GuildText && levelFromChannelName(channel.name) !== player.level) {
+					await channel.setName(name, "Palworld level changed");
+					renamed++;
+				}
+			} catch (err) {
+				this.container.logger.error(`[palworld-tracker] Failed to sync channel for ${player.userId}:`, err);
+			}
+		}
+
+		const desiredCategoryName = categoryName(players.length);
+		if (category.name !== desiredCategoryName) {
+			try {
+				await category.setName(desiredCategoryName, "Palworld online count changed");
+			} catch (err) {
+				this.container.logger.error("[palworld-tracker] Failed to rename category:", err);
+			}
+		}
+
+		this.container.logger.debug(`[palworld-tracker] channels created=${created} deleted=${deleted} renamed=${renamed}`);
+	}
+
+	private async deleteChannel(channel: GuildBasedChannel, reason: string): Promise<boolean> {
+		try {
+			await channel.delete(reason);
+			return true;
+		} catch (err) {
+			this.container.logger.error(`[palworld-tracker] Failed to delete channel ${channel.id}:`, err);
+			return false;
+		}
+	}
+}

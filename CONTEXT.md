@@ -50,6 +50,28 @@ A `/guess_who` round can stay active for up to ten minutes in its channel. If no
 
 A Discord jump link to the original message represented by an archived channel message. Game reveals use this link so players can inspect the source message after the author is revealed.
 
+## Palworld Tracker Category
+
+The Discord category whose name carries the live online count (e.g. "Bhayanak Palworld — 4 online") and which holds the live Palworld player roster. The category's channel list *is* the roster: one text channel exists for exactly as long as its player is connected to the Palworld server. The category is owned by the bot — its contents are derived state, rewritten on every tracker sweep, not a place for durable conversation.
+
+The category is identified by name, not by a stored ID, and is created on demand when missing. Its *existence* encodes reachability: the bot deletes the entire category when the Palworld server is unreachable and recreates it on the next successful sweep. So an absent category means "the bot cannot see the server", while a present category with no player channels means "the server is up and nobody is online" — the two states are never confused.
+
+## Tracker Sweep
+
+One pass of the Palworld tracker: fetch the connected players, compare them against the Palworld Player Channels currently in the Palworld Tracker Category, and create or delete channels so the two agree. A sweep is the only thing that mutates the category. Only a successful fetch drives create/delete; a successful fetch reporting nobody online is meaningful and clears the player channels without touching the category itself. Two consecutive failed sweeps mean the server is Unreachable.
+
+## Unreachable
+
+The state entered after two consecutive failed sweeps, where "failed" means the Palworld API did not answer with a usable response. Reaching it deletes the Palworld Tracker Category outright; the next successful sweep recreates it. One isolated failure is not Unreachable — Palworld servers stall briefly during world saves, and a single stall must not tear down the roster.
+
+## Palworld Player Channel
+
+A Discord text channel inside the Palworld Tracker Category representing one player currently connected to the Palworld server. Its *name* pairs the player's in-game character name with their platform account name and their current level — "character - account - level" — because the two names differ and members recognise players by both. When the two names are the same, only one is shown. The name is for humans only and is lossy: Discord lowercases it, dashes spaces, and strips characters, so it is never used to identify a player. Its *topic* carries the player's Palworld `userId` (platform account, stable across sessions and character rerolls), which is the identity key the tracker sweeps on. It is created when the player is first observed connected and deleted when the player is first observed disconnected.
+
+A player's character name can be absent while they are still connecting, so the name falls back to whichever part is present, and to a `userId`-derived label when neither is — a channel with no name cannot exist.
+
+The level in the name is live, not a login snapshot: a sweep that observes a player at a different level renames their channel to match. A channel is renamed only when what it says has actually stopped being true, so a player who does not level up is never renamed at all. Because the channel is deleted on disconnect, any messages posted in it would be lost; the channel is therefore readable by everyone but writable by no one. It is a presence indicator, not a conversation, and its permissions say so rather than relying on members to infer it.
+
 ## Public Bot Stats Snapshot
 
 A database-stored set of public marketing-site metrics written by the running bot after startup. The web app reads the latest snapshot from the database. If the bot is offline or fails to start, the web app may continue showing the most recent stored snapshot as stale data instead of inventing fallback numbers.

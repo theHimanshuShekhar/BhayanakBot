@@ -118,6 +118,8 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `GUESS_WHO_CHANNEL_ID` | `199168135935295488` | Channel whose messages are archived and where `/guess_who` can run |
 | `GUESS_WHO_BACKFILL_LIMIT` | `1000` | Maximum Discord messages scanned during startup backfill for Guess Who archive |
 | `BOT_OWNER_ID` | unset | Optional privileged Discord user ID; blank/unset disables owner bypasses |
+| `PALWORLD_API_URL` | `http://127.0.0.1:8212` | Palworld REST API base URL; the default assumes the server shares a host with the bot, which is false under Docker |
+| `PALWORLD_ADMIN_KEY` | unset | Palworld `AdminPassword`, sent as HTTP Basic auth with username `admin`; setting it enables the live player tracker |
 
 ## Message Archive And Personality
 

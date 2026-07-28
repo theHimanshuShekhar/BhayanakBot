@@ -112,6 +112,8 @@ TARGET_TEXT_CHANNEL_ID=199168135935295488
 GUESS_WHO_CHANNEL_ID=199168135935295488
 GUESS_WHO_BACKFILL_LIMIT=1000
 BOT_OWNER_ID=                         # optional privileged Discord user ID; blank disables owner bypasses
+PALWORLD_API_URL=                     # optional; defaults to http://127.0.0.1:8212. Required under Docker
+PALWORLD_ADMIN_KEY=                   # optional; Palworld AdminPassword — tracker runs once this is set
 YOUTUBE_COOKIE=
 ```
 
