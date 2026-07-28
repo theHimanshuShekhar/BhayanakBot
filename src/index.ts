@@ -164,6 +164,7 @@ async function main() {
 			"reloadOnRestart",
 			"generateDailyQuests",
 			"refreshPersonalityProfiles",
+			"syncPalworldTracker",
 		];
 		for (const taskName of startupTasks) {
 			void runTask(taskName);
@@ -207,6 +208,26 @@ async function main() {
 				}
 			},
 			6 * 60 * 60 * 1000,
+		);
+
+		// Sweep the Palworld roster every 10 minutes
+		let palworldTaskRunning = false;
+		setInterval(
+			async () => {
+				if (palworldTaskRunning) return;
+				palworldTaskRunning = true;
+				try {
+					await client.stores
+						.get("scheduled-tasks")
+						.get("syncPalworldTracker")
+						?.run(null as never);
+				} catch (err) {
+					client.logger.error("[ScheduledTask:syncPalworldTracker] Error:", err);
+				} finally {
+					palworldTaskRunning = false;
+				}
+			},
+			10 * 60 * 1000,
 		);
 
 		// Check once per hour — task is idempotent, skips if quests already exist for today

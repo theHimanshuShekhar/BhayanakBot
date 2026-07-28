@@ -94,6 +94,9 @@ services:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       BOT_OWNER_ID: ${BOT_OWNER_ID:-}
+      TARGET_GUILD_ID: ${TARGET_GUILD_ID:-}
+      PALWORLD_API_URL: ${PALWORLD_API_URL:-}
+      PALWORLD_ADMIN_KEY: ${PALWORLD_ADMIN_KEY:-}
       NODE_ENV: ${NODE_ENV:-production}
     networks:
       - botnet
