@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isPalworldConfigured, type PalworldPlayer } from "../../../src/lib/palworld.js";
-import { levelFromChannelName, playerChannelName } from "../../../src/scheduled-tasks/syncPalworldTracker.js";
+import { channelNameSlug, playerChannelName } from "../../../src/scheduled-tasks/syncPalworldTracker.js";
 
 function player(overrides: Partial<PalworldPlayer> = {}): PalworldPlayer {
 	return { name: "Z1N1", accountName: "Athena", userId: "steam_76561198271516743", level: 80, ...overrides };
@@ -39,16 +39,31 @@ describe("playerChannelName", () => {
 	});
 });
 
-describe("levelFromChannelName", () => {
-	// If this round trip breaks, every sweep sees a level mismatch and renames every
-	// channel, burning the 2-per-10-minutes rename budget for no reason.
-	it("recovers the level from the name Discord actually stores", () => {
+describe("channelNameSlug", () => {
+	// If this round trip breaks, every sweep sees a mismatch and renames every channel,
+	// burning the 2-per-10-minutes rename budget for no reason.
+	it("matches a name against the form Discord actually stores", () => {
 		for (const p of [player(), player({ name: "", accountName: "" }), player({ level: 1 })]) {
-			expect(levelFromChannelName(discordSanitize(playerChannelName(p)))).toBe(p.level);
+			const name = playerChannelName(p);
+			expect(channelNameSlug(discordSanitize(name))).toBe(channelNameSlug(name));
 		}
 	});
 
-	it("returns null for a channel that carries no level", () => {
-		expect(levelFromChannelName("general")).toBeNull();
+	// Discord silently drops characters we cannot predict, so we drop them first —
+	// otherwise these names would be renamed on every single sweep, forever.
+	it("ignores characters Discord may or may not keep", () => {
+		expect(channelNameSlug("Ω Athena! - Lv 80")).toBe(channelNameSlug("Athena - Lv 80"));
+	});
+
+	it("still separates a level change from a settled name", () => {
+		expect(channelNameSlug(playerChannelName(player({ level: 81 })))).not.toBe(
+			channelNameSlug(playerChannelName(player())),
+		);
+	});
+
+	// The reason existing channels kept their old "character - account" name after the
+	// switch to Steam names: a level-only comparison saw nothing to do.
+	it("sees a name change even when the level is unchanged", () => {
+		expect(channelNameSlug("z1n1-athena-lv-80")).not.toBe(channelNameSlug(playerChannelName(player())));
 	});
 });
