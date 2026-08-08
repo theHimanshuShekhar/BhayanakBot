@@ -125,5 +125,20 @@ networks:
 
 volumes:
   pgdata:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${CIFS_USERNAME},password=${CIFS_PASSWORD},uid=70,gid=70,file_mode=0700,dir_mode=0700,iocharset=utf8"
+      device: "//10.1.1.195/weyland/Services/bhayanakbot/postgres"
   valkeydata:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${CIFS_USERNAME},password=${CIFS_PASSWORD},uid=1000,gid=1000,iocharset=utf8,noperm,nobrl,noserverino,cache=none"
+      device: "//10.1.1.195/weyland/Services/bhayanakbot/valkey"
   ollamadata:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${CIFS_USERNAME},password=${CIFS_PASSWORD},uid=1000,gid=1000,iocharset=utf8,noperm,nobrl,noserverino,cache=none"
+      device: "//10.1.1.195/weyland/Services/bhayanakbot/ollama"
