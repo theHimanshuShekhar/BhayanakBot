@@ -11,7 +11,7 @@ const botInviteUrl = getBotInviteUrl();
 	<section class="mx-auto max-w-[1180px] px-8 py-16 max-md:px-5 max-md:py-10">
 		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">docs / setup</div>
 		<h1 class="mt-2 mb-5 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px] max-md:-tracking-[1.5px]">install the<br /><span class="text-accent">chaos engine.</span></h1>
-		<p class="mb-8 max-w-[620px] text-[16px] leading-[1.6] text-fg/65">Invite the hosted bot or self-host the full stack with Postgres, Valkey, Ollama, and the Discord worker.</p>
+		<p class="mb-8 max-w-[620px] text-[16px] leading-[1.6] text-fg/65">Invite the hosted bot or self-host the full stack with Postgres, Valkey, and the Discord worker.</p>
 
 		<div class="mb-8 flex gap-2" data-tabs>
 			<button class="a-tab is-active border-2 border-accent bg-accent px-4 py-2 font-mono text-[12px] font-bold uppercase text-bg" data-tab-button="hosted">Add to Discord</button>
@@ -27,11 +27,11 @@ const botInviteUrl = getBotInviteUrl();
 
 		<section data-tab-panel="self" hidden>
 			<div class="mb-6 grid grid-cols-4 gap-3 max-md:grid-cols-2">
-				{["Node 22+", "pnpm 10+", "Postgres 16", "Valkey 8", "Ollama", "Discord token", "ffmpeg", "Docker optional"].map((item) => <div class="border-2 border-border bg-bg-panel px-4 py-3 font-mono text-[12px] text-fg/70">{item}</div>)}
+				{["Node 22+", "pnpm 10+", "Postgres 16", "Valkey 8", "Discord token", "ffmpeg", "Docker optional"].map((item) => <div class="border-2 border-border bg-bg-panel px-4 py-3 font-mono text-[12px] text-fg/70">{item}</div>)}
 			</div>
 			<div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
 				<CodeBlock title="docker-compose">
-docker compose up -d postgres valkey ollama
+docker compose up -d postgres valkey
 docker compose up --build bot
 				</CodeBlock>
 				<CodeBlock title="local-dev">
@@ -41,7 +41,7 @@ pnpm dev
 				</CodeBlock>
 			</div>
 			<div class="mt-6 overflow-hidden border-2 border-border bg-bg-panel">
-				{["DISCORD_TOKEN", "DATABASE_URL", "VALKEY_URL", "OLLAMA_URL", "OLLAMA_MODEL", "YOUTUBE_COOKIE"].map((key) => <div class="grid grid-cols-[180px_1fr] border-b border-border px-4 py-2.5 last:border-b-0 max-md:grid-cols-1"><code class="font-mono text-[12px] text-accent">{key}</code><span class="text-[13px] text-fg/60">Runtime configuration value</span></div>)}
+				{["DISCORD_TOKEN", "DATABASE_URL", "VALKEY_URL", "ZEN_API_KEY", "YOUTUBE_COOKIE"].map((key) => <div class="grid grid-cols-[180px_1fr] border-b border-border px-4 py-2.5 last:border-b-0 max-md:grid-cols-1"><code class="font-mono text-[12px] text-accent">{key}</code><span class="text-[13px] text-fg/60">Runtime configuration value</span></div>)}
 			</div>
 		</section>
 	</section>

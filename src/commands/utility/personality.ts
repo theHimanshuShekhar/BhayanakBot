@@ -9,6 +9,7 @@ import {
 } from "../../db/queries/personalityTraining.js";
 import { guildPersonalityProfiles, userPersonalityProfiles } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
+import { PERSONALITY_GENERATION_ENABLED } from "../../lib/features.js";
 import {
 	buildGuildPersonalityProfile,
 	type GuildPersonalityBuildResult,
@@ -120,6 +121,17 @@ export class PersonalityCommand extends Command {
 		const group = interaction.options.getSubcommandGroup(true);
 		const target = interaction.options.getUser("user") ?? interaction.user;
 		const guildId = interaction.guildId!;
+
+		if (group === "refresh" && !PERSONALITY_GENERATION_ENABLED) {
+			return interaction.editReply({
+				embeds: [
+					new EmbedBuilder()
+						.setColor(0xfee75c)
+						.setTitle("Profile Generation Disabled")
+						.setDescription("Personality profile generation is currently disabled."),
+				],
+			});
+		}
 
 		const settings = await getOrCreateSettings(guildId);
 		if (!settings.personalityEnabled) {

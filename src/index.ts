@@ -12,6 +12,7 @@ import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conve
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
+import { LOCAL_LLM_ENABLED, PERSONALITY_GENERATION_ENABLED, RPG_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
@@ -86,11 +87,13 @@ async function buildEligibleBackfilledPersonalityProfiles(): Promise<void> {
 
 async function main() {
 	try {
-		await ensureOllamaModel();
-		// Warm up Ollama model so first real request doesn't timeout during lazy load
-		const warmup = await callOllama("", "hi", 10_000, 1);
-		if (warmup !== null) {
-			client.logger.info("[ollama] Model warmed up");
+		if (LOCAL_LLM_ENABLED) {
+			await ensureOllamaModel();
+			// Warm up Ollama model so first real request doesn't timeout during lazy load
+			const warmup = await callOllama("", "hi", 10_000, 1);
+			if (warmup !== null) {
+				client.logger.info("[ollama] Model warmed up");
+			}
 		}
 		await client.player.extractors.loadMulti(DefaultExtractors);
 		await client.player.extractors.register(YoutubeExtractor, {
@@ -134,7 +137,7 @@ async function main() {
 			void backfillGuessWhoMessages(client)
 				.then(async (count) => {
 					client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`);
-					await buildEligibleBackfilledPersonalityProfiles();
+					if (PERSONALITY_GENERATION_ENABLED) await buildEligibleBackfilledPersonalityProfiles();
 				})
 				.catch((err) => client.logger.error("[guess-who] Backfill failed:", err));
 		});
@@ -162,10 +165,10 @@ async function main() {
 			"endGiveaways",
 			"endPolls",
 			"reloadOnRestart",
-			"generateDailyQuests",
-			"refreshPersonalityProfiles",
 			"syncPalworldTracker",
 		];
+		if (RPG_ENABLED) startupTasks.push("generateDailyQuests");
+		if (PERSONALITY_GENERATION_ENABLED) startupTasks.push("refreshPersonalityProfiles");
 		for (const taskName of startupTasks) {
 			void runTask(taskName);
 		}
@@ -190,25 +193,27 @@ async function main() {
 			}, 30_000);
 		}
 
-		// Refresh personality profiles every 6 hours
-		let personalityTaskRunning = false;
-		setInterval(
-			async () => {
-				if (personalityTaskRunning) return;
-				personalityTaskRunning = true;
-				try {
-					await client.stores
-						.get("scheduled-tasks")
-						.get("refreshPersonalityProfiles")
-						?.run(null as never);
-				} catch (err) {
-					client.logger.error("[ScheduledTask:refreshPersonalityProfiles] Error:", err);
-				} finally {
-					personalityTaskRunning = false;
-				}
-			},
-			6 * 60 * 60 * 1000,
-		);
+		if (PERSONALITY_GENERATION_ENABLED) {
+			// Refresh personality profiles every 6 hours
+			let personalityTaskRunning = false;
+			setInterval(
+				async () => {
+					if (personalityTaskRunning) return;
+					personalityTaskRunning = true;
+					try {
+						await client.stores
+							.get("scheduled-tasks")
+							.get("refreshPersonalityProfiles")
+							?.run(null as never);
+					} catch (err) {
+						client.logger.error("[ScheduledTask:refreshPersonalityProfiles] Error:", err);
+					} finally {
+						personalityTaskRunning = false;
+					}
+				},
+				6 * 60 * 60 * 1000,
+			);
+		}
 
 		// Sweep the Palworld roster every 10 minutes
 		let palworldTaskRunning = false;
@@ -230,25 +235,27 @@ async function main() {
 			10 * 60 * 1000,
 		);
 
-		// Check once per hour — task is idempotent, skips if quests already exist for today
-		let questTaskRunning = false;
-		setInterval(
-			async () => {
-				if (questTaskRunning) return;
-				questTaskRunning = true;
-				try {
-					await client.stores
-						.get("scheduled-tasks")
-						.get("generateDailyQuests")
-						?.run(null as never);
-				} catch (err) {
-					client.logger.error("[ScheduledTask:generateDailyQuests] Error:", err);
-				} finally {
-					questTaskRunning = false;
-				}
-			},
-			60 * 60 * 1000,
-		);
+		if (RPG_ENABLED) {
+			// Check once per hour — task is idempotent, skips if quests already exist for today
+			let questTaskRunning = false;
+			setInterval(
+				async () => {
+					if (questTaskRunning) return;
+					questTaskRunning = true;
+					try {
+						await client.stores
+							.get("scheduled-tasks")
+							.get("generateDailyQuests")
+							?.run(null as never);
+					} catch (err) {
+						client.logger.error("[ScheduledTask:generateDailyQuests] Error:", err);
+					} finally {
+						questTaskRunning = false;
+					}
+				},
+				60 * 60 * 1000,
+			);
+		}
 	} catch (error) {
 		client.logger.fatal(error);
 		client.destroy();

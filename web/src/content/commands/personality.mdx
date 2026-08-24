@@ -2,7 +2,7 @@
 name: "/personality"
 cat: "AI · personality"
 tags: ["AI", "ARCHIVE"]
-summary: "View user personality profiles or this server culture profile, and run archive-backed incremental refreshes."
+summary: "View user personality profiles or this server culture profile."
 syntax:
   cmd: "/personality view user"
   args:
@@ -42,4 +42,4 @@ related:
 
 Use `/personality view user` to see your own user personality profile, or `/personality view user user:@someone` for another member. Use `/personality view guild` to see this server's culture profile.
 
-Administrators can run `/personality refresh user user:@someone` or `/personality refresh guild` to run an incremental refresh from new eligible archived training evidence. The `/config` personality setting is an operational feature toggle for these bot features. If there is not enough archived training evidence, the profile is in cooldown, another refresh is already running, or the model returns no profile text, the command reports that the refresh was skipped.
+Profile generation is currently disabled, so profiles reflect previously generated data only. The `/config` personality setting remains an operational feature toggle for these bot features.

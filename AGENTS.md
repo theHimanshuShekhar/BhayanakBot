@@ -30,6 +30,8 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Framework:** Sapphire Framework on Discord.js v14. Sapphire auto-discovers and loads stores from their directories; manual registration is not needed for standard stores.
 
+**Feature switches:** `src/lib/features.ts` holds compile-time switches — `RPG_ENABLED`, `LOCAL_LLM_ENABLED`, `PERSONALITY_GENERATION_ENABLED`. All are currently `false`: RPG commands/handlers/tasks, Ollama startup + fallback, and personality generation are inactive, though their code remains. The custom loader strategy skips pieces for disabled subsystems, and help omits categories with no loaded commands. Flip a flag and its wiring comes back.
+
 **Stores:**
 
 | Store | Directory | Base class |
@@ -42,7 +44,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Client:** `src/lib/BhayanakClient.ts` extends `SapphireClient`. It adds `player`, bounded in-memory caches for snipe/edit-snipe data, anti-raid join tracking, user personality profiles, and guild personality profiles. It installs a custom Sapphire loader strategy so `tsx` development can load `.ts`, `.cts`, and `.mts` pieces.
 
-**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, ensures/pulls the Ollama model, warms the model, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts scheduled tasks, and installs shutdown/process error handlers.
+**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, ensures/pulls and warms the Ollama model only when `LOCAL_LLM_ENABLED`, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts scheduled tasks, and installs shutdown/process error handlers.
 
 **Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool. Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.
 
@@ -61,7 +63,7 @@ Key query helpers:
 
 Major Discord command areas:
 
-- RPG: `/profile`, `/train`, `/work`, `/crime`, `/shop`, `/inventory`, `/pet`, `/property`, `/daily`, `/quests`.
+- RPG (currently disabled): `/profile`, `/train`, `/work`, `/crime`, `/shop`, `/inventory`, `/pet`, `/property`, `/daily`, `/quests`.
 - Leveling: `/rank`, `/leaderboard`, `/rewards`, `/level-reset`.
 - Moderation: `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history`.
 - Music: `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop`.
@@ -98,14 +100,14 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `VALKEY_URL` | `redis://localhost:6379` | Valkey/Redis for Sapphire scheduled-task BullMQ backing |
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password |
-| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance |
-| `OLLAMA_MODEL` | `phi3:mini` | Model used by local Ollama features and fallback paths |
+| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance; unused while local LLM infra is disabled |
+| `OLLAMA_MODEL` | `phi3:mini` | Model used by local Ollama features and fallback paths; unused while local LLM infra is disabled |
 | `OLLAMA_DEBUG_CONTENT_LOGS` | `false` | Set `true` only for local debugging to log raw Ollama prompts/responses |
 | `OLLAMA_MAX_QUEUE_LENGTH` | `25` | Maximum queued Ollama requests before new requests are dropped |
 | `OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH` | `10` | Maximum queued low-priority/background Ollama requests |
 | `OLLAMA_QUEUE_WAIT_TIMEOUT_MS` | `60000` | Maximum time an Ollama request may wait in queue before being dropped |
-| `ZEN_API_KEY` | unset | opencode Zen API key; responder, summary, and personality generation can use Zen when set and explicitly allowed |
-| `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; otherwise Ollama is used |
+| `ZEN_API_KEY` | unset | opencode Zen API key; responder and summary replies require it (plus `ZEN_ALLOW_DISCORD_CONTENT=true`). Personality generation is disabled independently |
+| `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; with local LLM disabled there is no other provider |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
 | `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder, summaries, and user/guild personality generation |
 | `WEB_PORT` | `3000` in `.env.example`, `4321` Compose fallback | Host port for the web service |
@@ -129,11 +131,11 @@ Startup runs `backfillGuessWhoMessages()` after `clientReady` to scan up to `GUE
 
 Personality profile builders read eligible archived messages in bounded cursor windows. User profile creation needs 100 eligible messages; later refreshes need 20. Guild culture profile creation needs 200 eligible messages; later refreshes need 40. Profiles must not quote source messages directly.
 
-`personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. `/personality refresh user` and `/personality refresh guild` run admin-only incremental refreshes.
+`personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. With `PERSONALITY_GENERATION_ENABLED=false`, profile generation (startup backfill, the refresh task, and `/personality refresh`) answers that generation is disabled.
 
-Responder, summarize, and personality LLM calls use `src/lib/llmProvider.ts`: Zen first only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`, then local Ollama fallback. RPG flavor and quest generation remain local-Ollama features.
+Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. The local Ollama fallback is inactive while `LOCAL_LLM_ENABLED=false`.
 
-## RPG Module
+## RPG Module (currently disabled)
 
 `src/lib/rpg/` is split into catalogs and helpers.
 
@@ -156,7 +158,7 @@ XP formula: `level = floor(0.05 * sqrt(xp))` for RPG profiles, implemented in `a
 
 ## Scheduled Tasks
 
-Scheduled tasks are declared as `ScheduledTask` classes but scheduled manually in `src/index.ts`. Startup runs `expireMutes`, `expireTempBans`, `sendReminders`, `endGiveaways`, `endPolls`, `reloadOnRestart`, `generateDailyQuests`, and `refreshPersonalityProfiles` once in a non-blocking cold-start pass. Runtime intervals run moderation/reminder/poll/giveaway tasks every 30 seconds, refresh personality profiles every 6 hours, and check daily quest generation every hour.
+Scheduled tasks are declared as `ScheduledTask` classes but scheduled manually in `src/index.ts`. Startup runs `expireMutes`, `expireTempBans`, `sendReminders`, `endGiveaways`, `endPolls`, `reloadOnRestart`, and `syncPalworldTracker` once in a non-blocking cold-start pass; `generateDailyQuests` and `refreshPersonalityProfiles` join only when their feature flags are on. Runtime intervals run moderation/reminder/poll/giveaway tasks every 30 seconds, Palworld sync every 10 minutes, plus the two flagged tasks at 6-hour/hourly cadence when enabled.
 
 ## Music
 
@@ -166,7 +168,7 @@ Music uses `discord-player` v7 with `DefaultExtractors` and `discord-player-yout
 
 `customId` uses `:` as a delimiter. Convention: `<prefix>:<action>[:<page>]`. The `parse()` method usually uses `startsWith("<prefix>:")` to claim interactions.
 
-Current handlers include ticket buttons, RPG jail actions, RPG shop pagination, music buttons, role menu select, poll votes, giveaway entry, and help menu/buttons.
+Current handlers include ticket buttons, music buttons, role menu select, poll votes, giveaway entry, and help menu/buttons. RPG jail actions and shop pagination stay unloaded while RPG is disabled.
 
 ## Preconditions
 

@@ -34,24 +34,26 @@ services:
     networks:
       - botnet
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: bhayanak_bot_ollama
-    restart: unless-stopped
-    volumes:
-      - ollamadata:/root/.ollama
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      - botnet
+  # Ollama disabled — local LLM infra is switched off in src/lib/features.ts.
+  # Uncomment to revive it (also uncomment the bot dependency below).
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: bhayanak_bot_ollama
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ollamadata:/root/.ollama
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 4G
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+  #     start_period: 10s
+  #   networks:
+  #     - botnet
 
   # ── Layer 4: Application (depends on everything above) ────────
   bot:
@@ -69,8 +71,8 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
+      # ollama:
+      #   condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'node.*dist/index' || exit 1"]
       interval: 30s

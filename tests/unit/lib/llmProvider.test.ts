@@ -16,6 +16,8 @@ async function importProvider() {
 	return import("../../../src/lib/llmProvider.js");
 }
 
+// LOCAL_LLM_ENABLED is currently false (src/lib/features.ts): the provider is
+// remote-API only and must never reach Ollama, whatever happens with Zen.
 describe("LLM provider", () => {
 	beforeEach(() => {
 		process.env = { ...originalEnv };
@@ -68,72 +70,60 @@ describe("LLM provider", () => {
 		logSpy.mockRestore();
 	});
 
-	it("falls back to high-priority Ollama when external Discord content is not explicitly allowed", async () => {
+	it("returns null without contacting any provider when Discord content is not allowed", async () => {
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 		delete process.env.ZEN_ALLOW_DISCORD_CONTENT;
 		const { callInteractiveLlm } = await importProvider();
 
 		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123, "summarize");
 
-		expect(result).toBe("ollama interactive fallback");
+		expect(result).toBeNull();
 		expect(mockedFetch).not.toHaveBeenCalled();
-		expect(mockedCallOllama).toHaveBeenCalledWith("System prompt", "User prompt", expect.any(Number), 123);
+		expect(mockedCallOllama).not.toHaveBeenCalled();
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("reason=local-llm-disabled"));
+		logSpy.mockRestore();
 	});
 
-	it("falls back to high-priority Ollama when Zen is not configured", async () => {
+	it("returns null without contacting any provider when Zen is not configured", async () => {
 		delete process.env.ZEN_API_KEY;
 		const { callInteractiveLlm } = await importProvider();
 
-		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123);
+		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000);
 
-		expect(result).toBe("ollama interactive fallback");
+		expect(result).toBeNull();
 		expect(mockedFetch).not.toHaveBeenCalled();
-		expect(mockedCallOllama).toHaveBeenCalledWith("System prompt", "User prompt", expect.any(Number), 123);
+		expect(mockedCallOllama).not.toHaveBeenCalled();
 	});
 
-	it("falls back to low-priority Ollama when Zen returns an HTTP error", async () => {
+	it("returns null without an Ollama fallback when Zen returns an HTTP error", async () => {
 		mockedFetch.mockResolvedValueOnce({ ok: false, status: 503, text: async () => "temporarily unavailable" });
 		const { callBackgroundLlm } = await importProvider();
 
 		const result = await callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
 
-		expect(result).toBe("ollama background fallback");
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledWith(
-			"System prompt",
-			"User prompt",
-			expect.any(Number),
-			undefined,
-			"personality:user",
-		);
+		expect(result).toBeNull();
+		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 	});
 
-	it("caps Zen timeout before falling back", async () => {
+	it("resolves null when Zen times out instead of falling back to Ollama", async () => {
 		vi.useFakeTimers();
 		process.env.ZEN_TIMEOUT_MS = "2000";
+		const { promise, reject } = Promise.withResolvers<Response>();
 		mockedFetch.mockImplementationOnce((_url, init) => {
 			const signal = (init as RequestInit).signal;
-			return new Promise((_resolve, reject) => {
-				signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
-			});
+			signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+			return promise;
 		});
 		const { callBackgroundLlm } = await importProvider();
 
 		const resultPromise = callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
 
-		await vi.advanceTimersByTimeAsync(1999);
+		await vi.advanceTimersByTimeAsync(2000);
+		await expect(resultPromise).resolves.toBeNull();
 		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
-		await vi.advanceTimersByTimeAsync(1);
-
-		await expect(resultPromise).resolves.toBe("ollama background fallback");
-		expect(mockedCallOllamaLowPriority).toHaveBeenCalledWith(
-			"System prompt",
-			"User prompt",
-			expect.any(Number),
-			undefined,
-			"personality:user",
-		);
 	});
 
-	it("falls back when Zen returns empty or refusal-only content", async () => {
+	it("returns null when Zen returns empty or refusal-only content", async () => {
 		mockedFetch
 			.mockResolvedValueOnce({ ok: true, json: async () => ({ choices: [{ message: { content: "   " } }] }) })
 			.mockResolvedValueOnce({
@@ -142,19 +132,19 @@ describe("LLM provider", () => {
 			});
 		const { callInteractiveLlm } = await importProvider();
 
-		expect(await callInteractiveLlm("System", "Prompt")).toBe("ollama interactive fallback");
-		expect(await callInteractiveLlm("System", "Prompt")).toBe("ollama interactive fallback");
-		expect(mockedCallOllama).toHaveBeenCalledTimes(2);
+		expect(await callInteractiveLlm("System", "Prompt")).toBeNull();
+		expect(await callInteractiveLlm("System", "Prompt")).toBeNull();
+		expect(mockedCallOllama).not.toHaveBeenCalled();
 	});
 
-	it("falls back for cannot-assist refusal wording", async () => {
+	it("returns null for cannot-assist refusal wording", async () => {
 		mockedFetch.mockResolvedValueOnce({
 			ok: true,
 			json: async () => ({ choices: [{ message: { content: "I cannot assist with that request." } }] }),
 		});
 		const { callInteractiveLlm } = await importProvider();
 
-		expect(await callInteractiveLlm("System", "Prompt")).toBe("ollama interactive fallback");
-		expect(mockedCallOllama).toHaveBeenCalledTimes(1);
+		expect(await callInteractiveLlm("System", "Prompt")).toBeNull();
+		expect(mockedCallOllama).toHaveBeenCalledTimes(0);
 	});
 });

@@ -6,7 +6,6 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 
 | Category | Commands |
 |---|---|
-| **RPG** | `/profile`, `/train`, `/work`, `/crime`, `/shop`, `/inventory`, `/pet`, `/property`, `/daily`, `/quests` |
 | **Moderation** | `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history` |
 | **Music** | `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop` |
 | **Leveling** | `/rank`, `/leaderboard`, `/rewards`, `/level-reset` |
@@ -21,9 +20,9 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Config** | `/config` |
 | **Minecraft** | `/minecraft` |
 
-### RPG System
+### RPG System (currently disabled)
 
-The RPG is an economy and progression system:
+The RPG is an economy and progression system. It is switched off in `src/lib/features.ts` (`RPG_ENABLED = false`): the commands are not registered and daily quests are not generated, but all code and data are preserved for a future re-enable.
 
 - **Stats**: Strength, Agility, Intelligence, Charisma — trained with `/train`, influence job success rates
 - **Jobs**: Work (fishing, construction, delivery, mining, programmer, lawyer, doctor) and Crime (pickpocket, rob player, rob bank)
@@ -31,15 +30,15 @@ The RPG is an economy and progression system:
 - **Jail**: Failing a crime sends you to jail. Bail out for coins or attempt escape with an agility roll
 - **Pets**: Adopt companions (common → legendary rarity) via `/pet adopt`, rename with `/pet rename`
 - **Properties**: Buy housing and businesses via `/property buy`, collect passive coin income with `/property collect`
-- **AI flavor text**: Job/crime outcomes get narrated by a local Ollama instance (`phi3:mini` by default), with hand-written fallbacks if Ollama is unavailable
+
 
 ### AI Personality System
 
-The bot builds personality profiles from archived server conversation to generate contextual responses:
+The bot can build personality profiles from archived server conversation to generate contextual responses. Profile generation is currently disabled (`PERSONALITY_GENERATION_ENABLED = false` in `src/lib/features.ts`) — profiles reflect previously generated data only.
 
 - **User Profiles**: Per-user personality profiles built from eligible archived messages. View with `/personality view user`
 - **Guild Profiles**: Server culture profiles built from eligible archived messages. View with `/personality view guild`
-- **Refreshes**: Admin-only incremental refreshes use `/personality refresh user` and `/personality refresh guild`
+- **Generation disabled**: startup backfill builds, the 6-hour refresh task, and `/personality refresh` subcommands are inactive until re-enabled
 - **Smart Mentions**: When @mentioned, the bot uses personality context + conversation history for contextual replies
 - **Random Responder**: Configurable chance-based responses in a designated channel, using guild personality for tone
 - **Operational Toggle**: Server admins can enable or disable personality behavior with `/config`; this is not consent or opt-in/opt-out language
@@ -61,7 +60,7 @@ The bot builds personality profiles from archived server conversation to generat
 - **Database**: PostgreSQL via Drizzle ORM
 - **Cache/Queue**: Valkey (Redis-compatible) via BullMQ
 - **Music**: discord-player v7
-- **AI**: opencode Zen for responders, summaries, and personality only when configured and explicitly allowed for Discord content; local Ollama fallback plus RPG/quest generation
+- **AI**: opencode Zen for responders and summaries only when configured and explicitly allowed for Discord content; local Ollama infra is switched off (`LOCAL_LLM_ENABLED = false` in `src/lib/features.ts`)
 
 ## Setup
 
@@ -71,7 +70,6 @@ The bot builds personality profiles from archived server conversation to generat
 - pnpm
 - PostgreSQL
 - Valkey or Redis
-- Ollama (optional — bot works without it)
 
 ### Install
 
@@ -92,14 +90,14 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 VALKEY_URL=redis://localhost:6379
 POSTGRES_PASSWORD=postgres
-OLLAMA_URL=http://localhost:11434   # optional
-OLLAMA_MODEL=phi3:mini              # optional
+OLLAMA_URL=http://localhost:11434   # currently unused — local LLM infra disabled in src/lib/features.ts
+OLLAMA_MODEL=phi3:mini              # currently unused — local LLM infra disabled in src/lib/features.ts
 OLLAMA_DEBUG_CONTENT_LOGS=false     # only true for local debugging; logs raw prompts/responses
 OLLAMA_MAX_QUEUE_LENGTH=25
 OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH=10
 OLLAMA_QUEUE_WAIT_TIMEOUT_MS=60000
-ZEN_API_KEY=your_opencode_zen_key   # optional; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
-ZEN_ALLOW_DISCORD_CONTENT=false      # keep false to force local Ollama for Discord-content prompts
+ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
+ZEN_ALLOW_DISCORD_CONTENT=false      # must be true for responder/summary AI replies (no local fallback)
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
 ZEN_MODEL=deepseek-v4-flash
 ZEN_TIMEOUT_MS=15000

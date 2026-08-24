@@ -222,6 +222,7 @@ describe("messageCreate personality archive flow", () => {
 			users: { cache: new Map() },
 			personalityCache: new Map(),
 			guildPersonalityCache: new Map(),
+			logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 		} as unknown as typeof container.client;
 	});
 
@@ -471,7 +472,7 @@ describe("messageCreate personality archive flow", () => {
 			await listener.run(
 				createMessage({
 					messageId: `reply-prior-${index}`,
-					channelId: "reply-context-channel",
+					channelId: TARGET_TEXT_CHANNEL_ID,
 					authorId: `reply-user-${index}`,
 					content: `reply context message ${index}`,
 				}) as never,
@@ -481,7 +482,7 @@ describe("messageCreate personality archive flow", () => {
 		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
 		const message = createMessage({
 			messageId: "reply-mention-current",
-			channelId: "reply-context-channel",
+			channelId: TARGET_TEXT_CHANNEL_ID,
 			authorId: "reply-mention-author",
 			content: "<@bot-user> what do you think?",
 			referencedMessageId: "reply-prior-12",

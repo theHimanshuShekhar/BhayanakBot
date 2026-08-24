@@ -1,14 +1,21 @@
 import { join } from "node:path";
 import { LogLevel, SapphireClient } from "@sapphire/framework";
-import { LoaderStrategy, Store } from "@sapphire/pieces";
+import { type FilterResult, LoaderStrategy, Store } from "@sapphire/pieces";
 import { GatewayIntentBits, Partials } from "discord.js";
 import { Player } from "discord-player";
+import { isPieceDisabled } from "./features.js";
 
 class TypeScriptLoaderStrategy extends LoaderStrategy<any> {
 	public constructor() {
 		super();
 		// tsx is not detected by @sapphire/pieces, so we explicitly add TypeScript extensions
 		this.supportedExtensions.push(".ts", ".cts", ".mts");
+	}
+
+	// Compile-time feature switches: pieces for disabled subsystems never load.
+	public override filter(path: string): FilterResult {
+		if (isPieceDisabled(path)) return null;
+		return super.filter(path);
 	}
 }
 

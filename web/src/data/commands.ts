@@ -26,12 +26,6 @@ export interface CommandDoc extends Command {
 
 export const CATEGORIES: Category[] = [
 	{
-		id: "rpg",
-		label: "RPG & Economy",
-		icon: "⚔",
-		description: "Profiles, jobs, crime, training, shop, pets, properties, daily rewards, and quests.",
-	},
-	{
 		id: "moderation",
 		label: "Moderation",
 		icon: "⛨",
@@ -67,86 +61,6 @@ export const CATEGORIES: Category[] = [
 ];
 
 export const RAW_COMMANDS: Command[] = [
-	{
-		name: "/profile",
-		description: "View your RPG profile or another player's stats and progress.",
-		examples: ["/profile", "/profile user:@someone"],
-		category: "rpg",
-	},
-	{
-		name: "/train",
-		description: "Train a stat to improve your RPG performance (4-hour cooldown, costs coins).",
-		examples: ["/train stat:strength", "/train stat:intelligence"],
-		category: "rpg",
-	},
-	{
-		name: "/work",
-		description: "Do a legal job to earn coins and XP on a cooldown.",
-		examples: ["/work job:miner", "/work job:hacker"],
-		category: "rpg",
-	},
-	{
-		name: "/crime",
-		description: "Attempt a crime job for coins and XP — risk jail if you fail.",
-		examples: ["/crime job:pickpocket", "/crime job:heist"],
-		category: "rpg",
-	},
-	{
-		name: "/shop",
-		description: "Browse, buy, and sell items in the RPG shop.",
-		examples: ["/shop browse", "/shop buy item:lucky_charm", "/shop sell item:rare_gem quantity:1"],
-		category: "rpg",
-		subcommands: {
-			browse: { summary: "Browse available shop items.", examples: ["/shop browse"] },
-			buy: { summary: "Buy an item from the shop.", examples: ["/shop buy item:lucky_charm"] },
-			sell: { summary: "Sell an item from your inventory.", examples: ["/shop sell item:rare_gem quantity:1"] },
-		},
-	},
-	{
-		name: "/inventory",
-		description: "View your item inventory and use or equip items.",
-		examples: ["/inventory view", "/inventory use item:lucky_charm", "/inventory equip item:pickaxe"],
-		category: "rpg",
-		subcommands: {
-			view: { summary: "View your inventory.", examples: ["/inventory view"] },
-			use: { summary: "Use a consumable item.", examples: ["/inventory use item:lucky_charm"] },
-			equip: { summary: "Equip a tool item.", examples: ["/inventory equip item:pickaxe"] },
-		},
-	},
-	{
-		name: "/pet",
-		description: "View, adopt, and rename your pet companions.",
-		examples: ["/pet view", "/pet adopt pet:cat", "/pet rename pet:cat name:Whiskers"],
-		category: "rpg",
-		subcommands: {
-			view: { summary: "View your pets.", examples: ["/pet view"] },
-			adopt: { summary: "Adopt a pet from the market.", examples: ["/pet adopt pet:cat"] },
-			rename: { summary: "Give a pet a nickname.", examples: ["/pet rename pet:cat name:Whiskers"] },
-		},
-	},
-	{
-		name: "/property",
-		description: "Buy and manage properties for passive income or storage bonuses.",
-		examples: ["/property buy property:studio_apartment", "/property collect", "/property view"],
-		category: "rpg",
-		subcommands: {
-			view: { summary: "View your properties.", examples: ["/property view"] },
-			buy: { summary: "Purchase a property.", examples: ["/property buy property:studio_apartment"] },
-			collect: { summary: "Collect accumulated property income.", examples: ["/property collect"] },
-		},
-	},
-	{
-		name: "/daily",
-		description: "Claim your daily RPG reward and maintain your streak.",
-		examples: ["/daily"],
-		category: "rpg",
-	},
-	{
-		name: "/quests",
-		description: "View today's daily quests and your completion progress.",
-		examples: ["/quests"],
-		category: "rpg",
-	},
 	{
 		name: "/ban",
 		description: "Ban a member from the server, optionally as a temporary ban.",
@@ -321,36 +235,23 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/personality",
-		description: "View user personality profiles or this server culture profile, and run archive-backed refreshes.",
-		examples: [
-			"/personality view user user:@someone",
-			"/personality view guild",
-			"/personality refresh user user:@someone",
-			"/personality refresh guild",
-		],
+		description: "View user personality profiles or this server culture profile.",
+		examples: ["/personality view user user:@someone", "/personality view guild"],
 		category: "utility",
 		usageNotes:
-			"Refresh runs an incremental update from eligible archived training evidence and reports if it is skipped. Server administrators can disable personality features with /config.",
+			"Profile generation is currently disabled, so profiles only reflect previously generated data. Server administrators can disable personality features entirely with /config.",
 		subcommands: {
 			"view user": {
 				summary: "View your own user personality profile or another member's profile.",
 				examples: ["/personality view user", "/personality view user user:@someone"],
 			},
 			"view guild": { summary: "View this server's culture profile.", examples: ["/personality view guild"] },
-			"refresh user": {
-				summary: "Refresh a user's personality profile from new archive evidence.",
-				examples: ["/personality refresh user user:@someone"],
-			},
-			"refresh guild": {
-				summary: "Refresh this server's culture profile from new archive evidence.",
-				examples: ["/personality refresh guild"],
-			},
 		},
 	},
 	{
 		name: "/help",
 		description: "Show the interactive command help menu.",
-		examples: ["/help", "/help category:rpg"],
+		examples: ["/help", "/help category:music"],
 		category: "utility",
 	},
 	{

@@ -222,7 +222,9 @@ describe("/personality command", () => {
 		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).not.toContain("999");
 	});
 
-	it("refresh user below the archived threshold ignores stale user_messages and reports insufficient archived evidence", async () => {
+	// Personality generation is switched off (src/lib/features.ts): /personality refresh
+	// replies that generation is disabled until PERSONALITY_GENERATION_ENABLED returns.
+	it.skip("refresh user below the archived threshold ignores stale user_messages and reports insufficient archived evidence", async () => {
 		await db.insert(userMessages).values({
 			userId: USER_ID,
 			guildId: GUILD_ID,
@@ -238,7 +240,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toMatch(/opt\s*-?in|consent/i);
 	});
 
-	it("refresh guild below the archived threshold reports insufficient archived evidence", async () => {
+	it.skip("refresh guild below the archived threshold reports insufficient archived evidence", async () => {
 		await archiveMessages({ count: 199, idPrefix: "guild-below" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });
 
@@ -249,7 +251,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).toContain("at least 200");
 	});
 
-	it("refresh user starts an incremental archive refresh when threshold conditions allow", async () => {
+	it.skip("refresh user starts an incremental archive refresh when threshold conditions allow", async () => {
 		await archiveMessages({ count: 100, authorUserId: USER_ID, idPrefix: "user-ready" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "user" });
 
@@ -260,7 +262,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toMatch(/rebuild/i);
 	});
 
-	it("refresh user reports when the builder skips due to cooldown", async () => {
+	it.skip("refresh user reports when the builder skips due to cooldown", async () => {
 		mockedBuildPersonalityProfile.mockResolvedValueOnce({ status: "skipped_cooldown" } as never);
 		await archiveMessages({ count: 100, authorUserId: USER_ID, idPrefix: "user-cooldown" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "user" });
@@ -273,7 +275,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toContain("Incremental refresh started");
 	});
 
-	it("refresh guild starts an incremental archive refresh when threshold conditions allow", async () => {
+	it.skip("refresh guild starts an incremental archive refresh when threshold conditions allow", async () => {
 		await archiveMessages({ count: 200, idPrefix: "guild-ready" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });
 
@@ -284,7 +286,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toMatch(/rebuild/i);
 	});
 
-	it("refresh guild reports when the builder skips due to cooldown", async () => {
+	it.skip("refresh guild reports when the builder skips due to cooldown", async () => {
 		mockedBuildGuildPersonalityProfile.mockResolvedValueOnce({ status: "skipped_cooldown" } as never);
 		await archiveMessages({ count: 200, idPrefix: "guild-cooldown" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });

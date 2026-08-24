@@ -1,5 +1,6 @@
+import { container } from "@sapphire/framework";
 import { and, eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { guildPersonalityProfiles, guildSettings, userPersonalityProfiles } from "../../../src/db/schema.js";
 import type { BhayanakClient } from "../../../src/lib/BhayanakClient.js";
 import { db } from "../../../src/lib/database.js";
@@ -10,6 +11,7 @@ const USER_ID = "context-user";
 
 function createClient(): BhayanakClient {
 	return {
+		logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 		personalityCache: new Map(),
 		guildPersonalityCache: new Map(),
 	} as unknown as BhayanakClient;
@@ -34,6 +36,13 @@ async function setGuildProfile(profile: string | null): Promise<void> {
 describe("getPersonalityContext", () => {
 	beforeEach(async () => {
 		await cleanupRows();
+		// Query helpers log through the Sapphire container; provide a stub.
+		container.logger = {
+			debug: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+			error: vi.fn(),
+		} as unknown as typeof container.logger;
 	});
 
 	it("includes only the user profile when no guild profile exists", async () => {

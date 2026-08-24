@@ -83,8 +83,12 @@ function collect(): HelpSnapshot {
 		list.sort((a, b) => a.name.localeCompare(b.name));
 	}
 
+	// Categories whose pieces are disabled by src/lib/features.ts have no loaded
+	// commands — omit them so help only advertises what can actually run.
+	const categories = CATEGORIES.filter((category) => (commandsByCategory.get(category.id)?.length ?? 0) > 0);
+
 	return {
-		categories: [...CATEGORIES],
+		categories,
 		commandsByCategory,
 		commandByName,
 	};
