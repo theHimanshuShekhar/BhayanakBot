@@ -6,15 +6,15 @@ import SiteLayout from "~/layouts/SiteLayout.astro";
 
 <SiteLayout title="Changelog — BhayanakBot" active="changelog">
 	<section class="mx-auto max-w-[1000px] px-8 py-16 max-md:px-5 max-md:py-10">
-		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">ship log</div>
+		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/50">ship log</div>
 		<h1 class="mt-2 mb-10 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px]">what changed,<br /><span class="text-accent">who broke it.</span></h1>
 		<div class="space-y-6">
 			{releases.map((release) => (
 				<article class="grid grid-cols-[220px_1fr] gap-6 border-2 border-border bg-bg-panel p-6 max-md:grid-cols-1">
 					<div>
 						<Sticker rot={-4}>{release.tag}</Sticker>
-						<h2 class="mb-1 mt-5 font-mono text-[28px] font-black text-accent">{release.version}</h2>
-						<div class="font-mono text-[12px] text-fg/45">{release.date}</div>
+					<h2 class="mb-1 mt-5 text-[28px] leading-none font-black -tracking-[0.5px] uppercase"><span class="text-accent">{release.version}</span></h2>
+						<div class="font-mono text-[12px] text-fg/50">{release.date}</div>
 					</div>
 					<div class="space-y-5">
 						{release.groups.map((group) => (

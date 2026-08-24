@@ -11,5 +11,5 @@ const { accent = "var(--color-accent)", title, footer } = Astro.props;
 <div class="mt-1.5 rounded-r-md border-l-4 bg-fg/[0.04] px-3.5 py-3 font-display max-md:px-3 max-md:py-2.5" style={`border-left-color: ${accent};`}>
 	{title && <div class="mb-2 font-mono text-[13px] font-bold uppercase tracking-[0.4px] text-fg">{title}</div>}
 	<div class="text-[13px] leading-[1.55] text-fg/85"><slot /></div>
-	{footer && <div class="mt-2 font-mono text-[11px] text-fg/40">{footer}</div>}
+	{footer && <div class="mt-2 font-mono text-[11px] text-fg/50">{footer}</div>}
 </div>

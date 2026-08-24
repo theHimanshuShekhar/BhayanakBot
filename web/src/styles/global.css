@@ -17,10 +17,6 @@
 	--ease-press: cubic-bezier(0.2, 0.7, 0.3, 1.4);
 }
 
-:root {
-	--bot-grad: radial-gradient(circle at 30% 30%, #4ade80 0%, #16a34a 40%, #064e3b 100%);
-}
-
 @layer base {
 	html,
 	body {

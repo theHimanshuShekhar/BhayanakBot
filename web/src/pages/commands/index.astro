@@ -10,7 +10,7 @@ const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/,
 <SiteLayout title="Commands — BhayanakBot" active="commands">
 	<div class="flex min-h-screen max-md:block">
 		<aside class="sticky top-[53px] h-[calc(100vh-53px)] w-64 self-start overflow-y-auto border-r-2 border-border px-8 pt-8 pb-8 max-md:hidden">
-			<div class="mb-3 font-mono text-[10px] uppercase tracking-[1px] text-fg/40">{TOTAL_COMMANDS} commands · {TOTAL_CATEGORIES} categories</div>
+			<div class="mb-3 font-mono text-[10px] uppercase tracking-[1px] text-fg/50">{TOTAL_COMMANDS} commands · {TOTAL_CATEGORIES} categories</div>
 			<button type="button" class="a-side is-active -ml-2.5 flex w-[calc(100%+10px)] cursor-pointer items-center justify-between bg-accent px-2.5 py-1.5 text-left font-mono text-[12px] font-bold text-bg" data-cat="all">all commands</button>
 			{COMMANDS_BY_CATEGORY.map((category) => (
 				<button type="button" class="a-side -ml-2.5 flex w-[calc(100%+10px)] cursor-pointer items-center justify-between bg-transparent px-2.5 py-1.5 text-left font-mono text-[12px] font-medium text-fg" data-cat={category.id}>
@@ -27,14 +27,14 @@ const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/,
 		</div>
 
 		<div class="min-w-0 flex-1 px-8 pt-8 pb-20 max-md:px-5 max-md:pt-6 max-md:pb-16">
-			<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">docs / commands</div>
+			<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/50">docs / commands</div>
 			<h1 class="mt-1 mb-3.5 text-[64px] leading-[0.95] font-black -tracking-[2px] uppercase max-md:text-[40px] max-md:-tracking-[1px]">every command,<br />every <span class="text-accent">flag</span>.</h1>
 			<p class="mb-8 max-w-[560px] text-[15px] leading-[1.5] text-fg/60 max-md:text-[14px]">All {TOTAL_COMMANDS} current commands are tracked here. Update this catalog whenever bot command behavior changes.</p>
 
 			<div class="mb-8 flex items-center gap-2.5 border-2 border-border bg-bg-panel px-4 py-3">
 				<span class="font-mono text-[14px] text-accent">&gt;</span>
-				<input id="cmd-filter" autocomplete="off" placeholder="filter commands…" class="min-w-0 flex-1 border-none bg-transparent font-mono text-[14px] text-fg outline-none max-md:text-[13px]" />
-				<kbd class="font-mono text-[11px] text-fg/40 max-md:hidden">⌘K</kbd>
+				<input id="cmd-filter" autocomplete="off" placeholder="filter commands…" aria-label="Filter commands" class="min-w-0 flex-1 border-none bg-transparent font-mono text-[14px] text-fg outline-none max-md:text-[13px]" />
+				<kbd class="font-mono text-[11px] text-fg/50 max-md:hidden">⌘K</kbd>
 			</div>
 
 			<div id="cmd-list">
@@ -43,7 +43,7 @@ const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/,
 						<div class="mb-3.5 flex items-center gap-3">
 							<h2 class="m-0 text-[28px] font-black -tracking-[0.5px] uppercase max-md:text-[22px]">{category.label}</h2>
 							<div class="h-0.5 flex-1 bg-accent opacity-40"></div>
-							<span class="font-mono text-[11px] text-fg/40">{category.items.length} commands</span>
+							<span class="font-mono text-[11px] text-fg/50">{category.items.length} commands</span>
 						</div>
 						<div class="grid grid-cols-2 border-2 border-border max-md:grid-cols-1">
 							{category.items.map((command, index) => {
@@ -54,16 +54,20 @@ const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/,
 									<a href={`/commands/${command.slug}`} data-name={command.name.toLowerCase()} data-desc={command.description.toLowerCase()} class:list={["card a-card-lift bg-bg-panel p-5 text-fg", isLeftCol && "border-r-2 border-border max-md:border-r-0", !isLastRow && "border-b-2 border-border", "max-md:p-4"]}>
 										<div class="mb-1.5 flex items-baseline justify-between gap-2">
 											<code class="font-mono text-[15px] font-bold text-accent max-md:text-[14px]">{command.name}</code>
-											<span class="flex items-center gap-2">{documented && <span class="font-mono text-[9px] font-bold tracking-[0.5px] text-success">FULL DOCS</span>}<span class="font-mono text-[10px] text-fg/30">→</span></span>
+											<span class="flex items-center gap-2">{documented && <span class="font-mono text-[9px] font-bold tracking-[0.5px] text-success">FULL DOCS</span>}<span class="font-mono text-[10px] text-fg/50" aria-hidden="true">→</span></span>
 										</div>
 										<div class="mb-2 text-[13px] leading-[1.4] text-fg/65">{command.description}</div>
-										<code class="font-mono text-[11px] text-fg/45">{command.syntax}</code>
+										<code class="font-mono text-[11px] text-fg/50">{command.syntax}</code>
 									</a>
 								);
 							})}
 						</div>
 					</section>
 				))}
+			</div>
+			<div id="cmd-empty" hidden class="border-2 border-border border-dashed bg-bg-panel px-6 py-10 text-center">
+				<p class="m-0 text-[15px] text-fg/70">No command matches that filter.</p>
+				<p class="mb-0 mt-2 font-mono text-[12px] text-fg/50">Clear the filter or browse a category from the list above.</p>
 			</div>
 		</div>
 	</div>
@@ -88,6 +92,7 @@ const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/,
 
 		function rerender() {
 			const query = (input?.value ?? "").toLowerCase().trim();
+			let totalVisible = 0;
 			sections.forEach((section) => {
 				let anyVisible = false;
 				const sectionCat = section.dataset.catSection;
@@ -98,15 +103,31 @@ const detailedSlugs = new Set(detailed.map((entry) => entry.id.replace(/\.mdx$/,
 					card.style.display = visible ? "" : "none";
 					anyVisible = anyVisible || visible;
 				});
+				totalVisible += anyVisible ? 1 : 0;
 				section.style.display = anyVisible ? "" : "none";
 			});
+			const empty = document.getElementById("cmd-empty");
+			if (empty) empty.hidden = totalVisible > 0;
 		}
-
 		input?.addEventListener("input", rerender);
 		buttons.forEach((button) => button.addEventListener("click", () => {
 			activeCat = button.dataset.cat ?? "all";
 			updateActiveButtons();
 			rerender();
 		}));
-	</script>
+
+		document.addEventListener("keydown", (event) => {
+			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+				event.preventDefault();
+				input?.focus();
+			}
+		});
+</script>
+
+<style>
+	#cmd-empty:not([hidden]) {
+		animation: aFadeIn 0.22s var(--ease-snap);
+	}
+</style>
+
 </SiteLayout>

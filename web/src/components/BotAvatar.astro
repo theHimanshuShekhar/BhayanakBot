@@ -1,17 +1,106 @@
 ---
 interface Props {
 	size?: number;
+	class?: string;
 }
 
-const { size = 34 } = Astro.props;
+const { size = 34, class: className } = Astro.props;
+const uid = `bot-avatar-${Math.random().toString(36).slice(2, 8)}`;
 ---
-
-<span
-	class="relative inline-flex shrink-0 items-center justify-center rounded-full border-2 border-bg"
-	style={`width: ${size}px; height: ${size}px; background: var(--bot-grad);`}
+<svg
+	class:list={["shrink-0 rounded-full", className]}
+	width={size}
+	height={size}
+	viewBox="-125 -125 250 250"
 	aria-hidden="true"
+	data-watch-mouse=""
 >
-	<span class="absolute top-[31%] left-[28%] h-1.5 w-1.5 rounded-full bg-bg"></span>
-	<span class="absolute top-[31%] right-[28%] h-1.5 w-1.5 rounded-full bg-bg"></span>
-	<span class="absolute bottom-[26%] h-1 w-[34%] rounded-full bg-bg"></span>
-</span>
+	<defs>
+		<radialGradient id={uid} gradientUnits="userSpaceOnUse" cx="-50.56" cy="-63.2" r="244.9">
+			<stop offset="0%" stop-color="#d3c1fc"></stop>
+			<stop offset="32%" stop-color="#a27df8"></stop>
+			<stop offset="72%" stop-color="#8b5cf6"></stop>
+			<stop offset="100%" stop-color="#573b98"></stop>
+		</radialGradient>
+	</defs>
+	<ellipse cx="-0.38" cy="-0.29" rx="100" ry="100.43" fill="lab(3.56288 0 0)"></ellipse>
+	<ellipse cx="-0.38" cy="-0.29" rx="100" ry="100.43" fill={`url(#${uid})`}></ellipse>
+	<g class="bot-eye" style="--depth: 1">
+		<path
+			d="M-20 -8A20 20 0 0 1 0 -28L0 -28A20 20 0 0 1 20 -8L20 8A20 20 0 0 1 0 28L0 28A20 20 0 0 1 -20 8Z"
+			transform="matrix(0.92,-0.15,0.16,0.99,-35.1,6)"
+			fill="lab(3.56288 0 0)"></path>
+	</g>
+	<g class="bot-eye" style="--depth: 0.85">
+		<path
+			d="M-20 -8A20 20 0 0 1 0 -28L0 -28A20 20 0 0 1 20 -8L20 8A20 20 0 0 1 0 28L0 28A20 20 0 0 1 -20 8Z"
+			transform="matrix(0.93,0.15,-0.16,0.99,31.66,6)"
+			fill="lab(3.56288 0 0)"></path>
+	</g>
+</svg>
+
+<style>
+	.bot-eye {
+		transform:
+			translate(var(--ex, 0px), var(--ey, 0px))
+			rotate(var(--er, 0deg))
+			scale(var(--es, 1));
+		transform-box: fill-box;
+		transform-origin: center;
+		transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.bot-eye {
+			transform: none;
+			transition: none;
+		}
+	}
+</style>
+
+<script>
+	const watchers = [...document.querySelectorAll<SVGSVGElement>("[data-watch-mouse]")].map((svg) => ({
+		svg,
+		eyes: [...svg.querySelectorAll<SVGGElement>(".bot-eye")].map((group) => ({
+			group,
+			depth: Number(group.style.getPropertyValue("--depth")) || 1,
+		})),
+	}));
+	const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+	if (watchers.length > 0 && !reducedMotion.matches) {
+		let frame = 0;
+		let mouseX = innerWidth / 2;
+		let mouseY = innerHeight / 2;
+
+		const look = () => {
+			frame = 0;
+			for (const watcher of watchers) {
+				const rect = watcher.svg.getBoundingClientRect();
+				const dx = mouseX - (rect.left + rect.width / 2);
+				const dy = mouseY - (rect.top + rect.height / 2);
+				const distance = Math.hypot(dx, dy) || 1;
+				const reach = Math.min(distance / 320, 1);
+				const sizeT = Math.min(rect.width / 320, 1);
+				const gain = 0.24 - 0.13 * sizeT;
+				const max = rect.width * gain;
+				for (const eye of watcher.eyes) {
+					eye.group.style.setProperty("--ex", `${((dx / distance) * reach * max * eye.depth).toFixed(2)}px`);
+					eye.group.style.setProperty("--ey", `${((dy / distance) * reach * max * eye.depth).toFixed(2)}px`);
+					eye.group.style.setProperty("--er", `${((dx / distance) * reach * (8 - 4 * sizeT) * eye.depth).toFixed(2)}deg`);
+					eye.group.style.setProperty("--es", (1 - reach * (0.08 - 0.03 * sizeT) * eye.depth).toFixed(3));
+				}
+			}
+		};
+
+		document.addEventListener(
+			"pointermove",
+			(event) => {
+				if (event.pointerType !== "mouse") return;
+				mouseX = event.clientX;
+				mouseY = event.clientY;
+				if (!frame) frame = requestAnimationFrame(look);
+			},
+			{ passive: true },
+		);
+	}
+</script>

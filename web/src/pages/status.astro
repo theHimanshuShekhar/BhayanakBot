@@ -11,12 +11,50 @@ const statusStats = [
 	{ value: formatStatNumber(stats.servers), label: "active servers" },
 	{ value: formatStatNumber(stats.commandsRun), label: "commands run" },
 ];
+
+const alwaysOn = [
+	{ name: "Moderation", note: "cases · mutes · tempbans · anti-spam" },
+	{ name: "Music", note: "playback · queue · DJ gating" },
+	{ name: "Leveling", note: "xp · ranks · role rewards" },
+	{ name: "Server systems", note: "tickets · giveaways · polls · suggestions" },
+	{ name: "Guess Who", note: "archive-backed quote game" },
+	{ name: "Minecraft tracking", note: "mc.bhayanak.net · live map" },
+];
+
+const conditional = [
+	{ name: "AI replies · summaries", note: "active once provider keys are configured" },
+];
 ---
 
 <SiteLayout title="Status — BhayanakBot" active="status">
 	<section class="mx-auto max-w-[1180px] px-8 py-16 max-md:px-5 max-md:py-10">
-		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">bot status</div>
+		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/50">bot status</div>
 		<h1 class="mt-2 mb-8 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px]">latest public<br /><span class="text-accent">bot stats.</span></h1>
 	</section>
 	<StatStrip stats={statusStats} />
+
+	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
+		<h2 class="mb-6 text-[28px] leading-none font-black -tracking-[0.5px] uppercase">systems on duty</h2>
+		<ul class="m-0 grid list-none grid-cols-2 gap-4 p-0 max-md:grid-cols-1 lg:grid-cols-3">
+			{alwaysOn.map((system) => (
+				<li class="flex items-start gap-3 border-2 border-border bg-bg-panel px-5 py-4">
+					<span class="mt-1 h-2 w-2 shrink-0 bg-success" aria-hidden="true"></span>
+					<div class="min-w-0">
+						<div class="text-[15px] font-bold text-fg">{system.name}</div>
+						<div class="mt-0.5 font-mono text-[11px] text-fg/50">{system.note} · enabled</div>
+					</div>
+				</li>
+			))}
+			{conditional.map((system) => (
+				<li class="flex items-start gap-3 border-2 border-border border-dashed bg-transparent px-5 py-4">
+					<span class="mt-1 h-2 w-2 shrink-0 bg-warning" aria-hidden="true"></span>
+					<div class="min-w-0">
+						<div class="text-[15px] font-bold text-fg">{system.name}</div>
+						<div class="mt-0.5 font-mono text-[11px] text-fg/50">{system.note}</div>
+					</div>
+				</li>
+			))}
+		</ul>
+		<p class="mt-6 mb-0 max-w-[640px] font-mono text-[12px] leading-[1.7] text-fg/50">Numbers above come from the bot's own public stats feed. A few subsystems stay switched off at build time and appear here only once enabled.</p>
+	</section>
 </SiteLayout>

@@ -9,23 +9,23 @@ const botInviteUrl = getBotInviteUrl();
 
 <SiteLayout title="Setup — BhayanakBot" active="setup">
 	<section class="mx-auto max-w-[1180px] px-8 py-16 max-md:px-5 max-md:py-10">
-		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/40">docs / setup</div>
+		<div class="font-mono text-[11px] uppercase tracking-[1px] text-fg/50">docs / setup</div>
 		<h1 class="mt-2 mb-5 text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[48px] max-md:-tracking-[1.5px]">install the<br /><span class="text-accent">chaos engine.</span></h1>
 		<p class="mb-8 max-w-[620px] text-[16px] leading-[1.6] text-fg/65">Invite the hosted bot or self-host the full stack with Postgres, Valkey, and the Discord worker.</p>
 
 		<div class="mb-8 flex gap-2" data-tabs>
-			<button class="a-tab is-active border-2 border-accent bg-accent px-4 py-2 font-mono text-[12px] font-bold uppercase text-bg" data-tab-button="hosted">Add to Discord</button>
-			<button class="a-tab border-2 border-border bg-transparent px-4 py-2 font-mono text-[12px] font-bold uppercase text-fg" data-tab-button="self">Self-host</button>
+			<button class="a-tab is-active border-2 border-accent bg-accent px-4 py-2 font-mono text-[12px] font-bold uppercase text-bg" data-tab-button="hosted" aria-expanded="true" aria-controls="panel-hosted">Add to Discord</button>
+			<button class="a-tab border-2 border-border bg-transparent px-4 py-2 font-mono text-[12px] font-bold uppercase text-fg" data-tab-button="self" aria-expanded="false" aria-controls="panel-self">Self-host</button>
 		</div>
 
-		<section data-tab-panel="hosted">
+		<section data-tab-panel="hosted" id="panel-hosted">
 			<div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-				{["Invite BhayanakBot with the Discord OAuth link.", "Grant slash-command and moderation permissions.", "Run /config view to confirm defaults.", "Configure channels, roles, auto-mod, and personality features."].map((step, index) => <div class="border-2 border-border bg-bg-panel p-6"><Sticker size="sm" rot={0}>STEP {index + 1}</Sticker><p class="mb-0 mt-4 text-[15px] leading-[1.55] text-fg/70">{step}</p></div>)}
+				{["Invite BhayanakBot with the Discord OAuth link.", "Grant slash-command and moderation permissions.", "Run /config view to confirm defaults.", "Configure channels, roles, auto-mod, and response features."].map((step, index) => <div class="border-2 border-border bg-bg-panel p-6"><div class="flex items-start justify-between gap-4"><Sticker size="sm" rot={0}>STEP {index + 1}</Sticker><span class="font-display text-[44px] leading-none font-black text-fg/10">{String(index + 1).padStart(2, "0")}</span></div><p class="mb-0 mt-4 text-[15px] leading-[1.55] text-fg/70">{step}</p></div>)}
 			</div>
 			<a href={botInviteUrl} class="a-press mt-8 inline-flex bg-accent px-7 py-4 font-mono text-[13px] font-extrabold uppercase text-bg">+ Add to Discord</a>
 		</section>
 
-		<section data-tab-panel="self" hidden>
+		<section data-tab-panel="self" id="panel-self" hidden>
 			<div class="mb-6 grid grid-cols-4 gap-3 max-md:grid-cols-2">
 				{["Node 22+", "pnpm 10+", "Postgres 16", "Valkey 8", "Discord token", "ffmpeg", "Docker optional"].map((item) => <div class="border-2 border-border bg-bg-panel px-4 py-3 font-mono text-[12px] text-fg/70">{item}</div>)}
 			</div>
@@ -41,7 +41,7 @@ pnpm dev
 				</CodeBlock>
 			</div>
 			<div class="mt-6 overflow-hidden border-2 border-border bg-bg-panel">
-				{["DISCORD_TOKEN", "DATABASE_URL", "VALKEY_URL", "ZEN_API_KEY", "YOUTUBE_COOKIE"].map((key) => <div class="grid grid-cols-[180px_1fr] border-b border-border px-4 py-2.5 last:border-b-0 max-md:grid-cols-1"><code class="font-mono text-[12px] text-accent">{key}</code><span class="text-[13px] text-fg/60">Runtime configuration value</span></div>)}
+			{[["DISCORD_TOKEN", "Bot login token from the Discord developer portal"], ["DATABASE_URL", "Postgres connection for archives, cases, levels, and settings"], ["VALKEY_URL", "Redis-compatible store backing scheduled tasks"], ["ZEN_API_KEY", "Zen API key enabling AI replies and summaries"], ["ZEN_ALLOW_DISCORD_CONTENT", "Must be true before Discord content reaches Zen"], ["YOUTUBE_COOKIE", "Optional cookie for age-gated YouTube playback"]].map(([key, purpose]) => <div class="grid grid-cols-[240px_1fr] border-b border-border px-4 py-2.5 last:border-b-0 max-md:grid-cols-1"><code class="font-mono text-[12px] text-accent">{key}</code><span class="text-[13px] text-fg/60">{purpose}</span></div>)}
 			</div>
 		</section>
 	</section>
@@ -58,6 +58,7 @@ pnpm dev
 				item.classList.toggle("text-bg", active);
 				item.classList.toggle("bg-transparent", !active);
 				item.classList.toggle("text-fg", !active);
+				item.setAttribute("aria-expanded", String(active));
 			});
 			panels.forEach((panel) => panel.hidden = panel.dataset.tabPanel !== tab);
 		}));

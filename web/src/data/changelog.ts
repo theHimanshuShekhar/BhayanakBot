@@ -25,10 +25,7 @@ export const releases = [
 		groups: [
 			{
 				heading: "Added",
-				items: [
-					"RPG pets, properties, jobs, crime, jail, and daily quests",
-					"Music queue controls and now-playing cards",
-				],
+				items: ["Music queue controls and now-playing cards"],
 			},
 			{ heading: "Fixed", items: ["Moderation case tracking and scheduled expiry tasks"] },
 		],

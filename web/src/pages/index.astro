@@ -2,8 +2,10 @@
 import BotEmbed from "~/components/BotEmbed.astro";
 import ChatMessage from "~/components/ChatMessage.astro";
 import SceneCard from "~/components/SceneCard.astro";
-import StatStrip from "~/components/StatStrip.astro";
+import BotAvatar from "~/components/BotAvatar.astro";
 import Sticker from "~/components/Sticker.astro";
+import StatStrip from "~/components/StatStrip.astro";
+import { COMMANDS_BY_CATEGORY, TOTAL_CATEGORIES, TOTAL_COMMANDS } from "~/data/commands";
 import { getBotInviteUrl } from "~/data/links";
 import { formatLatency, formatStatNumber, getStats } from "~/data/stats";
 import SiteLayout from "~/layouts/SiteLayout.astro";
@@ -15,10 +17,28 @@ const heroStatusParts = [
 	...(stats.latencyMs !== null ? [`${formatLatency(stats.latencyMs)} gateway latency`] : []),
 ];
 const homeStats = [
-	{ value: formatStatNumber(stats.servers), label: "active servers" },
-	{ value: String(stats.categories), label: "command categories" },
-	{ value: formatStatNumber(stats.commandsRun), label: "commands run", accent: true },
+	{ value: String(TOTAL_COMMANDS), label: "slash commands" },
+	{ value: String(TOTAL_CATEGORIES), label: "command categories" },
+	{ value: formatStatNumber(stats.servers), label: "active servers", accent: true },
 	...(stats.latencyMs !== null ? [{ value: formatLatency(stats.latencyMs), label: "gateway latency" }] : []),
+];
+
+interface Flyer {
+	channel: string;
+	tag: string;
+	tagColor?: string;
+	pitch: string;
+	href: string;
+	hrefLabel: string;
+}
+
+const flyers: Flyer[] = [
+	{ channel: "mod-log", tag: "MODERATION", pitch: "Cases, history, mutes, tempbans, purges, and anti-spam actions — every action logged and numbered.", href: "/commands/ban", hrefLabel: "moderation commands" },
+	{ channel: "voice", tag: "MUSIC", tagColor: "var(--color-accent-yellow)", pitch: "Full playback with queue controls, shuffle, loop, and per-channel DJ gating.", href: "/commands/play", hrefLabel: "music commands" },
+	{ channel: "guessing-game", tag: "GAMES", tagColor: "var(--color-success)", pitch: "Guess Who digs real quotes out of the server archive and makes you name the culprit.", href: "/commands/guess-who", hrefLabel: "how guess who works" },
+	{ channel: "general", tag: "AI REPLIES", pitch: "Context-aware mention replies, channel summaries, autoresponders, and profile views from archived conversation.", href: "/commands/personality", hrefLabel: "/personality docs" },
+	{ channel: "level-ups", tag: "LEVELING", tagColor: "var(--color-accent-yellow)", pitch: "XP for activity, rank cards, leaderboards, and role rewards that hand themselves out.", href: "/commands/rank", hrefLabel: "leveling commands" },
+	{ channel: "server-room", tag: "MINECRAFT", tagColor: "var(--color-success)", pitch: "Live status for mc.bhayanak.net — players, Homestead version, map, and mod lists.", href: "/commands/minecraft", hrefLabel: "what /minecraft shows" },
 ];
 ---
 
@@ -27,78 +47,181 @@ const homeStats = [
 		<div class="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(245_245_240_/_0.06)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:linear-gradient(180deg,#000_30%,transparent_100%)]"></div>
 		<div class="relative mx-auto max-w-[1180px]">
 			<div class="mb-6 flex flex-wrap items-center gap-2.5 max-md:mb-4">
-				<span class:list={["h-2 w-2 rounded-full", stats.capturedAt ? "bg-success shadow-[0_0_8px_var(--color-success)]" : "bg-warning"]}></span>
+				<span class:list={["h-2 w-2 rounded-full", stats.capturedAt ? "bg-success shadow-[0_0_8px_var(--color-success)] a-status-dot-live" : "bg-warning"]}></span>
 				<span class="font-mono text-[12px] tracking-[0.5px] text-fg/70 max-md:text-[11px]">{heroStatusParts.join(" · ")}</span>
 			</div>
 			<h1 class="m-0 text-[128px] leading-[0.88] font-black -tracking-[4px] uppercase max-md:text-[56px] max-md:-tracking-[1.5px]">
 				your server's<br /><span class="text-accent">worst behavior</span>,<br />automated.
 			</h1>
 			<div class="mt-8 flex flex-wrap items-center gap-6 max-md:mt-5 max-md:gap-4">
-				<p class="m-0 max-w-[520px] text-[18px] leading-[1.5] text-fg/70 max-md:text-[15px]">A Discord bot with RPG economy, music, moderation, leveling, tickets, giveaways, Minecraft status, and an AI that learns your server's personality.</p>
+				<p class="m-0 max-w-[520px] text-[18px] leading-[1.5] text-fg/70 max-md:text-[15px]">Moderation, music, leveling, tickets, giveaways, channel games, Minecraft status, and AI replies tuned to your server's own context — carried by one bot.</p>
 				<Sticker rot={6}>NO ADS · NO PAYWALL</Sticker>
 			</div>
 			<div class="mt-10 flex flex-wrap items-center gap-3 max-md:mt-7 max-md:gap-2.5">
 				<a href={botInviteUrl} class="a-press border-2 border-bg bg-accent px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">+ Add to Discord</a>
 				<a href="/commands" class="a-ghost border-2 border-fg px-7 py-[18px] font-mono text-[14px] font-extrabold uppercase tracking-[0.5px] text-fg max-md:px-[22px] max-md:py-3.5 max-md:text-[13px]">Read the docs →</a>
 				<span class="font-mono text-[12px] text-fg/50 max-md:hidden">★ free · self-hostable · MIT</span>
+				<div class="pointer-events-none max-md:ml-auto md:hidden" aria-hidden="true">
+					<BotAvatar size={96} class="hero-bot-avatar" />
+				</div>
+			</div>
+			<div class="hero-bot pointer-events-none absolute right-8 bottom-8 hidden md:block" aria-hidden="true">
+				<BotAvatar size={320} class="hero-bot-avatar" />
 			</div>
 		</div>
 	</section>
 
 	<StatStrip stats={homeStats} />
 
-	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
-		<div class="mb-8 flex flex-wrap items-end justify-between gap-6 max-md:flex-col max-md:items-start">
-			<div>
-				<Sticker rot={-3} bg="var(--color-accent)" color="var(--color-bg)">SEE IT IN ACTION</Sticker>
-				<h2 class="mt-4 mb-0 text-[56px] leading-[0.95] font-black -tracking-[2px] max-md:text-[32px] max-md:-tracking-[1px]">one bot.<br />fourteen kinds of chaos.</h2>
+	<section class="mx-auto my-24 max-w-[1180px] px-8 max-md:my-14 max-md:px-5">
+		<div class="mb-14 flex flex-wrap items-end justify-between gap-6 max-md:mb-8 max-md:flex-col max-md:items-start">
+			<div class="max-w-[640px]">
+				<h2 class="mt-4 mb-0 text-[56px] leading-[0.95] font-black -tracking-[2px] uppercase max-md:text-[32px] max-md:-tracking-[1px]">one bot.<br /><span class="text-accent">every kind of chaos.</span></h2>
 			</div>
-			<p class="max-w-[360px] text-[15px] leading-[1.5] text-fg/60 max-md:text-[14px]">Every command is slash-first, every system has logs, and the personality engine makes the bot sound like it belongs in your server.</p>
+			<p class="max-w-[380px] text-[15px] leading-[1.5] text-fg/60 max-md:text-[14px]">Each system ships its own flyer. Straighten one to read it — or take the whole bill from the strip below.</p>
 		</div>
-		<div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-			<SceneCard channel="economy" tag="RPG">
-				<ChatMessage user="mona" userColor="#facc15" time="today at 14:22"><code class="font-mono text-accent">/crime</code> job:heist</ChatMessage>
-				<ChatMessage user="BhayanakBot" bot time="today at 14:22">you brought a banana wrapped in foil. security respected the bit and still arrested you.<BotEmbed title="Crime · Failed" footer="Bail: 2,400 coins · try /work next time"><div class="grid grid-cols-2 gap-2"><div>Sentence <strong>00:14:32</strong></div><div>Reputation <strong class="text-accent">-12</strong></div></div></BotEmbed></ChatMessage>
-			</SceneCard>
-			<SceneCard channel="voice" tag="MUSIC" tagColor="var(--color-accent-yellow)">
-				<ChatMessage user="rhea" userColor="#22c55e" time="today at 16:03"><code class="font-mono text-accent">/play</code> query:midnight city</ChatMessage>
-				<ChatMessage user="BhayanakBot" bot time="today at 16:03">queued. don't skip it at the drop.<BotEmbed accent="#facc15" title="Now Playing" footer="/controls for buttons">M83 · Midnight City · volume 85</BotEmbed></ChatMessage>
-			</SceneCard>
-			<SceneCard channel="general" tag="AI">
-				<ChatMessage user="parth" userColor="#60a5fa" time="today at 19:14"><code class="font-mono text-accent">/personality view user</code> user:@parth</ChatMessage>
-				<ChatMessage user="BhayanakBot" bot time="today at 19:14">top trait: contrarian. confidence: unfortunately high.<BotEmbed title="Personality · @parth">vocab: meme-forward · mood: chaotic good</BotEmbed></ChatMessage>
-			</SceneCard>
-			<SceneCard channel="mod-log" tag="MOD">
-				<ChatMessage user="BhayanakBot" bot time="today at 21:40"><BotEmbed accent="#22c55e" title="Case #128 · Warn">reason: mass mentions · moderator: @admin</BotEmbed></ChatMessage>
-				<ChatMessage user="admin" userColor="#a78bfa" time="today at 21:41"><code class="font-mono text-accent">/history</code> user:@spammer</ChatMessage>
-			</SceneCard>
+		<div class="flyer-wall grid grid-cols-2 gap-x-10 gap-y-12 max-md:grid-cols-1 max-md:gap-y-8" data-flyer-wall>
+			{flyers.map((flyer, index) => (
+				<article class="flyer" style={`--flyer-i: ${index}`}>
+					<SceneCard channel={flyer.channel} tag={flyer.tag} tagColor={flyer.tagColor}>
+						{flyer.tag === "MODERATION" && <>
+							<ChatMessage user="BhayanakBot" bot time="today at 21:40"><BotEmbed accent="#22c55e" title="Case #128 · Warn">reason: mass mentions · moderator: @admin</BotEmbed></ChatMessage>
+							<ChatMessage user="admin" userColor="#a78bfa" time="today at 21:41"><code class="font-mono text-accent">/history</code> user:@spammer</ChatMessage>
+						</>}
+						{flyer.tag === "MUSIC" && <>
+							<ChatMessage user="rhea" userColor="#22c55e" time="today at 16:03"><code class="font-mono text-accent">/play</code> query:midnight city</ChatMessage>
+							<ChatMessage user="BhayanakBot" bot time="today at 16:03">queued. don't skip it at the drop.<BotEmbed accent="#facc15" title="Now Playing" footer="/controls for buttons">M83 · Midnight City · volume 85</BotEmbed></ChatMessage>
+						</>}
+						{flyer.tag === "GAMES" && <>
+							<ChatMessage user="BhayanakBot" bot time="today at 23:10"><BotEmbed title="Guess Who · #0042">"someone once debugged production by yelling at it. it worked." <span class="text-fg/50">· 3 guesses left</span></BotEmbed></ChatMessage>
+							<ChatMessage user="rhea" userColor="#22c55e" time="today at 23:12">@mona. it has to be mona.</ChatMessage>
+						</>}
+						{flyer.tag === "AI REPLIES" && <>
+							<ChatMessage user="parth" userColor="#60a5fa" time="today at 19:14"><code class="font-mono text-accent">/personality view user</code></ChatMessage>
+							<ChatMessage user="BhayanakBot" bot time="today at 19:14">top trait: contrarian. confidence: unfortunately high.<BotEmbed title="Personality · @parth">vocab: meme-forward · mood: chaotic good</BotEmbed></ChatMessage>
+						</>}
+						{flyer.tag === "LEVELING" && <>
+							<ChatMessage user="rhea" userColor="#22c55e" time="today at 09:30"><code class="font-mono text-accent">/rank</code></ChatMessage>
+							<ChatMessage user="BhayanakBot" bot time="today at 09:30"><BotEmbed accent="#facc15" title="Rank · @rhea">level 14 · 1,980 xp · top 5% this week</BotEmbed></ChatMessage>
+						</>}
+						{flyer.tag === "MINECRAFT" && <>
+							<ChatMessage user="mona" userColor="#facc15" time="today at 20:45"><code class="font-mono text-accent">/minecraft</code></ChatMessage>
+							<ChatMessage user="BhayanakBot" bot time="today at 20:45"><BotEmbed accent="#22c55e" title="mc.bhayanak.net" footer="live map · homestead v1.21">7/20 players online · whitelisted</BotEmbed></ChatMessage>
+						</>}
+					</SceneCard>
+					<p class="mb-0 mt-5 max-w-[520px] text-[15px] leading-[1.55] text-fg/65 max-md:mt-4 max-md:text-[14px]">{flyer.pitch}</p>
+					<a href={flyer.href} class="a-nav-link mt-2 inline-flex py-1 font-mono text-[12px] font-semibold text-accent">{flyer.hrefLabel} →</a>
+				</article>
+			))}
 		</div>
 	</section>
 
-	<section class="mx-auto my-20 max-w-[1180px] px-8 max-md:my-12 max-md:px-5">
-		<div class="grid grid-cols-[1.1fr_0.9fr] gap-10 border-2 border-border bg-bg-panel p-10 max-md:grid-cols-1 max-md:p-6">
-			<div>
-				<Sticker bg="var(--color-accent-yellow)" rot={-5}>FEATURED</Sticker>
-				<h2 class="mt-5 mb-4 text-[48px] leading-none font-black -tracking-[2px] uppercase max-md:text-[32px]">AI personality<br /><span class="text-accent">without the slop.</span></h2>
-				<p class="max-w-[540px] text-[15px] leading-[1.6] text-fg/65">BhayanakBot uses archived server conversation context, builds user and guild vibe profiles, and uses them to make summaries and replies feel local to your server.</p>
-				<a href="/commands/personality" class="a-ghost mt-6 inline-flex border-2 border-border px-5 py-3 font-mono text-[12px] font-bold uppercase text-fg">read /personality docs →</a>
+	<section class="mx-auto mb-24 max-w-[1180px] px-8 max-md:mb-14 max-md:px-5">
+		<a href="/commands" class="block border-2 border-border bg-bg-panel transition-colors duration-150 hover:bg-bg-panel-2">
+			<div class="flex items-center justify-between gap-4 border-b-2 border-border px-7 py-5 max-md:px-5">
+				<h2 class="m-0 text-[28px] leading-none font-black -tracking-[0.5px] uppercase max-md:text-[22px]">the full bill</h2>
+				<span class="font-mono text-[11px] text-fg/50">{TOTAL_COMMANDS} commands · {TOTAL_CATEGORIES} categories</span>
 			</div>
-			<div class="rotate-[0.4deg] border-2 border-border bg-bg">
-				<ChatMessage user="BhayanakBot" bot time="profile build"><BotEmbed title="Guild Personality">mood: unhinged but loyal · peak activity: 21:00 · recurring topic: hot dog discourse</BotEmbed></ChatMessage>
-			</div>
-		</div>
+			<ul class="m-0 list-none p-0">
+				{COMMANDS_BY_CATEGORY.map((category, index) => (
+					<li class:list={["flex items-baseline gap-4 px-7 py-3 max-md:px-5", index < COMMANDS_BY_CATEGORY.length - 1 && "border-b border-border"]}>
+						<span class="font-mono text-[13px] text-accent">{category.icon}</span>
+						<span class="text-[15px] font-bold text-fg">{category.label}</span>
+						<span class="hidden min-w-0 flex-1 truncate text-[13px] text-fg/50 sm:block">{category.description}</span>
+						<span class="ml-auto shrink-0 font-mono text-[11px] text-fg/50">{category.items.length}</span>
+					</li>
+				))}
+			</ul>
+		</a>
 	</section>
 
-	<section class="mx-auto my-20 grid max-w-[1180px] grid-cols-3 border-2 border-border max-md:grid-cols-1">
-		{[
-			["RPG", "Persistent economy, stats, pets, property, daily quests, jail, and jobs."],
-			["MOD", "Cases, history, anti-spam actions, mutes, tempbans, logs, and audit listeners."],
-			["AI", "Summaries, personality profiles, mention replies, and contextual autoresponses."],
-		].map(([title, body], index) => (
-			<div class:list={["bg-bg-panel p-7", index < 2 && "border-r-2 border-border max-md:border-r-0 max-md:border-b-2"]}>
-				<div class="font-mono text-[11px] font-bold uppercase tracking-[1px] text-accent">{title}</div>
-				<p class="mt-4 mb-0 text-[15px] leading-[1.55] text-fg/65">{body}</p>
+	<section class="border-t-2 border-border bg-bg-panel">
+		<div class="mx-auto max-w-[1180px] px-8 py-20 max-md:px-5 max-md:py-12">
+			<h2 class="m-0 max-w-[900px] text-[80px] leading-[0.9] font-black -tracking-[3px] uppercase max-md:text-[40px] max-md:-tracking-[1.5px]">your server is<br /><span class="text-accent">already a mess.</span><br />let the bot prove it.</h2>
+			<div class="mt-10 flex flex-wrap items-center gap-3 max-md:mt-7">
+				<a href={botInviteUrl} class="a-press inline-flex border-2 border-bg bg-accent px-8 py-5 font-mono text-[15px] font-extrabold uppercase tracking-[0.5px] text-bg max-md:w-full max-md:justify-center max-md:py-4">+ Add to Discord</a>
+				<a href="/setup" class="a-ghost inline-flex border-2 border-fg px-8 py-5 font-mono text-[15px] font-extrabold uppercase tracking-[0.5px] text-fg max-md:w-full max-md:justify-center max-md:py-4">Self-host it →</a>
 			</div>
-		))}
+			<p class="mt-6 mb-0 font-mono text-[12px] text-fg/50">invite takes one click · self-hosting takes one compose file</p>
+		</div>
 	</section>
+</SiteLayout>
+
+<style>
+	:global(.hero-bot-avatar) {
+		width: clamp(96px, 26vw, 320px);
+		height: clamp(96px, 26vw, 320px);
+	}
+	.hero-bot {
+		transform: rotate(-4deg);
+	}
+
+	.flyer:nth-child(odd) {
+		--rest-rot: -1.25deg;
+	}
+	.flyer:nth-child(3) {
+		--rest-rot: 0.75deg;
+	}
+	.flyer:nth-child(even) {
+		--rest-rot: 1.25deg;
+	}
+	@media (min-width: 768px) {
+		.flyer:nth-child(even) {
+			margin-top: 2.5rem;
+		}
+	}
+	.flyer {
+		transform: rotate(var(--rest-rot, 0deg));
+		box-shadow: 6px 6px 0 var(--color-fg);
+		transition:
+			transform 0.22s var(--ease-snap),
+			box-shadow 0.22s var(--ease-snap),
+			filter 0.2s;
+	}
+	.flyer:hover {
+		transform: rotate(0deg) translate(3px, 3px);
+		box-shadow: 3px 3px 0 var(--color-fg);
+		filter: brightness(1.05);
+	}
+	@keyframes flyerSlam {
+		from {
+			opacity: 0;
+			transform: rotate(var(--rest-rot, 0deg)) scale(1.1) translateY(-14px);
+		}
+		55% {
+			opacity: 1;
+		}
+		to {
+			opacity: 1;
+			transform: rotate(var(--rest-rot, 0deg)) scale(1) translateY(0);
+		}
+	}
+	.flyer-wall.pasted .flyer {
+		animation: flyerSlam 0.36s var(--ease-snap) both;
+		animation-delay: calc(var(--flyer-i, 0) * 90ms);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.flyer,
+		.flyer:hover,
+		.flyer-wall.pasted .flyer {
+			animation: none;
+			transform: none;
+		}
+	}
+</style>
+<script>
+	const wall = document.querySelector("[data-flyer-wall]");
+	if (wall && "IntersectionObserver" in window) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((entry) => entry.isIntersecting)) {
+					wall.classList.add("pasted");
+					observer.disconnect();
+				}
+			},
+			{ rootMargin: "0px 0px -12% 0px" },
+		);
+		observer.observe(wall);
+	}
+</script>
 </SiteLayout>

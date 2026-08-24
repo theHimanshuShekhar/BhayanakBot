@@ -2,7 +2,7 @@
 FROM node:22-alpine AS base
 
 RUN apk add --no-cache ffmpeg python3 make g++ gcompat
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.30.1
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN pnpm build
 # migration: minimal image to run database migrations (no ffmpeg/python/build deps)
 FROM node:22-alpine AS migration
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.30.1
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ FROM node:22 AS production
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.30.1
 
 WORKDIR /app
 

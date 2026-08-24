@@ -1,0 +1,372 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-08-24T00:00:00Z",
+	"title": "Design System: BhayanakBot",
+	"extensions": {
+		"colorMeta": {
+			"void-black": {
+				"role": "neutral",
+				"displayName": "Void Black",
+				"canonical": "#0a0a0f",
+				"tonalRamp": [
+					"oklch(15% 0.015 285)",
+					"oklch(23% 0.02 285)",
+					"oklch(32% 0.025 285)",
+					"oklch(42% 0.03 285)",
+					"oklch(54% 0.03 285)",
+					"oklch(67% 0.025 285)",
+					"oklch(80% 0.018 285)",
+					"oklch(92% 0.01 285)"
+				]
+			},
+			"panel-black": {
+				"role": "neutral",
+				"displayName": "Panel Black",
+				"canonical": "#0e0e16",
+				"tonalRamp": [
+					"oklch(16% 0.018 285)",
+					"oklch(24% 0.022 285)",
+					"oklch(33% 0.026 285)",
+					"oklch(43% 0.03 285)",
+					"oklch(55% 0.03 285)",
+					"oklch(67% 0.025 285)",
+					"oklch(80% 0.018 285)",
+					"oklch(92% 0.01 285)"
+				]
+			},
+			"panel-raised": {
+				"role": "neutral",
+				"displayName": "Panel Raised",
+				"canonical": "#13131c",
+				"tonalRamp": [
+					"oklch(18% 0.018 285)",
+					"oklch(26% 0.022 285)",
+					"oklch(35% 0.026 285)",
+					"oklch(44% 0.03 285)",
+					"oklch(56% 0.03 285)",
+					"oklch(68% 0.025 285)",
+					"oklch(81% 0.018 285)",
+					"oklch(93% 0.01 285)"
+				]
+			},
+			"hairline-border": {
+				"role": "neutral",
+				"displayName": "Hairline Border",
+				"canonical": "#1a1a24",
+				"tonalRamp": [
+					"oklch(20% 0.02 285)",
+					"oklch(28% 0.024 285)",
+					"oklch(37% 0.028 285)",
+					"oklch(46% 0.032 285)",
+					"oklch(58% 0.032 285)",
+					"oklch(70% 0.026 285)",
+					"oklch(82% 0.02 285)",
+					"oklch(94% 0.012 285)"
+				]
+			},
+			"paper-white": {
+				"role": "neutral",
+				"displayName": "Paper White",
+				"canonical": "#f5f5f0",
+				"tonalRamp": [
+					"oklch(20% 0.008 100)",
+					"oklch(30% 0.008 100)",
+					"oklch(42% 0.008 100)",
+					"oklch(54% 0.008 100)",
+					"oklch(66% 0.007 100)",
+					"oklch(77% 0.006 100)",
+					"oklch(87% 0.005 100)",
+					"oklch(96% 0.004 100)"
+				]
+			},
+			"voltage-violet": {
+				"role": "primary",
+				"displayName": "Voltage Violet",
+				"canonical": "#a78bfa",
+				"tonalRamp": [
+					"oklch(22% 0.06 294)",
+					"oklch(32% 0.09 294)",
+					"oklch(42% 0.12 294)",
+					"oklch(52% 0.14 294)",
+					"oklch(62% 0.15 294)",
+					"oklch(71% 0.14 294)",
+					"oklch(81% 0.1 294)",
+					"oklch(92% 0.05 294)"
+				]
+			},
+			"hazard-yellow": {
+				"role": "secondary",
+				"displayName": "Hazard Yellow",
+				"canonical": "#facc15",
+				"tonalRamp": [
+					"oklch(25% 0.07 95)",
+					"oklch(36% 0.11 95)",
+					"oklch(48% 0.14 95)",
+					"oklch(59% 0.16 95)",
+					"oklch(69% 0.18 95)",
+					"oklch(78% 0.19 95)",
+					"oklch(86% 0.18 95)",
+					"oklch(95% 0.1 95)"
+				]
+			},
+			"signal-green": {
+				"role": "tertiary",
+				"displayName": "Signal Green",
+				"canonical": "#22c55e",
+				"tonalRamp": [
+					"oklch(22% 0.06 150)",
+					"oklch(31% 0.09 150)",
+					"oklch(41% 0.12 150)",
+					"oklch(51% 0.15 150)",
+					"oklch(61% 0.17 150)",
+					"oklch(72% 0.18 150)",
+					"oklch(82% 0.15 150)",
+					"oklch(93% 0.08 150)"
+				]
+			},
+			"alarm-red": {
+				"role": "tertiary",
+				"displayName": "Alarm Red",
+				"canonical": "#ef4444",
+				"tonalRamp": [
+					"oklch(20% 0.07 25)",
+					"oklch(30% 0.11 25)",
+					"oklch(40% 0.15 25)",
+					"oklch(50% 0.18 25)",
+					"oklch(57% 0.21 25)",
+					"oklch(66% 0.19 25)",
+					"oklch(78% 0.14 25)",
+					"oklch(91% 0.06 25)"
+				]
+			}
+		},
+		"typographyMeta": {
+			"display": {
+				"displayName": "Display",
+				"purpose": "Hero headline only — one per site, uppercase, accent-colored middle line."
+			},
+			"headline": {
+				"displayName": "Headline",
+				"purpose": "Page H1s under a mono breadcrumb; setup 80px, docs pages 64px."
+			},
+			"title": {
+				"displayName": "Title",
+				"purpose": "Stat-strip numerals and section titles."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "All prose in Space Grotesk; mute supporting copy via fg opacity steps."
+			},
+			"label": {
+				"displayName": "Label",
+				"purpose": "The flyer's fine print: buttons, tags, captions, keys, and mono navigation links; uppercase only where the copy calls for it."
+			}
+		},
+		"shadows": [
+			{
+				"name": "press-rest-hero",
+				"value": "5px 5px 0 #f5f5f0",
+				"purpose": "Resting state of hero-scale press buttons."
+			},
+			{
+				"name": "press-rest-compact",
+				"value": "3px 3px 0 #f5f5f0",
+				"purpose": "Resting state of compact press buttons (nav CTA)."
+			},
+			{
+				"name": "press-hover-compact",
+				"value": "1.5px 1.5px 0 #f5f5f0",
+				"purpose": "Hover state of the compact nav CTA before it lands flat."
+			},
+			{
+				"name": "sticker-shadow",
+				"value": "3px 3px 0 #0a0a0f",
+				"purpose": "Solid ink offset under rotated sticker tags."
+			}
+		],
+		"motion": [
+			{
+				"name": "ease-snap",
+				"value": "cubic-bezier(0.2, 0.7, 0.3, 1.2)",
+				"purpose": "Default easing for lifts, wipes, sheets, page-enter (160–280ms)."
+			},
+			{
+				"name": "ease-press",
+				"value": "cubic-bezier(0.2, 0.7, 0.3, 1.4)",
+				"purpose": "Mechanical compress easing for press buttons (140ms)."
+			},
+			{
+				"name": "pulse-live",
+				"value": "scale(1) → scale(0.92) opacity 1 → 0.55 over 2s",
+				"purpose": "Homepage hero status dot heartbeat — the only pulsing element in the system; status-board markers are static squares."
+			},
+			{
+				"name": "flyer-slam",
+				"value": "opacity 0 + rotate(rest) scale(1.1) translateY(-14px) → rest rotation over 0.36s, 90ms stagger, runs once on first view",
+				"purpose": "Wall paste-up entrance for the home flyer wall; IntersectionObserver-gated, transform/opacity only, skipped entirely under reduced motion."
+			},
+			{
+				"name": "flyer-press",
+				"value": "rest: rotate(-1.25deg…1.25deg) + 6px 6px 0 ink shadow → hover: rotate(0) translate(3px,3px) + 3px 3px 0 shadow",
+				"purpose": "Home flyer wall interaction: rotated feature cards straighten while pressing into their shadow footprint; reduced motion removes the transform only."
+			},
+			{
+				"name": "avatar-watch",
+				"value": "per-eye tracked groups (depth 1.0 / 0.85): translate toward cursor with size-dependent gain 24%->11% of avatar width (small->hero), tilt 8deg->4deg, squash 8%->5%, saturating at 240-320px cursor distance, 0.32s expo-out transition",
+				"purpose": "Every bot avatar faces the pointer with per-eye parallax depth; small instances move proportionally more than the hero mascot; off under reduced motion."
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "sm",
+				"value": "640px"
+			},
+			{
+				"name": "md",
+				"value": "768px"
+			},
+			{
+				"name": "lg",
+				"value": "1024px"
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Primary Button (Press)",
+			"kind": "button",
+			"refersTo": "button-primary",
+			"description": "Violet CTA with hard ink shadow that compresses into the page on hover and lands flat on click.",
+			"html": "<button class=\"ds-btn-primary\">+ Add to Discord</button>",
+			"css": ".ds-btn-primary { background: var(--color-accent, #a78bfa); color: var(--color-bg, #0a0a0f); border: 2px solid var(--color-bg, #0a0a0f); padding: 18px 28px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; box-shadow: var(--press-rest-shadow, 5px 5px 0 var(--color-fg, #f5f5f0)); transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.3, 1.4), box-shadow 0.14s cubic-bezier(0.2, 0.7, 0.3, 1.4), filter 0.15s; } .ds-btn-primary:hover { transform: translate(2px, 2px); box-shadow: 3px 3px 0 var(--color-fg, #f5f5f0); filter: brightness(1.08); } .ds-btn-primary:active { transform: translate(5px, 5px); box-shadow: 0 0 0 transparent; } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-fg, #f5f5f0); outline-offset: 3px; border-radius: 2px; }"
+		},
+		{
+			"name": "Ghost Button",
+			"kind": "button",
+			"refersTo": "button-ghost",
+			"description": "Outlined secondary action that fills with 8% white on hover.",
+			"html": "<button class=\"ds-btn-ghost\">Read the docs →</button>",
+			"css": ".ds-btn-ghost { background: transparent; color: var(--color-fg, #f5f5f0); border: 2px solid var(--color-fg, #f5f5f0); padding: 18px 28px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.14s; } .ds-btn-ghost:hover { background: rgb(245 245 240 / 0.08); } .ds-btn-ghost:active { transform: scale(0.97); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--color-fg, #f5f5f0); outline-offset: 3px; border-radius: 2px; }"
+		},
+		{
+			"name": "Tab Toggle",
+			"kind": "chip",
+			"refersTo": null,
+			"description": "Square tab switcher; active state floods violet, inactive squeezes on press.",
+			"html": "<div style=\"display:flex; gap:8px;\"><button class=\"ds-tab is-active\">Add to Discord</button><button class=\"ds-tab\">Self-host</button></div>",
+			"css": ".ds-tab { background: transparent; color: var(--color-fg, #f5f5f0); border: 2px solid var(--color-border, #1a1a24); padding: 8px 16px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 12px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: background 0.14s, color 0.14s, transform 0.14s; } .ds-tab:hover:not(.is-active) { background: rgb(245 245 240 / 0.04); } .ds-tab.is-active { background: var(--color-accent, #a78bfa); border-color: var(--color-accent, #a78bfa); color: var(--color-bg, #0a0a0f); } .ds-tab:active { transform: scale(0.97); } .ds-tab:focus-visible { outline: 2px solid var(--color-fg, #f5f5f0); outline-offset: 3px; border-radius: 2px; }"
+		},
+		{
+			"name": "Sticker Tag",
+			"kind": "custom",
+			"refersTo": "sticker-tag",
+			"description": "Rotated hazard-yellow slam with solid offset shadow; the system's physical exclamation mark.",
+			"html": "<span class=\"ds-sticker\" style=\"--rot:-4deg;\">NO ADS · NO PAYWALL</span>",
+			"css": ".ds-sticker { display: inline-flex; width: fit-content; align-items: center; background: var(--color-accent-yellow, #facc15); color: var(--color-bg, #0a0a0f); border: 2px solid var(--color-bg, #0a0a0f); padding: 4px 12px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; box-shadow: 3px 3px 0 var(--color-bg, #0a0a0f); transform: rotate(var(--rot, -4deg)); }"
+		},
+		{
+			"name": "Panel Card (Lift)",
+			"kind": "card",
+			"refersTo": "card-panel",
+			"description": "Square bordered card; hovers raise 2px onto Panel Raised with a violet underline wipe.",
+			"html": "<div class=\"ds-card\"><code class=\"ds-card-cmd\">/play</code><p class=\"ds-card-desc\">Queue a track from YouTube, Spotify, or a direct URL.</p></div>",
+			"css": ".ds-card { position: relative; overflow: hidden; background: var(--color-bg-panel, #0e0e16); color: var(--color-fg, #f5f5f0); border: 2px solid var(--color-border, #1a1a24); padding: 20px; transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1.2), background 0.15s; cursor: pointer; } .ds-card::before { content: \"\"; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: currentColor; opacity: 0; transform: scaleX(0); transform-origin: left; transition: opacity 0.18s, transform 0.18s; } .ds-card:hover { background: var(--color-bg-panel-2, #13131c); transform: translateY(-2px); } .ds-card:hover::before { opacity: 0.6; transform: scaleX(1); } .ds-card-cmd { font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 15px; font-weight: 700; color: var(--color-accent, #a78bfa); margin: 0 0 6px; display: block; } .ds-card-desc { font-family: var(--font-display, \"Space Grotesk\", system-ui, sans-serif); font-size: 13px; line-height: 1.4; color: rgb(245 245 240 / 0.65); margin: 0; }"
+		},
+		{
+			"name": "Terminal Filter Field",
+			"kind": "input",
+			"refersTo": null,
+			"description": "Transparent mono input in a bordered strip with violet prompt glyph and kbd hint.",
+			"html": "<div class=\"ds-field\"><span class=\"ds-field-glyph\">&gt;</span><input class=\"ds-field-input\" placeholder=\"filter commands…\" /><kbd class=\"ds-field-kbd\">⌘K</kbd></div>",
+			"css": ".ds-field { display: flex; align-items: center; gap: 10px; background: var(--color-bg-panel, #0e0e16); border: 2px solid var(--color-border, #1a1a24); padding: 12px 16px; } .ds-field-glyph { font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 14px; color: var(--color-accent, #a78bfa); } .ds-field-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--color-fg, #f5f5f0); font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 14px; } .ds-field-input::placeholder { color: rgb(245 245 240 / 0.35); } .ds-field-kbd { font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 11px; color: rgb(245 245 240 / 0.4); }"
+		},
+		{
+			"name": "Bot Embed",
+			"kind": "custom",
+			"refersTo": null,
+			"description": "Discord embed replica: 4px accent spine, faint body, mono title and footer.",
+			"html": "<div class=\"ds-embed\"><div class=\"ds-embed-title\">GUESS WHO</div><div class=\"ds-embed-body\">Someone said something unforgettable here…</div><div class=\"ds-embed-footer\">archived · #confessions</div></div>",
+			"css": ".ds-embed { background: rgb(245 245 240 / 0.04); border-left: 4px solid var(--color-accent, #a78bfa); border-radius: 0 6px 6px 0; padding: 12px 14px; font-family: var(--font-display, \"Space Grotesk\", system-ui, sans-serif); } .ds-embed-title { font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--color-fg, #f5f5f0); margin-bottom: 8px; } .ds-embed-body { font-size: 13px; line-height: 1.55; color: rgb(245 245 240 / 0.85); } .ds-embed-footer { margin-top: 8px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 11px; color: rgb(245 245 240 / 0.4); }"
+		},
+		{
+			"name": "Code Block Window",
+			"kind": "custom",
+			"refersTo": null,
+			"description": "Mac-window pastiche with traffic dots, mono filename bar, and terminal content.",
+			"html": "<div class=\"ds-code\"><div class=\"ds-code-bar\"><span class=\"ds-dot ds-dot-r\"></span><span class=\"ds-dot ds-dot-y\"></span><span class=\"ds-dot ds-dot-g\"></span><span class=\"ds-code-name\">local-dev</span></div><pre class=\"ds-code-pre\">pnpm install\npnpm db:migrate\npnpm dev</pre></div>",
+			"css": ".ds-code { overflow: hidden; background: var(--color-bg-panel, #0e0e16); border: 2px solid var(--color-border, #1a1a24); } .ds-code-bar { display: flex; align-items: center; gap: 8px; background: var(--color-bg-panel-2, #13131c); border-bottom: 1px solid var(--color-border, #1a1a24); padding: 10px 16px; } .ds-dot { width: 10px; height: 10px; border-radius: 9999px; } .ds-dot-r { background: #ef4444; } .ds-dot-y { background: #facc15; } .ds-dot-g { background: #22c55e; } .ds-code-name { margin-left: 8px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 11px; color: rgb(245 245 240 / 0.5); } .ds-code-pre { margin: 0; padding: 16px; overflow-x: auto; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 12px; line-height: 1.7; color: rgb(245 245 240 / 0.75); }"
+		},
+		{
+			"name": "Navigation Bar",
+			"kind": "nav",
+			"refersTo": null,
+			"description": "Sticky square navigation with a violet Bot wordmark, mono route links, and a compact press CTA; the links collapse into a bordered mobile sheet.",
+			"html": "<nav class=\"ds-nav\"><a class=\"ds-nav-brand\" href=\"#\">Bhayanak<span>Bot</span></a><div class=\"ds-nav-links\"><a class=\"ds-nav-link is-active\" href=\"#\">home</a><a class=\"ds-nav-link\" href=\"#\">commands</a><a class=\"ds-nav-link\" href=\"#\">setup</a></div><a class=\"ds-nav-cta\" href=\"#\">+ Add to Discord</a></nav>",
+			"css": ".ds-nav { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--color-bg, #0a0a0f); border-bottom: 2px solid var(--color-border, #1a1a24); padding: 14px 32px; } .ds-nav-brand { color: var(--color-fg, #f5f5f0); font-family: var(--font-display, \"Space Grotesk\", system-ui, sans-serif); font-size: 22px; font-weight: 900; letter-spacing: -0.5px; } .ds-nav-brand span { color: var(--color-accent, #a78bfa); } .ds-nav-links { display: flex; gap: 2px; } .ds-nav-link { position: relative; color: rgb(245 245 240 / 0.6); font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 13px; font-weight: 600; padding: 8px 12px; } .ds-nav-link:hover, .ds-nav-link.is-active { color: var(--color-accent, #a78bfa); } .ds-nav-link::after { position: absolute; right: 12px; bottom: -16px; left: 12px; height: 2px; content: \"\"; background: currentColor; transform: scaleX(0); transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1.2); } .ds-nav-link:hover::after { transform: scaleX(0.55); } .ds-nav-link.is-active::after { transform: scaleX(1); } .ds-nav-cta { background: var(--color-accent, #a78bfa); color: var(--color-bg, #0a0a0f); border: 2px solid var(--color-bg, #0a0a0f); padding: 10px 18px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 3px 3px 0 var(--color-fg, #f5f5f0); transition: transform 0.14s cubic-bezier(0.2, 0.7, 0.3, 1.4), box-shadow 0.14s cubic-bezier(0.2, 0.7, 0.3, 1.4); } .ds-nav-cta:hover { transform: translate(2px, 2px); box-shadow: 1.5px 1.5px 0 var(--color-fg, #f5f5f0); } .ds-nav-cta:active { transform: translate(3px, 3px); box-shadow: 0 0 0 transparent; } .ds-nav-cta:focus-visible, .ds-nav-link:focus-visible { outline: 2px solid var(--color-fg, #f5f5f0); outline-offset: 3px; border-radius: 2px; } @media (max-width: 767px) { .ds-nav { padding: 14px 20px; } .ds-nav-links { display: none; } .ds-nav-cta { display: none; } }"
+		},
+		{
+			"name": "Flyer Wall Card",
+			"kind": "custom",
+			"refersTo": null,
+			"description": "A real Discord scene presented as a slightly crooked feature flyer that straightens and presses into its ink shadow when read.",
+			"html": "<article class=\"ds-flyer\"><div class=\"ds-scene\"><div class=\"ds-scene-bar\"><span># mod-log</span><b>MODERATION</b></div><div class=\"ds-scene-copy\"><strong>Case #128 · Warn</strong><p>reason: mass mentions · moderator: @admin</p></div></div><p class=\"ds-flyer-pitch\">Cases, history, mutes, and anti-spam actions — every action logged and numbered.</p><a class=\"ds-flyer-link\" href=\"#\">moderation commands →</a></article>",
+			"css": ".ds-flyer { color: var(--color-fg, #f5f5f0); transform: rotate(-1.25deg); box-shadow: 6px 6px 0 var(--color-fg, #f5f5f0); transition: transform 0.22s var(--ease-snap, cubic-bezier(0.2, 0.7, 0.3, 1.2)), box-shadow 0.22s var(--ease-snap, cubic-bezier(0.2, 0.7, 0.3, 1.2)), filter 0.2s; } .ds-flyer:nth-child(even) { transform: rotate(1.25deg); } .ds-flyer:hover { transform: rotate(0deg) translate(3px, 3px); box-shadow: 3px 3px 0 var(--color-fg, #f5f5f0); filter: brightness(1.05); } .ds-scene { overflow: hidden; background: var(--color-bg-panel, #0e0e16); border: 2px solid var(--color-border, #1a1a24); } .ds-scene-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--color-bg-panel-2, #13131c); border-bottom: 1px solid var(--color-border, #1a1a24); padding: 10px 14px; font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 11px; color: rgb(245 245 240 / 0.5); } .ds-scene-bar b { background: var(--color-accent, #a78bfa); color: var(--color-bg, #0a0a0f); padding: 2px 6px; font-size: 10px; } .ds-scene-copy { padding: 14px; font-family: var(--font-display, \"Space Grotesk\", system-ui, sans-serif); } .ds-scene-copy strong { font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 13px; } .ds-scene-copy p { margin: 6px 0 0; color: rgb(245 245 240 / 0.7); font-size: 13px; line-height: 1.5; } .ds-flyer-pitch { max-width: 520px; margin: 20px 0 0; color: rgb(245 245 240 / 0.65); font-family: var(--font-display, \"Space Grotesk\", system-ui, sans-serif); font-size: 15px; line-height: 1.55; } .ds-flyer-link { display: inline-flex; margin-top: 8px; padding: 4px 0; color: var(--color-accent, #a78bfa); font-family: var(--font-mono, \"JetBrains Mono\", ui-monospace, monospace); font-size: 12px; font-weight: 600; } .ds-flyer-link:focus-visible { outline: 2px solid var(--color-fg, #f5f5f0); outline-offset: 3px; border-radius: 2px; } @media (prefers-reduced-motion: reduce) { .ds-flyer, .ds-flyer:hover { transform: none; } }"
+		}
+	],
+	"narrative": {
+		"northStar": "The Basement Gig Poster",
+		"overview": "This site looks like a flyer stapled to a black venue wall: enormous slugged uppercase type, stickers slapped on at angles, hard ink shadows instead of blur, and a two-color ink set (violet + hazard yellow) over near-black stock. Nothing floats; everything is printed, bordered, and physically pressable. The irreverence of the product voice (\"your server's worst behavior, automated\") is carried entirely by typography and stickers — never by illustration clutter or gradient washes.\n\nThe second half of the identity is **Discord-native mimicry**: fake chat windows (`SceneCard`), message rows, bot embeds, and the violet-glow bot avatar reproduce the client the product lives in. On the home surface, those replicas become a wall of six flyers: each hangs at a slight rotation (−1.25° to +1.25°) and straightens flat on hover with a −4px lift, turning breadth into physical print rather than a screenshot hero. These mockups are the site's imagery — real product texture standing in for screenshots. Density sits between poster and console: comfortable whitespace around sections, dense mono fine-print inside panels.\n\nDepth is tonal, not atmospheric: three stacked surface blacks separated by 2px borders, plus hard offset shadows that compress when pressed.",
+		"keyCharacteristics": [
+			"Gig-poster display type: Space Grotesk Black, uppercase, tight negative tracking, leading under 1",
+			"JetBrains Mono micro-labels as the flyer's fine print (nav, buttons, tags, stats captions)",
+			"Square chrome: zero border-radius on every container, button, and panel",
+			"Hard offset press-shadows that translate-and-compress on hover/active; no soft drop shadows anywhere",
+			"Violet as the single working accent; hazard yellow reserved for rotated sticker slams",
+			"Discord UI replicas (channel windows, messages, embeds) used as authentic imagery",
+			"Flyer-wall signature: Discord feature cards slam into place in a staggered paste-up on first view, hang slightly rotated at rest, and straighten flat on hover",
+			"Honest state board: active systems use solid cards; provider-dependent systems use dashed conditional cards"
+		],
+		"rules": [
+			{
+				"name": "The Sticker Rule",
+				"body": "Hazard yellow appears only as a small physical slam — a rotated tag, a dot — never as a wash, background field, or text color on dark.",
+				"section": "colors"
+			},
+			{
+				"name": "The One Ink Rule",
+				"body": "Voltage violet is the only accent allowed to carry interactive weight (links, tabs, CTAs, code). A screen stays ≥90% monochrome ink; its rarity is the point.",
+				"section": "colors"
+			},
+			{
+				"name": "The Two Voices Rule",
+				"body": "Space Grotesk speaks, JetBrains Mono annotates. Never set paragraphs or descriptions in mono; never set buttons or labels in the display face.",
+				"section": "typography"
+			},
+			{
+				"name": "The Flyer Rule",
+				"body": "Show product breadth as a wall of real feature flyers that can be read in place; do not fall back to a generic screenshot hero.",
+				"section": "layout"
+			},
+			{
+				"name": "The No-Blur Rule",
+				"body": "If a shadow has blur or transparency, it is wrong. Shadows are solid ink offsets; atmosphere comes from the radial dot-grid backdrop mask, never from elevation.",
+				"section": "elevation"
+			}
+		],
+		"dos": [
+			"Do keep every interactive element mechanically pressable: hard shadow, translate-on-hover, flat-on-active.",
+			"Do set buttons, tags, captions, keys, and navigation in JetBrains Mono; use uppercase treatment only where the copy calls for it.",
+			"Do draw structure with 2px Hairline borders — shared grids, banded strips, divided stacks.",
+			"Do showcase features through the Discord-mimicry component family before reaching for abstract graphics.",
+			"Do mute supporting copy with fg opacity steps (50–70%) rather than introducing gray tokens.",
+			"Do reserve dashed transparent cards for states that are conditional on configuration or an external provider."
+		],
+		"donts": [
+			"Don't use blurred or translucent shadows; elevation is solid-offset ink only (No-Blur Rule).",
+			"Don't round container, button, or panel corners — radius belongs to avatars, pills, badges, and embeds alone.",
+			"Don't spread Hazard Yellow beyond small slams, or use Signal Green/Alarm Red as interactive accents; those hues report state or traffic only.",
+			"Don't add gradients beyond the sanctioned bot-avatar violet radial and the hero dot-grid mask.",
+			"Don't set body copy or long strings in JetBrains Mono, and don't set UI labels in Space Grotesk."
+		]
+	}
+}

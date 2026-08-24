@@ -11,7 +11,7 @@ interface Props {
 
 const {
 	title = "BhayanakBot",
-	description = "A Discord bot with RPG economy, music, moderation, server systems, and AI personality features.",
+	description = "One Discord bot carrying moderation, music, leveling, tickets, giveaways, games, Minecraft status, and context-aware AI replies.",
 	active = "home",
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://bhayanakbot.gg").toString();
@@ -43,6 +43,7 @@ const jsonLd = {
 		<meta name="twitter:title" content={title} />
 		<meta name="twitter:description" content={description} />
 		<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -51,6 +52,14 @@ const jsonLd = {
 		/>
 	</head>
 	<body class="bg-bg text-fg font-display antialiased">
+		<!--
+		impeccable-surface-contract seed 22cf933d
+		THESIS: one bot's breadth shown as a wall of slammed flyers — every subsystem its own printed artifact you can straighten with a hand; refuses the screenshot-hero bot-site default.
+		OWN-WORLD: The Basement Gig Poster — void-black stock layered through panel blacks, 2px hairline borders, voltage-violet working ink, hazard-yellow sticker slams, Space Grotesk Black uppercase display over JetBrains Mono fine print, zero-radius chrome, solid-offset press shadows only.
+		SIGNATURE: flyers hang rotated up to 1.75deg and straighten flat on hover, translating into their shadow footprint.
+		PROOF: live Discord-client replicas (mod cases, queue, guess who, rank, minecraft status) and the real stat strip; no fabricated testimonials or benchmarks.
+		RISK: wall density against scanability — mitigated by the full-bill strip that routes doc-seekers to /commands in one hop.
+		-->
 		<Nav active={active} />
 		<main class="a-page-enter min-h-[calc(100vh-180px)]">
 			<slot />

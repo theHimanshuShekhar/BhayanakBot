@@ -1,0 +1,7 @@
+{
+  "files": ["web/src/layouts/SiteLayout.astro"],
+  "exclude": [],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}
