@@ -10,4 +10,5 @@ web/src/routeTree.gen.ts
 .worktrees/
 coverage/
 thoughts/ledgers/
-.tokensave.env.dockhand
+.tokensave
+.env.dockhand
