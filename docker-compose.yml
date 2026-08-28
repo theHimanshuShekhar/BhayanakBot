@@ -1,3 +1,5 @@
+name: bhayanakbot
+
 services:
   # ── Layer 1: Data ──────────────────────────────────────────────
   postgres:
