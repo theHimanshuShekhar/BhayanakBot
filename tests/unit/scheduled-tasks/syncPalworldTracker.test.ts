@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { isPalworldConfigured, type PalworldPlayer } from "../../../src/lib/palworld.js";
+import { describe, expect, it, vi } from "vitest";
+import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from "../../../src/lib/palworld.js";
 import { channelNameSlug, playerChannelName } from "../../../src/scheduled-tasks/syncPalworldTracker.js";
 
 function player(overrides: Partial<PalworldPlayer> = {}): PalworldPlayer {
@@ -16,6 +16,38 @@ describe("isPalworldConfigured", () => {
 		expect(isPalworldConfigured({ PALWORLD_ADMIN_KEY: "secret" })).toBe(true);
 		expect(isPalworldConfigured({ PALWORLD_API_URL: "http://10.1.1.160:8212" })).toBe(false);
 		expect(isPalworldConfigured({})).toBe(false);
+	});
+});
+
+describe("fetchPalworldPlayers", () => {
+	it("returns unavailable instead of throwing when the server cannot be reached", async () => {
+		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection refused")));
+
+		await expect(
+			fetchPalworldPlayers({
+				PALWORLD_API_URL: "http://10.1.1.160:8212",
+				PALWORLD_ADMIN_KEY: "secret",
+			}),
+		).resolves.toBeNull();
+
+		vi.unstubAllGlobals();
+	});
+	it("returns unavailable for unsuccessful and malformed responses", async () => {
+		for (const response of [
+			{ ok: false, status: 503 },
+			{ ok: true, status: 200, json: async () => ({ players: "not-an-array" }) },
+		]) {
+			vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+
+			await expect(
+				fetchPalworldPlayers({
+					PALWORLD_API_URL: "http://10.1.1.160:8212",
+					PALWORLD_ADMIN_KEY: "secret",
+				}),
+			).resolves.toBeNull();
+
+			vi.unstubAllGlobals();
+		}
 	});
 });
 

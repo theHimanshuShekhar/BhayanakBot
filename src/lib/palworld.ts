@@ -25,28 +25,32 @@ export function isPalworldConfigured(env: NodeJS.ProcessEnv = process.env): bool
 
 /**
  * Fetches the players currently connected to the Palworld server.
- * Throws on any unusable response — callers treat a throw as a failed sweep.
+ * Returns `null` when the server cannot provide a usable player list.
  */
-export async function fetchPalworldPlayers(env: NodeJS.ProcessEnv = process.env): Promise<PalworldPlayer[]> {
-	const baseUrl = env.PALWORLD_API_URL?.trim() || DEFAULT_API_URL;
-	const adminKey = env.PALWORLD_ADMIN_KEY?.trim();
-	if (!adminKey) throw new Error("PALWORLD_ADMIN_KEY is not set");
+export async function fetchPalworldPlayers(env: NodeJS.ProcessEnv = process.env): Promise<PalworldPlayer[] | null> {
+	try {
+		const baseUrl = env.PALWORLD_API_URL?.trim() || DEFAULT_API_URL;
+		const adminKey = env.PALWORLD_ADMIN_KEY?.trim();
+		if (!adminKey) return null;
 
-	const auth = Buffer.from(`admin:${adminKey}`).toString("base64");
-	const res = await fetch(new URL("/v1/api/players", baseUrl), {
-		headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
-		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-	});
+		const auth = Buffer.from(`admin:${adminKey}`).toString("base64");
+		const res = await fetch(new URL("/v1/api/players", baseUrl), {
+			headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+		});
 
-	if (!res.ok) throw new Error(`Palworld API responded ${res.status}`);
+		if (!res.ok) return null;
 
-	const body = z.object({ players: z.array(z.unknown()) }).safeParse(await res.json());
-	if (!body.success) throw new Error("Palworld API returned an unexpected payload");
+		const body = z.object({ players: z.array(z.unknown()) }).safeParse(await res.json());
+		if (!body.success) return null;
 
-	// Drop individual malformed players rather than failing the whole sweep — one bad
-	// record must not look like an unreachable server and tear down the category.
-	return body.data.players.flatMap((entry) => {
-		const parsed = playerSchema.safeParse(entry);
-		return parsed.success ? [parsed.data] : [];
-	});
+		// Drop individual malformed players rather than failing the whole sweep — one bad
+		// record must not look like an unreachable server and tear down the category.
+		return body.data.players.flatMap((entry) => {
+			const parsed = playerSchema.safeParse(entry);
+			return parsed.success ? [parsed.data] : [];
+		});
+	} catch {
+		return null;
+	}
 }

@@ -8,7 +8,6 @@ const FAILURES_BEFORE_UNREACHABLE = 2;
 
 // A single failed sweep is not enough to tear down the roster — Palworld servers stall
 // while saving the world. See docs/adr/0003-delete-category-when-palworld-unreachable.md
-let consecutiveFailures = 0;
 
 /**
  * `Steam name - Lv 80`. `accountName` is the Steam account; the in-game character name
@@ -45,6 +44,8 @@ function findCategory(guild: Guild): CategoryChannel | undefined {
 }
 
 export class SyncPalworldTrackerTask extends ScheduledTask {
+	private consecutiveFailures = 0;
+	private trackerUnavailable = false;
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
 		super(context, { ...options, name: "syncPalworldTracker" });
 	}
@@ -56,6 +57,15 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 		if (!guildId) {
 			this.container.logger.warn("[palworld-tracker] TARGET_GUILD_ID is not set — skipping");
 			return;
+		}
+
+		const players = await fetchPalworldPlayers();
+		const unavailable = players === null || players.length === 0;
+		if (unavailable) {
+			this.consecutiveFailures++;
+			if (this.consecutiveFailures < FAILURES_BEFORE_UNREACHABLE || this.trackerUnavailable) return;
+		} else {
+			this.consecutiveFailures = 0;
 		}
 
 		const guild = await this.container.client.guilds.fetch(guildId).catch(() => null);
@@ -75,37 +85,36 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 			return;
 		}
 
-		const startedAt = Date.now();
-		this.container.logger.debug("[palworld-tracker] sweep start");
-
-		let players: PalworldPlayer[];
-		try {
-			players = await fetchPalworldPlayers();
-		} catch (err) {
-			consecutiveFailures++;
-			this.container.logger.warn(`[palworld-tracker] fetch failed (${consecutiveFailures} in a row):`, err);
-			if (consecutiveFailures >= FAILURES_BEFORE_UNREACHABLE) await this.removeCategory(guild);
+		if (unavailable) {
+			this.trackerUnavailable = true;
+			this.container.logger.info("[palworld-tracker] Server unavailable — hiding tracker category");
+			await this.removeCategory(guild);
 			return;
 		}
 
-		consecutiveFailures = 0;
+		if (this.trackerUnavailable) {
+			this.trackerUnavailable = false;
+			this.container.logger.info("[palworld-tracker] Server available — restoring tracker category");
+		}
+
+		const startedAt = Date.now();
+		this.container.logger.debug("[palworld-tracker] sweep start");
 		await this.syncCategory(guild, players);
 		this.container.logger.debug(
 			`[palworld-tracker] sweep complete online=${players.length} durationMs=${Date.now() - startedAt}`,
 		);
 	}
 
-	/** The server is unreachable: the category's absence is how that state is expressed. */
+	/** The server is unavailable: the category's absence is how that state is expressed. */
 	private async removeCategory(guild: Guild): Promise<void> {
 		const category = findCategory(guild);
 		if (!category) return;
 
-		this.container.logger.info("[palworld-tracker] Server unreachable — removing tracker category");
 		for (const child of category.children.cache.values()) {
-			await this.deleteChannel(child, "Palworld server unreachable");
+			await this.deleteChannel(child, "Palworld server unavailable");
 		}
 		try {
-			await category.delete("Palworld server unreachable");
+			await category.delete("Palworld server unavailable");
 		} catch (err) {
 			this.container.logger.error("[palworld-tracker] Failed to delete category:", err);
 		}
