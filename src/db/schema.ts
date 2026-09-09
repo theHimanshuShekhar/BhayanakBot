@@ -85,6 +85,13 @@ export const publicBotStatsSnapshots = pgTable("public_bot_stats_snapshots", {
 	updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const dashboardPresenceSnapshots = pgTable("dashboard_presence_snapshots", {
+	name: varchar("name", { length: 50 }).primaryKey(),
+	payload: jsonb("payload").notNull(),
+	capturedAt: timestamp("captured_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const users = pgTable(
 	"users",
 	{

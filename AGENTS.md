@@ -113,6 +113,7 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `WEB_PORT` | `3000` in `.env.example`, `4321` Compose fallback | Host port for the web service |
 | `PUBLIC_BOT_INVITE_URL` | Discord OAuth URL | Public invite link shown by the web app |
 | `PUBLIC_STATS_INTERVAL_MS` | `300000` | Bot stats snapshot refresh interval |
+| `DASHBOARD_PRESENCE_INTERVAL_MS` | `60000` | Dashboard presence snapshot refresh interval |
 | `YOUTUBE_COOKIE` | unset | Optional cookie for `discord-player-youtubei` |
 | `NODE_ENV` | unset | Controls log level (`debug` outside production, `info` in production) |
 | `TARGET_GUILD_ID` | `199168135935295488` | Guild gate for some LLM features |

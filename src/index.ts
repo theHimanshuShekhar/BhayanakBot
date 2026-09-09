@@ -12,6 +12,7 @@ import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conve
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
+import { getDashboardPresenceIntervalMs, writeDashboardPresenceSnapshotForClient } from "./lib/dashboardPresence.js";
 import { LOCAL_LLM_ENABLED, PERSONALITY_GENERATION_ENABLED, RPG_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
@@ -116,6 +117,20 @@ async function main() {
 			}
 		};
 
+		let dashboardPresenceWriteRunning = false;
+		const writeDashboardPresence = async () => {
+			if (dashboardPresenceWriteRunning) return;
+			dashboardPresenceWriteRunning = true;
+			try {
+				await writeDashboardPresenceSnapshotForClient(client);
+				client.logger.info("[dashboard-presence] Snapshot written");
+			} catch (err) {
+				client.logger.error("[dashboard-presence] Snapshot failed:", err);
+			} finally {
+				dashboardPresenceWriteRunning = false;
+			}
+		};
+
 		client.once("clientReady", () => {
 			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
 			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guild(s):`);
@@ -126,12 +141,19 @@ async function main() {
 			}
 
 			void writePublicStats();
+			void writeDashboardPresence();
 			void preloadConversationHistoryCache().catch((err) =>
 				client.logger.error("[conversation-history] Startup preload failed:", err),
 			);
 			setInterval(
 				() => void writePublicStats(),
 				getPublicStatsIntervalMs({ PUBLIC_STATS_INTERVAL_MS: process.env.PUBLIC_STATS_INTERVAL_MS }),
+			);
+			setInterval(
+				() => void writeDashboardPresence(),
+				getDashboardPresenceIntervalMs({
+					DASHBOARD_PRESENCE_INTERVAL_MS: process.env.DASHBOARD_PRESENCE_INTERVAL_MS,
+				}),
 			);
 
 			void backfillGuessWhoMessages(client)

@@ -149,3 +149,27 @@ An end-to-end personality test should exercise the real profile-generation path 
 Real-Ollama personality e2e tests are required when changes affect model prompts, Ollama integration, or profile-generation behavior. For unrelated changes, they are opt-in rather than part of every default test run.
 
 Real-Ollama personality e2e tests should assert observable behavior and profile structure rather than exact generated prose, because model output is nondeterministic.
+
+## Presence
+
+Whether a guild member is currently online, idle, do-not-disturb, or offline. Presence is about availability, not location: it says nothing about which voice channel, if any, the member is in.
+
+## Voice State
+
+A member's live voice attachment: which voice channel they are connected to, if any, plus mute, deaf, and streaming flags. Voice state is about location, not availability: a member can be online with no voice state, or in voice while idle.
+
+## Occupancy
+
+The rendered grouping of voice-attached members under their voice channel: who is connected, in which channel, and with whom. Occupancy is derived from voice states, never from presence.
+
+## Widget Member
+
+The anonymized member shape served by Discord's public widget endpoint: display name, avatar, presence status, and voice channel id when voice-attached. Widget members carry no bot flag and no durable user ids, so bots cannot be distinguished from humans in this shape alone.
+
+## Guild Member
+
+The bot's authoritative view of a server member: durable user id, bot flag, display name, avatar, and roles. Guild membership is about identity, independent of whether the member is currently present or in voice.
+
+## Dashboard Presence Snapshot
+
+The bot-published merge of guild members with widget presence for the homelab dashboard: one entry per currently present member with bot flag, avatar, presence status, and voice attachment. The snapshot is the dashboard's single source for occupancy and bot filtering; raw presence counts still originate from the widget endpoint.

@@ -127,6 +127,13 @@
       "when": 1780311600000,
       "tag": "0017_audit_concurrency_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788997321205,
+      "tag": "0018_curved_prowler",
+      "breakpoints": true
     }
   ]
 }
