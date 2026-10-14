@@ -54,15 +54,17 @@ A Discord jump link to the original message represented by an archived channel m
 
 The Discord category whose name carries the live online count (e.g. "Bhayanak Palworld — 4 online") and which holds the live Palworld player roster. The category's channel list *is* the roster: one text channel exists for exactly as long as its player is connected to the Palworld server. The category is owned by the bot — its contents are derived state, rewritten on every tracker sweep, not a place for durable conversation.
 
-The category is identified by name, not by a stored ID, and is created on demand when missing. Its *existence* encodes reachability: the bot deletes the entire category when the Palworld server is unreachable and recreates it on the next successful sweep. So an absent category means "the bot cannot see the server", while a present category with no player channels means "the server is up and nobody is online" — the two states are never confused.
+The category is identified by its exact tracker name pattern, not by a stored ID or a loose prefix, and is created on demand when missing. Its *existence* means "someone is playing": the bot hides the entire category when the server is Unreachable or when nobody is online, and recreates it when a sweep sees at least one player. Members cannot tell "server down" from "nobody online" by looking at the channel list; both are equally uninteresting, and an empty category would only be clutter.
+
+The Minecraft tracker follows the same rules with its own category and player channels.
 
 ## Tracker Sweep
 
-One pass of the Palworld tracker: fetch the connected players, compare them against the Palworld Player Channels currently in the Palworld Tracker Category, and create or delete channels so the two agree. A sweep is the only thing that mutates the category. Only a successful fetch drives create/delete; a successful fetch reporting nobody online is meaningful and clears the player channels without touching the category itself. Two consecutive failed sweeps mean the server is Unreachable.
+One pass of the Palworld tracker: fetch the connected players, compare them against the Palworld Player Channels currently in the Palworld Tracker Category, and create or delete channels so the two agree. A sweep is the only thing that mutates the category. Only a fetch that reports at least one player drives create/delete. A sweep that fails, or that reports nobody online, counts toward hiding the category; two such sweeps in a row hide it.
 
 ## Unreachable
 
-The state entered after two consecutive failed sweeps, where "failed" means the Palworld API did not answer with a usable response. Reaching it deletes the Palworld Tracker Category outright; the next successful sweep recreates it. One isolated failure is not Unreachable — Palworld servers stall briefly during world saves, and a single stall must not tear down the roster.
+The state entered after two consecutive sweeps that failed or saw nobody online, where "failed" means the game server did not answer with a usable response. Reaching it deletes the Palworld Tracker Category outright; the next sweep that sees a player recreates it. One isolated failure is not Unreachable — Palworld servers stall briefly during world saves, and a single stall must not tear down the roster.
 
 ## Palworld Player Channel
 
@@ -78,7 +80,9 @@ A database-stored set of public marketing-site metrics written by the running bo
 
 ## Zen LLM Provider
 
-The opencode Zen hosted model endpoint used first for Discord responder replies and user or guild personality profile generation. It is distinct from the legacy local Ollama provider, which remains the primary provider for RPG, quest, and other non-responder bot features. Responder and personality generation fall back to Ollama when Zen is unconfigured or returns an unusable response.
+The opencode Zen hosted model endpoint, and the bot's only language model provider. It serves AI replies, summaries, and personality profile generation. When Zen is unconfigured, not permitted to receive Discord content, or returns an unusable response, the feature degrades silently; there is no fallback model.
+
+_Avoid_: Ollama, local model, fallback provider
 
 ## Personality Training Message
 
@@ -144,11 +148,11 @@ The minimum amount of eligible personality training material required before a p
 
 ## Personality E2E Test
 
-An end-to-end personality test should exercise the real profile-generation path with Ollama when a local model is available. Discord events and interactions may be mocked in-process, but the language model boundary should be real for at least one e2e path; tests may skip gracefully when Ollama is unavailable.
+An end-to-end personality test exercises the real profile-generation path against the Zen LLM Provider. Discord events and interactions may be mocked in-process, but the language model boundary is real; the test is opt-in, needs a Zen key, and skips otherwise.
 
-Real-Ollama personality e2e tests are required when changes affect model prompts, Ollama integration, or profile-generation behavior. For unrelated changes, they are opt-in rather than part of every default test run.
+Personality e2e tests are required when changes affect model prompts, the Zen integration, or profile-generation behavior. For unrelated changes, and in CI by default, they do not run.
 
-Real-Ollama personality e2e tests should assert observable behavior and profile structure rather than exact generated prose, because model output is nondeterministic.
+Personality e2e tests assert observable behavior and profile structure rather than exact generated prose, because model output is nondeterministic.
 
 ## Presence
 
@@ -173,3 +177,39 @@ The bot's authoritative view of a server member: durable user id, bot flag, disp
 ## Dashboard Presence Snapshot
 
 The bot-published merge of guild members with widget presence for the homelab dashboard: one entry per currently present member with bot flag, avatar, presence status, and voice attachment. The snapshot is the dashboard's single source for occupancy and bot filtering; raw presence counts still originate from the widget endpoint.
+
+## Moderation Case
+
+A numbered, per-guild record of one moderator action against one member: warn, kick, mute, ban, tempban, or their reversals. Case numbers are sequential within a guild and never reused.
+
+_Avoid_: Infraction, strike, log entry
+
+## Active Case
+
+A mute or tempban Moderation Case whose punishment is still in force. A case stops being active only when its punishment has actually been lifted, or when the bot has been removed from the guild and can no longer lift it. A failure to reach Discord never ends a punishment by itself; the bot keeps retrying.
+
+## Current Punishment
+
+The single ban-type and single mute-type punishment in force for a member in a guild. The latest moderator action wins: any new ban, tempban, or unban supersedes the member's other active ban-type cases, and any new mute or unmute supersedes their other active mute cases. Superseded cases are no longer active.
+
+## Home Server
+
+The one Discord guild the bot is built around, identified by the target guild setting. Home-Server Features run only here. The bot may be invited to other guilds, but they never receive Home-Server Features.
+
+_Avoid_: Main guild, target server, primary guild
+
+## Home-Server Feature
+
+A feature locked to the Home Server: Guess Who, personality profiles, AI replies and summaries that send Discord content to an external model, the game-server trackers, and the dashboard presence snapshot.
+
+## Generic Feature
+
+A feature any guild that invites the bot may use, such as moderation, music, leveling, giveaways, polls, reminders, and autoresponses. Generic Features are fully isolated per guild: no command in one guild may read or change another guild's data.
+
+## Mention Policy
+
+Bot messages notify nobody by default. A feature may notify only the specific members it exists to reach: the reminder owner, the levelled-up member, and giveaway winners. Mass mentions are never sent. AI-generated replies notify nobody, even when they name members.
+
+## Guess Who Guess
+
+A message in the Guess Who Channel, during an active round, whose text explicitly mentions a member. The automatic mention Discord adds when replying to someone is not a guess, so ordinary reply chatter never spends the Guess Who Wrong Guess Limit.

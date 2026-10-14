@@ -13,3 +13,7 @@ Serving the endpoint openly on LAN mirrors how the web service already runs; a s
 The snapshot is interval-published, so voice joins lag the interval plus the dashboard's cache (low single-digit minutes, still several times fresher than the previous five-minute widget cache). Event-driven invalidation on voice state changes is the explicit fallback if stale occupancy annoys in practice.
 
 Display policy is fixed: bot accounts are hidden from the member list and empty channels, but a bot audibly occupying a voice channel (for example the music bot) is shown as an occupant — presence in voice is information, not noise. The dashboard widget renders occupancy from voice states only and must never infer channel membership from presence.
+
+## Amendment (2026-10-15): bearer token now that the site is public
+
+The "LAN-only trust boundary" premise no longer holds: the same web service now serves the public marketing site, so `/api/dashboard-presence` (member user ids, per-member voice channel, mute, deaf, and streaming state) was readable from the internet. The endpoint now requires `Authorization: Bearer <DASHBOARD_API_TOKEN>` and answers 404 without it; the homelab widget sends the header. The token is optional configuration so local development without it keeps working, but any deployment reachable from outside the LAN must set it. A separate LAN-only listener was the stronger boundary but was rejected as another moving part for one endpoint.
