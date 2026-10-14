@@ -30,6 +30,11 @@ describe(".env.example", () => {
 			"GUESS_WHO_CHANNEL_ID",
 			"GUESS_WHO_BACKFILL_LIMIT",
 			"BOT_OWNER_ID",
+			"PALWORLD_API_URL",
+			"PALWORLD_ADMIN_KEY",
+			"MINECRAFT_RCON_HOST",
+			"MINECRAFT_RCON_PORT",
+			"MINECRAFT_RCON_PASSWORD",
 			"YOUTUBE_COOKIE",
 		]) {
 			expect(envExample).toContain(`${variable}=`);

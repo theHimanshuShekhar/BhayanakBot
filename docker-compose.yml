@@ -101,9 +101,13 @@ services:
       TARGET_GUILD_ID: ${TARGET_GUILD_ID:-}
       PALWORLD_API_URL: ${PALWORLD_API_URL:-}
       PALWORLD_ADMIN_KEY: ${PALWORLD_ADMIN_KEY:-}
+      MINECRAFT_RCON_HOST: ${MINECRAFT_RCON_HOST:-mc}
+      MINECRAFT_RCON_PORT: ${MINECRAFT_RCON_PORT:-25575}
+      MINECRAFT_RCON_PASSWORD: ${MINECRAFT_RCON_PASSWORD:-}
       NODE_ENV: ${NODE_ENV:-production}
     networks:
       - botnet
+      - minecraft
 
   web:
     build:
@@ -126,6 +130,9 @@ services:
 networks:
   botnet:
     driver: bridge
+  minecraft:
+    external: true
+    name: minecraft_default
 
 volumes:
   pgdata:

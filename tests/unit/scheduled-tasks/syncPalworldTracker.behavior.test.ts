@@ -22,8 +22,10 @@ function createGuild() {
 	const category = {
 		type: ChannelType.GuildCategory,
 		name: "Palworld — 1 online",
+		position: 0,
 		children: { cache: new Map() },
 		delete: vi.fn(),
+		setPosition: vi.fn(),
 	};
 	const channels = {
 		cache: [category],
@@ -123,5 +125,39 @@ describe("SyncPalworldTrackerTask server states", () => {
 			expect.objectContaining({ name: "Palworld — 1 online", type: ChannelType.GuildCategory }),
 		);
 		expect(container.logger.info).toHaveBeenCalledWith(expect.stringContaining("available"));
+	});
+	it("creates the category at the top position below uncategorized channels", async () => {
+		const { guild } = createGuild();
+		guild.channels.cache.splice(0, 1);
+		guild.channels.create
+			.mockResolvedValueOnce({
+				type: ChannelType.GuildCategory,
+				name: "Palworld — 1 online",
+				id: "restored-category",
+				position: 0,
+				children: { cache: new Map() },
+				setName: vi.fn(),
+				setPosition: vi.fn(),
+			})
+			.mockResolvedValueOnce({});
+		setContainerGuild(guild);
+		mockedFetchPalworldPlayers.mockResolvedValue([onlinePlayer]);
+
+		await createTask().run();
+
+		expect(guild.channels.create).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Palworld — 1 online", type: ChannelType.GuildCategory, position: 0 }),
+		);
+	});
+
+	it("moves an existing category back to the top", async () => {
+		const { category, guild } = createGuild();
+		category.position = 5;
+		setContainerGuild(guild);
+		mockedFetchPalworldPlayers.mockResolvedValue([onlinePlayer]);
+
+		await createTask().run();
+
+		expect(category.setPosition).toHaveBeenCalledWith(0, expect.objectContaining({ reason: expect.any(String) }));
 	});
 });

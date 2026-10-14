@@ -113,8 +113,12 @@ GUESS_WHO_BACKFILL_LIMIT=1000
 BOT_OWNER_ID=                         # optional privileged Discord user ID; blank disables owner bypasses
 PALWORLD_API_URL=                     # optional; defaults to http://127.0.0.1:8212. Required under Docker
 PALWORLD_ADMIN_KEY=                   # optional; Palworld AdminPassword — tracker runs once this is set
+MINECRAFT_RCON_HOST=                  # optional; defaults to 127.0.0.1. Set when Minecraft is outside the bot container
+MINECRAFT_RCON_PORT=                  # optional; defaults to 25575
+MINECRAFT_RCON_PASSWORD=              # optional; enables the local Minecraft RCON tracker
 YOUTUBE_COOKIE=
 ```
+Minecraft tracking uses Java RCON. Enable `enable-rcon=true` and set `rcon.port=25575` and `rcon.password=...` in `server.properties`; set the same password in the bot's `MINECRAFT_RCON_PASSWORD` environment variable. If the bot runs in Docker while Minecraft runs on the LXC host, set `MINECRAFT_RCON_HOST` to an address reachable from the bot container.
 
 ### Database
 

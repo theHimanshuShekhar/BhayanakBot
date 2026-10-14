@@ -188,6 +188,7 @@ async function main() {
 			"endPolls",
 			"reloadOnRestart",
 			"syncPalworldTracker",
+			"syncMinecraftTracker",
 		];
 		if (RPG_ENABLED) startupTasks.push("generateDailyQuests");
 		if (PERSONALITY_GENERATION_ENABLED) startupTasks.push("refreshPersonalityProfiles");
@@ -252,6 +253,25 @@ async function main() {
 					client.logger.error("[ScheduledTask:syncPalworldTracker] Error:", err);
 				} finally {
 					palworldTaskRunning = false;
+				}
+			},
+			10 * 60 * 1000,
+		);
+		// Sweep the Minecraft roster every 10 minutes
+		let minecraftTaskRunning = false;
+		setInterval(
+			async () => {
+				if (minecraftTaskRunning) return;
+				minecraftTaskRunning = true;
+				try {
+					await client.stores
+						.get("scheduled-tasks")
+						.get("syncMinecraftTracker")
+						?.run(null as never);
+				} catch (err) {
+					client.logger.error("[ScheduledTask:syncMinecraftTracker] Error:", err);
+				} finally {
+					minecraftTaskRunning = false;
 				}
 			},
 			10 * 60 * 1000,

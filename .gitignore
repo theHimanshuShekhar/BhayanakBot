@@ -12,3 +12,4 @@ coverage/
 thoughts/ledgers/
 .tokensave
 .env.dockhand
+DEPLOYMENT_DOCKHAND.md

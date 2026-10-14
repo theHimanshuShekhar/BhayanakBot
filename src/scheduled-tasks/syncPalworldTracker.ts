@@ -5,6 +5,9 @@ import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from 
 const CATEGORY_PREFIX = "Palworld";
 const MAX_CHANNEL_NAME_LENGTH = 100;
 const FAILURES_BEFORE_UNREACHABLE = 2;
+// Uncategorized channels always render above categories, so position 0 is the
+// first category slot directly below uncategorized channels.
+const TRACKER_CATEGORY_POSITION = 0;
 
 // A single failed sweep is not enough to tear down the roster — Palworld servers stall
 // while saving the world. See docs/adr/0003-delete-category-when-palworld-unreachable.md
@@ -126,12 +129,15 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 			category = await guild.channels.create({
 				name: categoryName(players.length),
 				type: ChannelType.GuildCategory,
+				position: TRACKER_CATEGORY_POSITION,
 				// Player channels are deleted when their player logs off, so anything written in
 				// them would be lost. Read-only makes that plain instead of relying on members to infer it.
 				permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages] }],
 				reason: "Palworld tracker",
 			});
 			this.container.logger.info("[palworld-tracker] Created tracker category");
+		} else {
+			await this.ensureTopPosition(category);
 		}
 
 		// The topic holds the player's Palworld userId — the only reliable identity key,
@@ -191,6 +197,14 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 		}
 
 		this.container.logger.debug(`[palworld-tracker] channels created=${created} deleted=${deleted} renamed=${renamed}`);
+	}
+	private async ensureTopPosition(category: CategoryChannel): Promise<void> {
+		if (category.position === TRACKER_CATEGORY_POSITION) return;
+		try {
+			await category.setPosition(TRACKER_CATEGORY_POSITION, { reason: "Keep Palworld tracker at the top" });
+		} catch (err) {
+			this.container.logger.error("[palworld-tracker] Failed to move category to the top:", err);
+		}
 	}
 
 	private async deleteChannel(channel: GuildBasedChannel, reason: string): Promise<boolean> {

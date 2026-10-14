@@ -123,6 +123,9 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `BOT_OWNER_ID` | unset | Optional privileged Discord user ID; blank/unset disables owner bypasses |
 | `PALWORLD_API_URL` | `http://127.0.0.1:8212` | Palworld REST API base URL; the default assumes the server shares a host with the bot, which is false under Docker |
 | `PALWORLD_ADMIN_KEY` | unset | Palworld `AdminPassword`, sent as HTTP Basic auth with username `admin`; setting it enables the live player tracker |
+| `MINECRAFT_RCON_HOST` | `127.0.0.1` | Minecraft Java RCON host; set an address reachable from the bot container when Minecraft runs outside it |
+| `MINECRAFT_RCON_PORT` | `25575` | Minecraft Java RCON port |
+| `MINECRAFT_RCON_PASSWORD` | unset | Minecraft Java RCON password; setting it enables the live player tracker |
 
 ## Message Archive And Personality
 
