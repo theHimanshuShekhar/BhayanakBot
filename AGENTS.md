@@ -66,13 +66,15 @@ Major Discord command areas:
 
 - Leveling: `/rank`, `/leaderboard`, `/rewards`, `/level-reset`.
 - Moderation: `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history`.
-- Music: `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop`.
+- Music: `/play`, `/music` (pause, resume, skip, stop, disconnect), `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop`.
 - Utility: `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality`.
 - Fun and games: `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll`, `/guess_who`.
 - Server systems: `/config`, `/autorespond`, `/giveaway`.
 - Minecraft: `/minecraft` shows `mc.bhayanak.net` status, Homestead version, live map link, required mods, and recommended mods.
 
 `/summarize`, `/personality`, and `/guess_who` are Home-Server Features (ADR 0007): they register with `HOME_SERVER_REGISTRATION` (`guildIds: [TARGET_GUILD_ID]`) from `src/lib/homeServer.ts` and carry the `HomeServerOnly` precondition. Sapphire never deletes commands, so moving a command from global to guild registration leaves the old global one behind; `removeGlobalHomeServerCommands` (called on `clientReady`) deletes stale global copies of `HOME_SERVER_COMMAND_NAMES`. A new Home-Server command must be added to both. Passive AI paths (`mentionResponder`, `randomResponder`, `messageCreate` smart mention and random reply) gate on `isHomeServer(guildId)`.
+
+`/help` (`src/lib/help/`) lists each command under the name it registered (`applicationCommandRegistry.chatInputCommands`), never the file or piece name, and files it by its `src/commands/<dir>/` directory. A new command directory needs a matching entry in `src/lib/help/categories.ts` (the `minecraft` directory is the "Game Servers" category); `tests/unit/lib/help.test.ts` fails otherwise.
 
 When any Discord command is added, deleted, renamed, or behaviorally modified, update the web app command catalog and any relevant command documentation in `web/src/data/commands.ts` and `web/src/content/commands/` in the same change.
 
