@@ -246,18 +246,6 @@ export const autoResponses = pgTable("auto_responses", {
 
 // --- Personality Profiling ---
 
-export const userMessages = pgTable(
-	"user_messages",
-	{
-		id: serial("id").primaryKey(),
-		userId: varchar("user_id", { length: 20 }).notNull(),
-		guildId: varchar("guild_id", { length: 20 }).notNull(),
-		content: text("content").notNull(),
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-	},
-	(t) => [index("user_messages_user_id_guild_id_index").on(t.userId, t.guildId)],
-);
-
 export const userPersonalityProfiles = pgTable(
 	"user_personality_profiles",
 	{

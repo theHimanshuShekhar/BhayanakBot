@@ -1,6 +1,5 @@
 import { container } from "@sapphire/framework";
 import { and, eq, sql } from "drizzle-orm";
-import { cleanupOldMessages } from "../../db/queries/personality.js";
 import { getEligibleUserTrainingMessages } from "../../db/queries/personalityTraining.js";
 import { userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
@@ -71,11 +70,6 @@ export async function buildPersonalityProfile(userId: string, guildId: string): 
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 async function buildPersonalityProfileUnguarded(userId: string, guildId: string): Promise<PersonalityBuildResult> {
-	container.logger.debug(`[personality] cleanup-old-messages start userId=${userId} guildId=${guildId}`);
-	// Clean up stale messages before building to keep the table lean
-	await cleanupOldMessages();
-	container.logger.debug(`[personality] cleanup-old-messages complete userId=${userId} guildId=${guildId}`);
-
 	const row = await db.query.userPersonalityProfiles.findFirst({
 		where: and(eq(userPersonalityProfiles.userId, userId), eq(userPersonalityProfiles.guildId, guildId)),
 		columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },

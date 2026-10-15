@@ -7,12 +7,7 @@ import {
 } from "../../../src/db/queries/archivedChannelMessages.js";
 import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
-import {
-	archivedChannelMessages,
-	guildPersonalityProfiles,
-	userMessages,
-	userPersonalityProfiles,
-} from "../../../src/db/schema.js";
+import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
 import { generateAutoResponse, generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
@@ -165,7 +160,6 @@ function createListener(): MessageCreateListener {
 
 async function cleanupRows(): Promise<void> {
 	await db.delete(archivedChannelMessages).where(eq(archivedChannelMessages.guildId, GUILD_ID));
-	await db.delete(userMessages).where(eq(userMessages.guildId, GUILD_ID));
 	await db.delete(guildPersonalityProfiles).where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
 	await db.delete(userPersonalityProfiles).where(eq(userPersonalityProfiles.guildId, GUILD_ID));
 }
@@ -204,14 +198,6 @@ async function countArchivedRows(): Promise<number> {
 		.select({ count: sql<number>`count(*)::int` })
 		.from(archivedChannelMessages)
 		.where(eq(archivedChannelMessages.guildId, GUILD_ID));
-	return row?.count ?? 0;
-}
-
-async function countStoredUserMessages(): Promise<number> {
-	const [row] = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(userMessages)
-		.where(and(eq(userMessages.userId, USER_ID), eq(userMessages.guildId, GUILD_ID)));
 	return row?.count ?? 0;
 }
 
@@ -274,7 +260,6 @@ describe("messageCreate personality archive flow", () => {
 		await listener.run(message as never);
 
 		expect(await countArchivedRows()).toBe(1);
-		expect(await countStoredUserMessages()).toBe(1);
 		expect((await getUserProfile())?.newMessageCount).toBe(1);
 		expect((await getGuildProfile())?.messageCount).toBe(1);
 	});
@@ -288,7 +273,6 @@ describe("messageCreate personality archive flow", () => {
 			messageId: "delete-before-create",
 			deletedAt: new Date("2026-05-28T11:59:00.000Z"),
 		});
-		expect(await countStoredUserMessages()).toBe(0);
 		expect(await getUserProfile()).toBeUndefined();
 		expect(await getGuildProfile()).toBeUndefined();
 	});
@@ -305,7 +289,6 @@ describe("messageCreate personality archive flow", () => {
 			messageId: "delete-during-create",
 			deletedAt: new Date("2026-05-28T11:59:30.000Z"),
 		});
-		expect(await countStoredUserMessages()).toBe(0);
 		expect(await getUserProfile()).toBeUndefined();
 		expect(await getGuildProfile()).toBeUndefined();
 	});
@@ -326,7 +309,6 @@ describe("messageCreate personality archive flow", () => {
 
 		expect(await getArchiveRow("mass-mention")).toBeDefined();
 		expect(await getArchiveRow("here-mention")).toBeDefined();
-		expect(await countStoredUserMessages()).toBe(0);
 		expect(await getUserProfile()).toBeUndefined();
 		expect(await getGuildProfile()).toBeUndefined();
 	});
@@ -350,7 +332,6 @@ describe("messageCreate personality archive flow", () => {
 
 		expect(await getArchiveRow("user-mass-mention")).toBeDefined();
 		expect(await getArchiveRow("repeat-mention")).toBeDefined();
-		expect(await countStoredUserMessages()).toBe(0);
 		expect(await getUserProfile()).toBeUndefined();
 		expect(await getGuildProfile()).toBeUndefined();
 	});

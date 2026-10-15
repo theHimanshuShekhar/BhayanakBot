@@ -99,6 +99,33 @@ export function addConversationHistoryMessage(
 	);
 }
 
+export function removeConversationHistoryMessage(channelId: string, messageId: string): void {
+	const history = conversationHistory.get(channelId);
+	const index = history?.findIndex((entry) => entry.id === messageId) ?? -1;
+	if (index !== -1) history?.splice(index, 1);
+}
+
+/** Updates a message already in the context to its edited content, keeping its place in the conversation. */
+export function replaceConversationHistoryMessage(
+	channelId: string,
+	message: ConversationMessageInput,
+	logger?: DebugLogger,
+): void {
+	const entry = conversationHistory.get(channelId)?.find((candidate) => candidate.id === message.id);
+	if (!entry) return;
+
+	const ineligibleReason = getConversationHistoryEligibilityReason(message);
+	if (ineligibleReason) {
+		logger?.debug(
+			`[conversation-history] drop-edited channel=${channelId} message=${message.id} reason=${ineligibleReason}`,
+		);
+		removeConversationHistoryMessage(channelId, message.id);
+		return;
+	}
+
+	entry.content = message.content.trim().slice(0, 500);
+}
+
 export function getConversationContext(channelId: string, limit: number, excludeMessageId?: string): string {
 	const history = conversationHistory.get(channelId);
 	if (!history || history.length === 0) return "";

@@ -1,7 +1,7 @@
 import { container } from "@sapphire/framework";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
-import { guildPersonalityProfiles, userMessages } from "../schema.js";
+import { guildPersonalityProfiles } from "../schema.js";
 
 export async function getGuildPersonalityProfile(guildId: string): Promise<string | null> {
 	container.logger.debug(`[guild-personality-db] get-profile start guildId=${guildId}`);
@@ -56,18 +56,6 @@ export async function updateGuildPersonalityProfile(guildId: string, profile: st
 			set: { profile, messageCount: 0, lastRefreshedAt: new Date() },
 		});
 	container.logger.debug(`[guild-personality-db] update-profile complete guildId=${guildId}`);
-}
-
-export async function getRecentGuildMessages(guildId: string, limit: number): Promise<{ content: string }[]> {
-	container.logger.debug(`[guild-personality-db] get-recent-messages start guildId=${guildId} limit=${limit}`);
-	const rows = await db.query.userMessages.findMany({
-		where: eq(userMessages.guildId, guildId),
-		columns: { content: true },
-		orderBy: [sql`${userMessages.id} DESC`],
-		limit,
-	});
-	container.logger.debug(`[guild-personality-db] get-recent-messages result guildId=${guildId} count=${rows.length}`);
-	return rows;
 }
 
 /** Resets the guild message count to a specific value (used for self-healing after failed builds). */

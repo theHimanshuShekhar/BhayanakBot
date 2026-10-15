@@ -8,6 +8,8 @@ import {
 	getReplyAnchoredConversationContext,
 	isConversationHistoryEligible,
 	preloadConversationHistoryForChannels,
+	removeConversationHistoryMessage,
+	replaceConversationHistoryMessage,
 } from "../../../src/lib/autoresponder/conversationHistory.js";
 
 function createCacheMessage(input: {
@@ -112,5 +114,50 @@ describe("conversation history cache", () => {
 		expect(fetch).toHaveBeenCalledWith({ limit: 100, cache: false });
 		expect(getConversationContext("channel-1", 10)).toBe("<@old>: oldest context\n<@new>: newest context");
 		expect(logger.warn).not.toHaveBeenCalled();
+	});
+});
+
+describe("conversation history sync", () => {
+	beforeEach(() => {
+		clearConversationHistoryForTests();
+		for (const id of ["a", "b", "c"]) {
+			addConversationHistoryMessage("channel-1", createCacheMessage({ id, content: `original ${id} text` }));
+		}
+	});
+
+	it("removes a deleted message from the context", () => {
+		removeConversationHistoryMessage("channel-1", "b");
+
+		expect(getConversationContext("channel-1", 10)).toBe("<@a>: original a text\n<@c>: original c text");
+		expect(getReplyAnchoredConversationContext("channel-1", "b", 5)).toBeNull();
+	});
+
+	it("ignores deletes for unknown messages and channels", () => {
+		removeConversationHistoryMessage("channel-1", "missing");
+		removeConversationHistoryMessage("channel-2", "a");
+
+		expect(getConversationHistorySizeForTests("channel-1")).toBe(3);
+	});
+
+	it("replaces an edited message with its latest content in place", () => {
+		replaceConversationHistoryMessage("channel-1", createCacheMessage({ id: "b", content: "edited b text" }));
+
+		expect(getConversationContext("channel-1", 10)).toBe(
+			"<@a>: original a text\n<@b>: edited b text\n<@c>: original c text",
+		);
+		expect(getConversationHistorySizeForTests("channel-1")).toBe(3);
+	});
+
+	it("drops an edited message that is no longer eligible", () => {
+		replaceConversationHistoryMessage("channel-1", createCacheMessage({ id: "b", content: "/rank" }));
+
+		expect(getConversationContext("channel-1", 10)).toBe("<@a>: original a text\n<@c>: original c text");
+	});
+
+	it("does not add an edited message that was not in the context", () => {
+		replaceConversationHistoryMessage("channel-1", createCacheMessage({ id: "z", content: "brand new text" }));
+
+		expect(getConversationHistorySizeForTests("channel-1")).toBe(3);
+		expect(getConversationContext("channel-1", 10)).not.toContain("brand new text");
 	});
 });

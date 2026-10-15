@@ -7,7 +7,6 @@ import {
 	archivedChannelMessages,
 	guildPersonalityProfiles,
 	guildSettings,
-	userMessages,
 	userPersonalityProfiles,
 } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
@@ -39,7 +38,6 @@ async function cleanupRows(): Promise<void> {
 	await db.delete(archivedChannelMessages).where(eq(archivedChannelMessages.guildId, GUILD_ID));
 	await db.delete(guildPersonalityProfiles).where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
 	await db.delete(userPersonalityProfiles).where(eq(userPersonalityProfiles.guildId, GUILD_ID));
-	await db.delete(userMessages).where(eq(userMessages.guildId, GUILD_ID));
 	await db.delete(guildSettings).where(eq(guildSettings.guildId, GUILD_ID));
 }
 
@@ -224,12 +222,7 @@ describe("/personality command", () => {
 
 	// Personality generation is switched off (src/lib/features.ts): /personality refresh
 	// replies that generation is disabled until PERSONALITY_GENERATION_ENABLED returns.
-	it.skip("refresh user below the archived threshold ignores stale user_messages and reports insufficient archived evidence", async () => {
-		await db.insert(userMessages).values({
-			userId: USER_ID,
-			guildId: GUILD_ID,
-			content: "Stale user_messages evidence must not count for command gating.",
-		});
+	it.skip("refresh user below the archived threshold reports insufficient archived evidence", async () => {
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "user" });
 
 		await createCommand().chatInputRun(interaction);

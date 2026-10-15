@@ -1,32 +1,7 @@
 import { container } from "@sapphire/framework";
 import { and, asc, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
-import { userMessages, userPersonalityProfiles } from "../schema.js";
-
-const MESSAGE_RETENTION_DAYS = 30;
-
-export async function storeUserMessage(userId: string, guildId: string, content: string): Promise<void> {
-	container.logger.debug(
-		`[personality-db] store-user-message start userId=${userId} guildId=${guildId} contentLength=${content.length}`,
-	);
-	await db.insert(userMessages).values({ userId, guildId, content });
-	container.logger.debug(`[personality-db] store-user-message complete userId=${userId} guildId=${guildId}`);
-}
-
-export async function getUnabsorbedMessages(
-	userId: string,
-	guildId: string,
-): Promise<{ id: number; content: string }[]> {
-	container.logger.debug(`[personality-db] get-unabsorbed-messages start userId=${userId} guildId=${guildId}`);
-	const rows = await db.query.userMessages.findMany({
-		where: and(eq(userMessages.userId, userId), eq(userMessages.guildId, guildId)),
-		columns: { id: true, content: true },
-	});
-	container.logger.debug(
-		`[personality-db] get-unabsorbed-messages result userId=${userId} guildId=${guildId} count=${rows.length}`,
-	);
-	return rows;
-}
+import { userPersonalityProfiles } from "../schema.js";
 
 export async function getPersonalityProfile(userId: string, guildId: string): Promise<string | null> {
 	container.logger.debug(`[personality-db] get-profile start userId=${userId} guildId=${guildId}`);
@@ -80,12 +55,4 @@ export async function getUsersNeedingRefresh(): Promise<{ userId: string; guildI
 	});
 	container.logger.debug(`[personality-db] get-users-needing-refresh result count=${rows.length}`);
 	return rows;
-}
-
-/** Deletes messages older than MESSAGE_RETENTION_DAYS to prevent unbounded table growth. */
-export async function cleanupOldMessages(): Promise<void> {
-	const cutoff = new Date(Date.now() - MESSAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-	container.logger.debug(`[personality-db] cleanup-old-messages start cutoff=${cutoff.toISOString()}`);
-	const result = await db.delete(userMessages).where(lt(userMessages.createdAt, cutoff));
-	container.logger.debug(`[personality-db] cleanup-old-messages complete deleted=${result.rowCount ?? "unknown"}`);
 }

@@ -8,12 +8,7 @@ import { getGuildPersonalityProfile } from "../../db/queries/guildPersonality.js
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { addXp } from "../../db/queries/users.js";
-import {
-	archivedChannelMessages,
-	guildPersonalityProfiles,
-	userMessages,
-	userPersonalityProfiles,
-} from "../../db/schema.js";
+import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../db/schema.js";
 import { notifyOnly } from "../../lib/allowedMentions.js";
 import {
 	addConversationHistoryMessage,
@@ -58,7 +53,6 @@ async function recordPersonalityEvidenceIfArchiveLive(input: {
 	messageId: string;
 	userId: string;
 	guildId: string;
-	content: string;
 }): Promise<{ userCount: number; guildCount: number } | null> {
 	return db.transaction(async (tx) => {
 		const [archiveRow] = await tx
@@ -69,7 +63,6 @@ async function recordPersonalityEvidenceIfArchiveLive(input: {
 
 		if (!archiveRow || archiveRow.deletedAt) return null;
 
-		await tx.insert(userMessages).values({ userId: input.userId, guildId: input.guildId, content: input.content });
 		const [userProfile] = await tx
 			.insert(userPersonalityProfiles)
 			.values({ userId: input.userId, guildId: input.guildId, newMessageCount: 1 })
@@ -179,7 +172,6 @@ export class MessageCreateListener extends Listener {
 				messageId: message.id,
 				userId: message.author.id,
 				guildId: message.guild.id,
-				content: trimmedContent,
 			});
 			this.container.logger.debug(
 				`[personality-ingest] storage result guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id} stored=${evidence ? "yes" : "no"} userCount=${evidence?.userCount ?? "none"} guildCount=${evidence?.guildCount ?? "none"}`,
