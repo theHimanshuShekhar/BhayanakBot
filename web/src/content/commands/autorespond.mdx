@@ -10,7 +10,7 @@ syntax:
     - { n: "trigger", d: "Trigger text or regex pattern", req: false, t: "string" }
     - { n: "response", d: "Static response text", req: false, t: "string" }
     - { n: "match-type", d: "exact, contains, or startsWith", req: false, t: "choice" }
-    - { n: "use-llm", d: "Generate responses with the AI provider", req: false, t: "boolean" }
+    - { n: "use-llm", d: "Home Server only: generate responses with the AI provider", req: false, t: "boolean" }
     - { n: "use-regex", d: "Treat trigger as an RE2 regex (max 100 chars, no lookarounds or backreferences)", req: false, t: "boolean" }
 examples:
   - label: "regex"
@@ -32,7 +32,7 @@ related:
   - { n: "/personality", d: "AI personality context" }
 ---
 
-Requires Administrator, and is hidden from members without Manage Server. `add` supports `match-type`, `use-llm`, `use-regex`, channel filters, mention requirements, chance, and trigger deletion. LLM auto-responses use the recent channel conversation cache for context before replying. `remove` deletes by trigger and `list` shows configured responses.
+Requires Administrator, and is hidden from members without Manage Server. `add` supports `match-type`, `use-llm`, `use-regex`, channel filters, mention requirements, chance, and trigger deletion. LLM auto-responses are a Home Server feature: `use-llm` is refused in other servers, and an LLM rule only fires in the Home Server's AI chat channel (it is skipped everywhere else, so its prompt is never posted). They use the recent channel conversation cache for context before replying. If the AI provider fails, nothing is posted, a delete-trigger message is kept, and cooldowns are not used up. `remove` deletes by trigger and `list` shows configured responses.
 
 ## Regex triggers
 

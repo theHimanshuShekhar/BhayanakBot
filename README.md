@@ -27,7 +27,7 @@ The bot can build personality profiles from archived server conversation to gene
 - **Guild Profiles**: Server culture profiles built from eligible archived messages. View with `/personality view guild`
 - **Generation disabled**: startup backfill builds, the 6-hour refresh task, and `/personality refresh` subcommands are inactive until re-enabled
 - **Smart Mentions**: When @mentioned, the bot uses personality context + conversation history for contextual replies
-- **Random Responder**: Configurable chance-based responses in a designated channel, using guild personality for tone
+- **Random Responder**: Chance-based responses in the configured random-response channel (`/config`), with a 45-second per-channel cooldown; a message gets at most one AI reply
 - **Operational Toggle**: Server admins can enable or disable personality behavior with `/config`; this is not consent or opt-in/opt-out language
 
 ### Guess Who Game

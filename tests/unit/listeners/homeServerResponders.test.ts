@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
+import { replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
 import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
 import { MentionResponderListener } from "../../../src/listeners/messages/mentionResponder.js";
 import { RandomResponderListener } from "../../../src/listeners/messages/randomResponder.js";
@@ -13,7 +14,11 @@ vi.mock("../../../src/lib/constants.js", () => ({
 	BOT_OWNER_ID: undefined,
 }));
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({
-	getOrCreateSettings: vi.fn(async () => ({ personalityEnabled: false })),
+	getOrCreateSettings: vi.fn(async () => ({
+		personalityEnabled: false,
+		randomResponseChannelId: "target",
+		randomResponseChance: 100,
+	})),
 }));
 vi.mock("../../../src/lib/llmProvider.js", () => ({
 	callInteractiveLlm: vi.fn(async () => "a witty reply"),
@@ -55,6 +60,7 @@ function createMessage(guildId: string) {
 describe("passive responders outside the Home Server", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		replyGuardTestHooks.reset();
 	});
 
 	it("mentionResponder replies in the Home Server", async () => {
@@ -85,7 +91,7 @@ describe("passive responders outside the Home Server", () => {
 		expect(message.reply).not.toHaveBeenCalled();
 	});
 
-	// First draw sets the chance (0.5 * 0.02), second draw (0) is below it, so the roll always fires.
+	// The first draw is the roll against the configured 100% chance, so it always fires.
 	async function runRandomResponder(message: ReturnType<typeof createMessage>) {
 		const listener = new RandomResponderListener(
 			createListenerContext("src/listeners/messages/randomResponder.ts"),

@@ -6,6 +6,7 @@ import {
 	MAX_REGEX_PATTERN_LENGTH,
 	validateRegexTrigger,
 } from "../../lib/autoresponder/regexTrigger.js";
+import { isHomeServer } from "../../lib/homeServer.js";
 
 export class AutoRespondCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -75,7 +76,9 @@ export class AutoRespondCommand extends Subcommand {
 						.addBooleanOption((opt) =>
 							opt
 								.setName("use-llm")
-								.setDescription("Generate a unique response via the configured AI provider instead of static text")
+								.setDescription(
+									"Home Server only: generate a response via the configured AI provider instead of static text",
+								)
 								.setRequired(false),
 						)
 						.addBooleanOption((opt) =>
@@ -136,6 +139,15 @@ export class AutoRespondCommand extends Subcommand {
 		const requireMention = interaction.options.getBoolean("require-mention") ?? false;
 		const chancePercent = interaction.options.getInteger("chance") ?? 100;
 		const deleteTrigger = interaction.options.getBoolean("delete-trigger") ?? false;
+
+		// AI replies send chat to Zen: a Home-Server Feature (ADR 0007). The option is part of the global command
+		// shape, so other guilds see it but cannot use it.
+		if (useLlm && !isHomeServer(interaction.guildId)) {
+			return interaction.reply({
+				content: "❌ AI auto-responses are only available in the bot's home server. Use a static response instead.",
+				flags: MessageFlags.Ephemeral,
+			});
+		}
 
 		// Validate regex if enabled
 		if (useRegex) {

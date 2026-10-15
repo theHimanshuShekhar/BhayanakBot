@@ -407,7 +407,7 @@ export const RAW_COMMANDS: Command[] = [
 		subcommands: {
 			add: {
 				summary:
-					"Add a static or LLM-backed auto-response trigger. LLM replies use recent channel context. Regex triggers use RE2 syntax (no lookarounds or backreferences, 100 characters max).",
+					"Add a static or LLM-backed auto-response trigger. LLM replies (use-llm) are a Home Server feature: they use recent channel context, only fire in the Home Server's AI chat channel, and are refused in other servers. Regex triggers use RE2 syntax (no lookarounds or backreferences, 100 characters max).",
 				examples: [
 					'/autorespond add trigger:"hello" response:"Hi there!"',
 					'/autorespond add trigger:"bug" response:"Please file a bug report!" require-mention:true',

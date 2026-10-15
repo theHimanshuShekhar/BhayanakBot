@@ -1,5 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
+import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { beginRandomReply, randomReplySkipReason } from "../../lib/autoresponder/replyGuard.js";
 import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import { isHomeServer } from "../../lib/homeServer.js";
 import { callBackgroundLlm } from "../../lib/llmProvider.js";
@@ -38,55 +40,69 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 		if (!isHomeServer(message.guildId)) return;
 		if (message.channelId !== TARGET_TEXT_CHANNEL_ID) return;
 
-		// Variable ~1% average chance: P(X < Y * 0.02) = 1% for uniform X, Y
-		const chance = Math.random() * 0.02;
-		if (Math.random() >= chance) return;
+		// Honour the guild's random-response channel and chance, like the messageCreate random path
+		const settings = await getOrCreateSettings(message.guildId!);
+		if (randomReplySkipReason(settings, message.channelId)) return;
+		if (Math.random() * 100 > settings.randomResponseChance) return;
 
 		const channel = message.channel;
 		if (!channel.isSendable()) return;
 
-		// Fetch recent message history for context
-		const fetched = await channel.messages.fetch({ limit: HISTORY_LIMIT }).catch(() => null);
-		if (!fetched) return;
+		// One reply per message and a per-channel cooldown shared with the messageCreate random path
+		const ticket = beginRandomReply(message.id, channel.id);
+		if (!ticket) return;
 
-		// Format history oldest-first, skip bots and empty messages
-		const history = [...fetched.values()]
-			.reverse()
-			.filter((m) => !m.author.bot && m.content.trim().length > 0)
-			.map((m) => `${m.author.displayName}: ${m.content.trim()}`)
-			.join("\n");
+		let sent = false;
+		try {
+			// Fetch recent message history for context
+			const fetched = await channel.messages.fetch({ limit: HISTORY_LIMIT }).catch(() => null);
+			if (!fetched) return;
 
-		if (!history) return;
+			// Format history oldest-first, skip bots and empty messages
+			const history = [...fetched.values()]
+				.reverse()
+				.filter((m) => !m.author.bot && m.content.trim().length > 0)
+				.map((m) => `${m.author.displayName}: ${m.content.trim()}`)
+				.join("\n");
 
-		const personality = PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
-		const format = FORMATS[Math.floor(Math.random() * FORMATS.length)];
+			if (!history) return;
 
-		const system = [
-			`You are ${personality}.`,
-			`Respond using this exact format: ${format}.`,
-			"Your response MUST be directly about the specific topic or subject being discussed in the chat — not generic commentary.",
-			"Keep it under 280 characters unless the format requires slightly more.",
-			"Do not greet anyone. Do not explain yourself. Do not break character. Just respond.",
-		].join(" ");
+			const personality = PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
+			const format = FORMATS[Math.floor(Math.random() * FORMATS.length)];
 
-		const prompt = [
-			"Here is the recent chat history:",
-			history,
-			"",
-			"Respond to what is being discussed. Stay in character. Be funny or darkly humorous. Respond to the actual topic.",
-		].join("\n");
+			const system = [
+				`You are ${personality}.`,
+				`Respond using this exact format: ${format}.`,
+				"Your response MUST be directly about the specific topic or subject being discussed in the chat — not generic commentary.",
+				"Keep it under 280 characters unless the format requires slightly more.",
+				"Do not greet anyone. Do not explain yourself. Do not break character. Just respond.",
+			].join(" ");
 
-		await channel.sendTyping().catch(() => null);
+			const prompt = [
+				"Here is the recent chat history:",
+				history,
+				"",
+				"Respond to what is being discussed. Stay in character. Be funny or darkly humorous. Respond to the actual topic.",
+			].join("\n");
 
-		const response = await callBackgroundLlm(system, prompt, "chat", "random-responder");
-		if (!response) return;
+			await channel.sendTyping().catch(() => null);
 
-		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;
-		if (safeResponse.length !== response.length) {
-			this.container.logger.warn(
-				`[randomResponder] reply truncated from ${response.length} to ${safeResponse.length} chars`,
-			);
+			const response = await callBackgroundLlm(system, prompt, "chat", "random-responder");
+			// A direct reply (autoresponse or mention) may have taken the message over while the LLM ran
+			if (!response || !ticket.stillOwned()) return;
+
+			const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;
+			if (safeResponse.length !== response.length) {
+				this.container.logger.warn(
+					`[randomResponder] reply truncated from ${response.length} to ${safeResponse.length} chars`,
+				);
+			}
+			await channel.send(safeResponse);
+			sent = true;
+		} catch (err) {
+			this.container.logger.warn(`[randomResponder] send failed:`, err);
+		} finally {
+			ticket.finish(sent);
 		}
-		await channel.send(safeResponse).catch((err) => this.container.logger.warn(`[randomResponder] send failed:`, err));
 	}
 }

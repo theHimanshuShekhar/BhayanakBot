@@ -17,6 +17,12 @@ import {
 	getReplyAnchoredConversationContext,
 } from "../../lib/autoresponder/conversationHistory.js";
 import { generateAutoResponse, generateMentionReply } from "../../lib/autoresponder/llmResponse.js";
+import {
+	beginRandomReply,
+	claimAiReply,
+	markStaticReply,
+	randomReplySkipReason,
+} from "../../lib/autoresponder/replyGuard.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import { db } from "../../lib/database.js";
@@ -40,9 +46,10 @@ const USER_AUTO_RESPONDER_COOLDOWN_MS = 30 * 1000; // 30 seconds
 const smartMentionCooldown = new Map<string, number>();
 const SMART_MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds
 
-// Random chat responder cooldown: Map<guildId, lastFiredAt>
-const randomResponseCooldown = new Map<string, number>();
-const RANDOM_RESPONSE_COOLDOWN_MS = 45 * 1000; // 45 seconds
+// Auto-responder keys (trigger and user) with an LLM reply being generated. Cooldowns only start once a reply
+// is sent, so these keep a burst of messages from starting several LLM calls meanwhile.
+const autoResponderInFlight = new Set<string>();
+
 const PERSONALITY_MAX_USER_MENTIONS = 5;
 const USER_MENTION_PATTERN = /<@!?\d+>/g;
 const MALFORMED_USER_ID_MENTION_PATTERN = /(?<![<\w])@(\d{17,20})(?![>\w])/g;
@@ -290,13 +297,20 @@ export class MessageCreateListener extends Listener {
 			`[autoresponder] match guild=${message.guild.id} channel=${message.channel.id} message=${message.id} result=${match ? `id=${match.response.id} triggerLength=${match.response.trigger.length} type=${match.response.responseType} deleteTrigger=${match.response.deleteTrigger}` : "none"}`,
 		);
 
-		if (match) {
+		if (match && match.response.responseType === "llm" && !isTargetTextChannel) {
+			// An LLM rule's response is the admin's system prompt: outside the target channel skip it entirely,
+			// never fall through to posting it as static text.
+			this.container.logger.debug(
+				`[autoresponder] skip reason=llm-outside-target-channel guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
+			);
+		} else if (match) {
 			const cooldownKey = `${message.guild.id}:${match.response.trigger}`;
 			const lastFired = autoResponderCooldown.get(cooldownKey) ?? 0;
 			const userCooldownKey = `${message.guild.id}:${message.author.id}`;
 			const lastUserFired = userAutoResponderCooldown.get(userCooldownKey) ?? 0;
-			const onCooldown = Date.now() - lastFired < AUTO_RESPONDER_COOLDOWN_MS;
-			const onUserCooldown = Date.now() - lastUserFired < USER_AUTO_RESPONDER_COOLDOWN_MS;
+			const onCooldown = Date.now() - lastFired < AUTO_RESPONDER_COOLDOWN_MS || autoResponderInFlight.has(cooldownKey);
+			const onUserCooldown =
+				Date.now() - lastUserFired < USER_AUTO_RESPONDER_COOLDOWN_MS || autoResponderInFlight.has(userCooldownKey);
 
 			if (onCooldown && !botMentioned) {
 				this.container.logger.debug(
@@ -310,51 +324,29 @@ export class MessageCreateListener extends Listener {
 				this.container.logger.debug(
 					`[autoresponder] fire guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} type=${match.response.responseType} botMentioned=${botMentioned}`,
 				);
-				autoResponderCooldown.set(cooldownKey, Date.now());
-				userAutoResponderCooldown.set(userCooldownKey, Date.now());
+				// Cooldowns start only once a reply is actually sent.
+				const startCooldowns = () => {
+					autoResponderCooldown.set(cooldownKey, Date.now());
+					userAutoResponderCooldown.set(userCooldownKey, Date.now());
+				};
 
-				// Delete trigger if configured
-				if (match.response.deleteTrigger) {
-					this.container.logger.debug(
-						`[autoresponder] delete-trigger attempt guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
-					);
-					await message
-						.delete()
-						.catch((err) =>
-							this.container.logger.warn(`[autoresponder] delete-trigger failed message=${message.id}:`, err),
-						);
-				}
-
-				if (isTargetTextChannel && match.response.responseType === "llm") {
-					const client = this.container.client as BhayanakClient;
-					this.container.logger.debug(
-						`[autoresponder:llm] prepare guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
-					);
-					const personalityCtx = await getPersonalityContext(client, message.author.id, message.guild.id);
-					const systemWithPersonality = personalityCtx + match.response.response;
-					const conversationContext = getConversationContext(message.channel.id, 20, message.id);
-					this.container.logger.debug(
-						`[autoresponder:llm] context guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} personalityLength=${personalityCtx.length} systemLength=${systemWithPersonality.length}`,
-					);
-					const reply = await generateAutoResponse(
-						systemWithPersonality,
-						message.content,
-						`<@${message.author.id}>`,
-						conversationContext,
-					);
-					this.container.logger.debug(
-						`[autoresponder:llm] result guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
-					);
-					if (reply) {
-						const safeReply = this.normalizeKnownUserNames(message, this.substituteVariables(reply, match.captured));
-						await this.sendReply(message, safeReply, match.response.deleteTrigger);
+				if (match.response.responseType === "llm") {
+					autoResponderInFlight.add(cooldownKey);
+					autoResponderInFlight.add(userCooldownKey);
+					try {
+						if (await this.handleLlmAutoResponse(message, match)) startCooldowns();
+					} finally {
+						autoResponderInFlight.delete(cooldownKey);
+						autoResponderInFlight.delete(userCooldownKey);
 					}
 				} else {
+					markStaticReply(message.id);
 					this.container.logger.debug(
 						`[autoresponder:static] prepare guild=${message.guild.id} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} targetChannel=${isTargetTextChannel}`,
 					);
+					await this.deleteTrigger(message, match.response);
 					const responseText = this.substituteVariables(match.response.response, match.captured);
-					await this.sendReply(message, responseText, match.response.deleteTrigger);
+					if (await this.sendReply(message, responseText, match.response.deleteTrigger)) startCooldowns();
 				}
 			}
 		} else if (isTargetTextChannel && botMentioned && !message.content.match(/^\s*<@!?\d+>\s*$/)) {
@@ -384,7 +376,60 @@ export class MessageCreateListener extends Listener {
 		return result;
 	}
 
-	private async sendReply(message: Message, content: string, deletedTrigger: boolean) {
+	private async deleteTrigger(message: Message, response: { id: number; deleteTrigger: boolean }) {
+		if (!response.deleteTrigger) return;
+		this.container.logger.debug(
+			`[autoresponder] delete-trigger attempt guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} responseId=${response.id}`,
+		);
+		await message
+			.delete()
+			.catch((err) => this.container.logger.warn(`[autoresponder] delete-trigger failed message=${message.id}:`, err));
+	}
+
+	/**
+	 * Generate and send an LLM auto-response. Returns true only when a reply was sent. A failed generation is
+	 * invisible: the trigger message is kept and nothing is posted. A delete-trigger rule deletes the trigger
+	 * only once there is a reply to send.
+	 */
+	private async handleLlmAutoResponse(
+		message: Message,
+		match: NonNullable<Awaited<ReturnType<typeof findMatchingResponse>>>,
+	): Promise<boolean> {
+		const guildId = message.guild!.id;
+		if (!claimAiReply(message.id)) {
+			this.container.logger.debug(
+				`[autoresponder:llm] skip reason=already-answered guild=${guildId} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
+			);
+			return false;
+		}
+		const client = this.container.client as BhayanakClient;
+		this.container.logger.debug(
+			`[autoresponder:llm] prepare guild=${guildId} channel=${message.channel.id} message=${message.id} responseId=${match.response.id}`,
+		);
+		const personalityCtx = await getPersonalityContext(client, message.author.id, guildId);
+		const systemWithPersonality = personalityCtx + match.response.response;
+		const conversationContext = getConversationContext(message.channel.id, 20, message.id);
+		this.container.logger.debug(
+			`[autoresponder:llm] context guild=${guildId} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} personalityLength=${personalityCtx.length} systemLength=${systemWithPersonality.length}`,
+		);
+		const reply = await generateAutoResponse(
+			systemWithPersonality,
+			message.content,
+			`<@${message.author.id}>`,
+			conversationContext,
+		);
+		this.container.logger.debug(
+			`[autoresponder:llm] result guild=${guildId} channel=${message.channel.id} message=${message.id} responseId=${match.response.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
+		);
+		if (!reply) return false;
+
+		const safeReply = this.normalizeKnownUserNames(message, this.substituteVariables(reply, match.captured));
+		await this.deleteTrigger(message, match.response);
+		return this.sendReply(message, safeReply, match.response.deleteTrigger);
+	}
+
+	/** Returns true when the reply was sent. */
+	private async sendReply(message: Message, content: string, deletedTrigger: boolean): Promise<boolean> {
 		const safeReply = content.length > 1990 ? `${content.slice(0, 1989)}…` : content;
 		if (safeReply.length !== content.length) {
 			this.container.logger.warn(`[autoresponder] Reply truncated from ${content.length} to ${safeReply.length} chars`);
@@ -393,30 +438,18 @@ export class MessageCreateListener extends Listener {
 		this.container.logger.debug(
 			`[autoresponder] send attempt mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id} length=${safeReply.length}`,
 		);
-		// If trigger was deleted, send as regular message instead of reply
-		if (deletedTrigger) {
-			await (message.channel as TextChannel)
-				.send(safeReply)
-				.then(() =>
-					this.container.logger.debug(
-						`[autoresponder] send success mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id}`,
-					),
-				)
-				.catch((err) =>
-					this.container.logger.warn(`[autoresponder] send failed mode=${mode} message=${message.id}:`, err),
-				);
-		} else {
-			await message
-				.reply(safeReply)
-				.then(() =>
-					this.container.logger.debug(
-						`[autoresponder] send success mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id}`,
-					),
-				)
-				.catch((err) =>
-					this.container.logger.warn(`[autoresponder] reply send failed mode=${mode} message=${message.id}:`, err),
-				);
+		try {
+			// If trigger was deleted, send as regular message instead of reply
+			if (deletedTrigger) await (message.channel as TextChannel).send(safeReply);
+			else await message.reply(safeReply);
+		} catch (err) {
+			this.container.logger.warn(`[autoresponder] send failed mode=${mode} message=${message.id}:`, err);
+			return false;
 		}
+		this.container.logger.debug(
+			`[autoresponder] send success mode=${mode} guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} sourceMessage=${message.id}`,
+		);
+		return true;
 	}
 
 	private async handleSmartMention(message: Message, settings: Awaited<ReturnType<typeof getOrCreateSettings>>) {
@@ -439,6 +472,8 @@ export class MessageCreateListener extends Listener {
 			this.container.logger.debug(`[smart-mention] cooldown active for ${cooldownKey}`);
 			return;
 		}
+		// Random AI replies skip a message that already has a direct reply.
+		if (!claimAiReply(message.id)) return;
 		smartMentionCooldown.set(cooldownKey, Date.now());
 
 		const client = this.container.client as BhayanakClient;
@@ -497,16 +532,11 @@ export class MessageCreateListener extends Listener {
 		this.container.logger.debug(
 			`[random-response] evaluate guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} configuredChannel=${settings.randomResponseChannelId ?? "none"} chance=${settings.randomResponseChance}`,
 		);
-		// Must have a configured channel and non-zero chance
-		if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) {
+		// Must have a configured channel and non-zero chance, and be in that channel
+		const skipReason = randomReplySkipReason(settings, message.channel.id);
+		if (skipReason) {
 			this.container.logger.debug(
-				`[random-response] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=not-configured`,
-			);
-			return;
-		}
-		if (message.channel.id !== settings.randomResponseChannelId) {
-			this.container.logger.debug(
-				`[random-response] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=wrong-channel configuredChannel=${settings.randomResponseChannelId}`,
+				`[random-response] skip guild=${message.guild?.id ?? "unknown"} channel=${message.channel.id} message=${message.id} reason=${skipReason} configuredChannel=${settings.randomResponseChannelId ?? "none"}`,
 			);
 			return;
 		}
@@ -520,65 +550,76 @@ export class MessageCreateListener extends Listener {
 			return;
 		}
 
-		// Guild cooldown to prevent streaks
+		// One reply per message and a per-channel cooldown shared with the randomResponder listener
 		const guildId = message.guild!.id;
-		const lastFired = randomResponseCooldown.get(guildId) ?? 0;
-		if (Date.now() - lastFired < RANDOM_RESPONSE_COOLDOWN_MS) {
+		const ticket = beginRandomReply(message.id, message.channel.id);
+		if (!ticket) {
 			this.container.logger.debug(
-				`[random-response] skip guild=${guildId} channel=${message.channel.id} message=${message.id} reason=cooldown remainingMs=${RANDOM_RESPONSE_COOLDOWN_MS - (Date.now() - lastFired)}`,
+				`[random-response] skip guild=${guildId} channel=${message.channel.id} message=${message.id} reason=cooldown-or-answered`,
 			);
 			return;
 		}
-		randomResponseCooldown.set(guildId, Date.now());
 		this.container.logger.debug(
 			`[random-response] fire guild=${guildId} channel=${message.channel.id} message=${message.id} roll=${roll.toFixed(2)} chance=${settings.randomResponseChance}`,
 		);
 
-		const guildProfile = await getGuildPersonalityProfile(guildId);
-		const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
+		let sent = false;
+		try {
+			const guildProfile = await getGuildPersonalityProfile(guildId);
+			const guildContext = guildProfile ? `\n\nThis server's culture: ${guildProfile}` : "";
 
-		const systemPrompt = [
-			`You are a Discord bot named ${message.client.user.username}.`,
-			`You are chatting in the server "${message.guild!.name}".`,
-			`Be helpful, witty, and conversational.`,
-			`Respond naturally to the ongoing conversation — don't ask questions unless it makes sense.`,
-			`Keep your response short (1-2 sentences max).`,
-			guildContext,
-		].join("\n");
+			const systemPrompt = [
+				`You are a Discord bot named ${message.client.user.username}.`,
+				`You are chatting in the server "${message.guild!.name}".`,
+				`Be helpful, witty, and conversational.`,
+				`Respond naturally to the ongoing conversation — don't ask questions unless it makes sense.`,
+				`Keep your response short (1-2 sentences max).`,
+				guildContext,
+			].join("\n");
 
-		const conversationContext = getConversationContext(message.channel.id, 10, message.id);
+			const conversationContext = getConversationContext(message.channel.id, 10, message.id);
 
-		this.container.logger.debug(
-			`[random-response] context guild=${guildId} channel=${message.channel.id} message=${message.id} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} guildProfile=${guildProfile ? "present" : "missing"} guildContextLength=${guildContext.length}`,
-		);
-		this.container.logger.debug(
-			`[random-response] llm-call guild=${guildId} channel=${message.channel.id} message=${message.id}`,
-		);
+			this.container.logger.debug(
+				`[random-response] context guild=${guildId} channel=${message.channel.id} message=${message.id} contextMessages=${getConversationContextMessageCount(conversationContext)} contextLength=${conversationContext.length} guildProfile=${guildProfile ? "present" : "missing"} guildContextLength=${guildContext.length}`,
+			);
+			this.container.logger.debug(
+				`[random-response] llm-call guild=${guildId} channel=${message.channel.id} message=${message.id}`,
+			);
 
-		const reply = await generateMentionReply(
-			systemPrompt,
-			conversationContext,
-			`<@${message.author.id}>`,
-			message.content,
-		);
+			const reply = await generateMentionReply(
+				systemPrompt,
+				conversationContext,
+				`<@${message.author.id}>`,
+				message.content,
+			);
 
-		this.container.logger.debug(
-			`[random-response] llm-result guild=${guildId} channel=${message.channel.id} message=${message.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
-		);
-		if (reply) {
+			this.container.logger.debug(
+				`[random-response] llm-result guild=${guildId} channel=${message.channel.id} message=${message.id} reply=${reply ? `present length=${reply.length}` : "null"}`,
+			);
+			if (!reply) return;
+			if (!ticket.stillOwned()) {
+				this.container.logger.debug(
+					`[random-response] drop guild=${guildId} channel=${message.channel.id} message=${message.id} reason=answered-directly`,
+				);
+				return;
+			}
+
 			const normalizedReply = this.normalizeKnownUserNames(message, reply);
 			const safeReply = normalizedReply.length > 1990 ? `${normalizedReply.slice(0, 1989)}…` : normalizedReply;
 			this.container.logger.debug(
 				`[random-response] send attempt guild=${guildId} channel=${message.channel.id} message=${message.id} length=${safeReply.length}`,
 			);
-			await (message.channel as TextChannel)
-				.send(safeReply)
-				.then(() =>
-					this.container.logger.debug(
-						`[random-response] send success guild=${guildId} channel=${message.channel.id} message=${message.id}`,
-					),
-				)
-				.catch((err) => this.container.logger.warn(`[random-response] send failed message=${message.id}:`, err));
+			try {
+				await (message.channel as TextChannel).send(safeReply);
+				sent = true;
+				this.container.logger.debug(
+					`[random-response] send success guild=${guildId} channel=${message.channel.id} message=${message.id}`,
+				);
+			} catch (err) {
+				this.container.logger.warn(`[random-response] send failed message=${message.id}:`, err);
+			}
+		} finally {
+			ticket.finish(sent);
 		}
 	}
 

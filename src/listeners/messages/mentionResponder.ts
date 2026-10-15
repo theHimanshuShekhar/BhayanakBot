@@ -1,6 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { claimAiReply } from "../../lib/autoresponder/replyGuard.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { isHomeServer } from "../../lib/homeServer.js";
 import { callInteractiveLlm } from "../../lib/llmProvider.js";
@@ -38,6 +39,8 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		const cooldownKey = `${message.guildId!}:${message.author.id}`;
 		const lastFired = mentionCooldown.get(cooldownKey) ?? 0;
 		if (Date.now() - lastFired < MENTION_COOLDOWN_MS) return;
+		// One AI reply per message: skip if an autoresponse already took it, and keep random replies away
+		if (!claimAiReply(message.id)) return;
 		mentionCooldown.set(cooldownKey, Date.now());
 
 		// Strip the bot mention tag and check there's actual conversational content
