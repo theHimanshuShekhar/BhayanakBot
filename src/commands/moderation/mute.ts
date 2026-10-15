@@ -1,9 +1,8 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { createCase } from "../../db/queries/modCases.js";
 import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
-import { logToChannel } from "./warn.js";
+import { REASON_MAX_LENGTH, recordAndReport, targetBlocker } from "../../lib/moderation.js";
 
 export class MuteCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -29,7 +28,9 @@ export class MuteCommand extends Command {
 				.addStringOption((opt) =>
 					opt.setName("duration").setDescription("Duration, up to 1 year (e.g. 10m, 1h30m, 2d, 1w)").setRequired(true),
 				)
-				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for the mute")),
+				.addStringOption((opt) =>
+					opt.setName("reason").setDescription("Reason for the mute").setMaxLength(REASON_MAX_LENGTH),
+				),
 		);
 	}
 
@@ -46,15 +47,8 @@ export class MuteCommand extends Command {
 
 		if (!target) return interaction.editReply("❌ Member not found.");
 
-		const myHighest = interaction.guild!.members.me!.roles.highest.position;
-		const modHighest = (interaction.member as GuildMember).roles.highest.position;
-		const targetHighest = target.roles.highest.position;
-		if (targetHighest >= myHighest) {
-			return interaction.editReply("❌ I cannot mute a member with an equal or higher role than me.");
-		}
-		if (targetHighest >= modHighest) {
-			return interaction.editReply("❌ You cannot mute a member with an equal or higher role than you.");
-		}
+		const blocker = targetBlocker(interaction, target, "mute", target.manageable);
+		if (blocker) return interaction.editReply(blocker);
 
 		const settings = await getOrCreateSettings(interaction.guildId!);
 		if (!settings.mutedRoleId)
@@ -62,6 +56,8 @@ export class MuteCommand extends Command {
 
 		const mutedRole = interaction.guild!.roles.cache.get(settings.mutedRoleId);
 		if (!mutedRole) return interaction.editReply("❌ Muted role not found.");
+		if (!mutedRole.editable)
+			return interaction.editReply("❌ I cannot assign the muted role; it is above my highest role.");
 
 		try {
 			await target.roles.add(mutedRole, reason);
@@ -70,29 +66,29 @@ export class MuteCommand extends Command {
 		}
 
 		const expiresAt = new Date(Date.now() + duration);
-		const modCase = await createCase({
-			guildId: interaction.guildId!,
-			userId: target.id,
-			moderatorId: interaction.user.id,
-			type: "mute",
-			reason,
-			duration,
-			expiresAt,
+		return recordAndReport(interaction, {
+			caseData: {
+				guildId: interaction.guildId!,
+				userId: target.id,
+				moderatorId: interaction.user.id,
+				type: "mute",
+				reason,
+				duration,
+				expiresAt,
+			},
+			notRecorded: `✅ Muted <@${target.id}>, but the case was not recorded. The mute will not expire on its own.`,
+			buildEmbed: (caseNumber) =>
+				new EmbedBuilder()
+					.setColor(0xffa500)
+					.setTitle(`🔇 Mute — Case #${caseNumber}`)
+					.addFields(
+						{ name: "User", value: `<@${target.id}> (${target.user.tag ?? target.id})`, inline: true },
+						{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
+						{ name: "Duration", value: durationStr, inline: true },
+						{ name: "Reason", value: reason },
+						{ name: "Expires", value: `<t:${Math.floor(expiresAt.getTime() / 1000)}:R>` },
+					)
+					.setTimestamp(),
 		});
-
-		const embed = new EmbedBuilder()
-			.setColor(0xffa500)
-			.setTitle(`🔇 Mute — Case #${modCase.caseNumber}`)
-			.addFields(
-				{ name: "User", value: `<@${target.id}> (${target.user.tag ?? target.id})`, inline: true },
-				{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
-				{ name: "Duration", value: durationStr, inline: true },
-				{ name: "Reason", value: reason },
-				{ name: "Expires", value: `<t:${Math.floor(expiresAt.getTime() / 1000)}:R>` },
-			)
-			.setTimestamp();
-
-		await logToChannel(interaction, embed);
-		return interaction.editReply({ embeds: [embed] });
 	}
 }

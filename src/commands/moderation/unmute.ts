@@ -1,8 +1,7 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { createCase } from "../../db/queries/modCases.js";
-import { logToChannel } from "./warn.js";
+import { REASON_MAX_LENGTH, recordAndReport } from "../../lib/moderation.js";
 
 export class UnmuteCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -25,7 +24,9 @@ export class UnmuteCommand extends Command {
 				.setDescription("Unmute a member")
 				.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
 				.addUserOption((opt) => opt.setName("user").setDescription("Member to unmute").setRequired(true))
-				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for unmute")),
+				.addStringOption((opt) =>
+					opt.setName("reason").setDescription("Reason for unmute").setMaxLength(REASON_MAX_LENGTH),
+				),
 		);
 	}
 
@@ -45,31 +46,35 @@ export class UnmuteCommand extends Command {
 
 		if (!target.roles.cache.has(mutedRole.id)) return interaction.editReply("❌ This member is not muted.");
 
+		if (!target.manageable || !mutedRole.editable) {
+			return interaction.editReply("❌ I don't have permission to unmute this member.");
+		}
+
 		try {
 			await target.roles.remove(mutedRole, reason);
 		} catch {
 			return interaction.editReply("❌ I don't have permission to unmute this member.");
 		}
 
-		const modCase = await createCase({
-			guildId: interaction.guildId!,
-			userId: target.id,
-			moderatorId: interaction.user.id,
-			type: "unmute",
-			reason,
+		return recordAndReport(interaction, {
+			caseData: {
+				guildId: interaction.guildId!,
+				userId: target.id,
+				moderatorId: interaction.user.id,
+				type: "unmute",
+				reason,
+			},
+			notRecorded: `✅ Unmuted <@${target.id}>, but the case was not recorded.`,
+			buildEmbed: (caseNumber) =>
+				new EmbedBuilder()
+					.setColor(0x57f287)
+					.setTitle(`🔊 Unmute — Case #${caseNumber}`)
+					.addFields(
+						{ name: "User", value: `<@${target.id}> (${target.user.tag ?? target.id})`, inline: true },
+						{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
+						{ name: "Reason", value: reason },
+					)
+					.setTimestamp(),
 		});
-
-		const embed = new EmbedBuilder()
-			.setColor(0x57f287)
-			.setTitle(`🔊 Unmute — Case #${modCase.caseNumber}`)
-			.addFields(
-				{ name: "User", value: `<@${target.id}> (${target.user.tag ?? target.id})`, inline: true },
-				{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
-				{ name: "Reason", value: reason },
-			)
-			.setTimestamp();
-
-		await logToChannel(interaction, embed);
-		return interaction.editReply({ embeds: [embed] });
 	}
 }

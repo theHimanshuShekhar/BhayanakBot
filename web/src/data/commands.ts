@@ -120,7 +120,8 @@ export const RAW_COMMANDS: Command[] = [
 		description: "View moderation history for a user.",
 		examples: ["/history user:@someone"],
 		category: "moderation",
-		usageNotes: "Shows up to the first 20 moderation cases for the selected user.",
+		usageNotes:
+			"Shows up to the first 20 moderation cases for the selected user, newest first. Long reasons are shortened to fit Discord's embed limit.",
 	},
 	{
 		name: "/play",

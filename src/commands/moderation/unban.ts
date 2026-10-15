@@ -1,7 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
-import { createCase } from "../../db/queries/modCases.js";
-import { logToChannel } from "./warn.js";
+import { REASON_MAX_LENGTH, recordAndReport } from "../../lib/moderation.js";
 
 export class UnbanCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -24,7 +23,9 @@ export class UnbanCommand extends Command {
 				.setDescription("Unban a user by their ID")
 				.setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
 				.addStringOption((opt) => opt.setName("user-id").setDescription("User ID to unban").setRequired(true))
-				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for the unban")),
+				.addStringOption((opt) =>
+					opt.setName("reason").setDescription("Reason for the unban").setMaxLength(REASON_MAX_LENGTH),
+				),
 		);
 	}
 
@@ -33,33 +34,28 @@ export class UnbanCommand extends Command {
 		const userId = interaction.options.getString("user-id", true);
 		const reason = interaction.options.getString("reason") ?? "No reason provided";
 
+		const ban = await interaction.guild!.bans.fetch(userId).catch(() => null);
+		if (!ban) return interaction.editReply("❌ This user is not banned.");
+
 		try {
-			const ban = await interaction.guild!.bans.fetch(userId).catch(() => null);
-			if (!ban) return interaction.editReply("❌ This user is not banned.");
 			await interaction.guild!.members.unban(userId, reason);
-
-			const modCase = await createCase({
-				guildId: interaction.guildId!,
-				userId,
-				moderatorId: interaction.user.id,
-				type: "unban",
-				reason,
-			});
-
-			const embed = new EmbedBuilder()
-				.setColor(0x57f287)
-				.setTitle(`✅ Unban — Case #${modCase.caseNumber}`)
-				.addFields(
-					{ name: "User", value: `<@${userId}> (${ban.user.tag})`, inline: true },
-					{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
-					{ name: "Reason", value: reason },
-				)
-				.setTimestamp();
-
-			await logToChannel(interaction, embed);
-			return interaction.editReply({ embeds: [embed] });
 		} catch {
 			return interaction.editReply("❌ Failed to unban. Make sure the ID is valid.");
 		}
+
+		return recordAndReport(interaction, {
+			caseData: { guildId: interaction.guildId!, userId, moderatorId: interaction.user.id, type: "unban", reason },
+			notRecorded: `✅ Unbanned <@${userId}>, but the case was not recorded.`,
+			buildEmbed: (caseNumber) =>
+				new EmbedBuilder()
+					.setColor(0x57f287)
+					.setTitle(`✅ Unban — Case #${caseNumber}`)
+					.addFields(
+						{ name: "User", value: `<@${userId}> (${ban.user.tag})`, inline: true },
+						{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
+						{ name: "Reason", value: reason },
+					)
+					.setTimestamp(),
+		});
 	}
 }

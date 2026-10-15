@@ -1,6 +1,6 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
-import { getUserCases } from "../../db/queries/modCases.js";
+import { getUserCases, type ModCase } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
 	warn: "⚠️",
@@ -11,6 +11,28 @@ const typeEmoji: Record<string, string> = {
 	unban: "✅",
 	tempban: "⏱️",
 };
+
+const MAX_CASES_SHOWN = 20;
+const MAX_REASON_LENGTH = 100;
+const EMBED_DESCRIPTION_LIMIT = 4096;
+
+function truncateReason(reason: string | null): string {
+	const flat = (reason ?? "No reason").replace(/\s+/g, " ").trim() || "No reason";
+	return flat.length > MAX_REASON_LENGTH ? `${flat.slice(0, MAX_REASON_LENGTH - 1)}…` : flat;
+}
+
+/** Newest cases first, one line each, cut off before the embed description limit. */
+export function buildHistoryLines(cases: ModCase[]): string[] {
+	const lines: string[] = [];
+	let length = 0;
+	for (const c of cases.slice(0, MAX_CASES_SHOWN)) {
+		const line = `${typeEmoji[c.type] ?? "❓"} **Case #${c.caseNumber}** (${c.type}) — ${truncateReason(c.reason)} — <t:${Math.floor(c.createdAt.getTime() / 1000)}:d>`;
+		if (length + line.length + 1 > EMBED_DESCRIPTION_LIMIT) break;
+		lines.push(line);
+		length += line.length + 1;
+	}
+	return lines;
+}
 
 export class HistoryCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -44,20 +66,18 @@ export class HistoryCommand extends Command {
 			return interaction.editReply(`✅ **${target.tag}** has no moderation history.`);
 		}
 
+		const lines = buildHistoryLines(cases);
 		const embed = new EmbedBuilder()
 			.setTitle(`📋 Moderation History — ${target.tag}`)
 			.setThumbnail(target.displayAvatarURL())
 			.setColor(0x5865f2)
-			.setDescription(
-				cases
-					.slice(0, 20)
-					.map(
-						(c) =>
-							`${typeEmoji[c.type] ?? "❓"} **Case #${c.caseNumber}** (${c.type}) — ${c.reason ?? "No reason"} — <t:${Math.floor(c.createdAt.getTime() / 1000)}:d>`,
-					)
-					.join("\n"),
-			)
-			.setFooter({ text: `Total: ${cases.length} cases` })
+			.setDescription(lines.join("\n"))
+			.setFooter({
+				text:
+					lines.length < cases.length
+						? `Showing ${lines.length} of ${cases.length} cases`
+						: `Total: ${cases.length} cases`,
+			})
 			.setTimestamp();
 
 		return interaction.editReply({ embeds: [embed] });

@@ -1,7 +1,6 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
-import { createCase } from "../../db/queries/modCases.js";
-import { logToChannel } from "./warn.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
+import { REASON_MAX_LENGTH, recordAndReport, targetBlocker } from "../../lib/moderation.js";
 
 export class KickCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -24,7 +23,9 @@ export class KickCommand extends Command {
 				.setDescription("Kick a member from the server")
 				.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
 				.addUserOption((opt) => opt.setName("user").setDescription("Member to kick").setRequired(true))
-				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for the kick")),
+				.addStringOption((opt) =>
+					opt.setName("reason").setDescription("Reason for the kick").setMaxLength(REASON_MAX_LENGTH),
+				),
 		);
 	}
 
@@ -36,44 +37,37 @@ export class KickCommand extends Command {
 
 		if (!target) return interaction.editReply("❌ Member not found in this server.");
 
-		const myHighest = interaction.guild!.members.me!.roles.highest.position;
-		const modHighest = (interaction.member as GuildMember).roles.highest.position;
-		const targetHighest = target.roles.highest.position;
-		if (targetHighest >= myHighest) {
-			return interaction.editReply("❌ I cannot kick a member with an equal or higher role than me.");
-		}
-		if (targetHighest >= modHighest) {
-			return interaction.editReply("❌ You cannot kick a member with an equal or higher role than you.");
-		}
+		const blocker = targetBlocker(interaction, target, "kick", target.kickable);
+		if (blocker) return interaction.editReply(blocker);
 
+		await target
+			.send(`You have been **kicked** from **${interaction.guild!.name}**. Reason: ${reason}`)
+			.catch(() => null);
 		try {
-			await target
-				.send(`You have been **kicked** from **${interaction.guild!.name}**. Reason: ${reason}`)
-				.catch(() => null);
 			await target.kick(reason);
 		} catch {
 			return interaction.editReply("❌ I don't have permission to kick this member.");
 		}
 
-		const modCase = await createCase({
-			guildId: interaction.guildId!,
-			userId: target.id,
-			moderatorId: interaction.user.id,
-			type: "kick",
-			reason,
+		return recordAndReport(interaction, {
+			caseData: {
+				guildId: interaction.guildId!,
+				userId: target.id,
+				moderatorId: interaction.user.id,
+				type: "kick",
+				reason,
+			},
+			notRecorded: `✅ Kicked <@${target.id}>, but the case was not recorded.`,
+			buildEmbed: (caseNumber) =>
+				new EmbedBuilder()
+					.setColor(0xffa500)
+					.setTitle(`👢 Kick — Case #${caseNumber}`)
+					.addFields(
+						{ name: "User", value: `<@${target.id}> (${target.user.tag})`, inline: true },
+						{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
+						{ name: "Reason", value: reason },
+					)
+					.setTimestamp(),
 		});
-
-		const embed = new EmbedBuilder()
-			.setColor(0xffa500)
-			.setTitle(`👢 Kick — Case #${modCase.caseNumber}`)
-			.addFields(
-				{ name: "User", value: `<@${target.id}> (${target.user.tag})`, inline: true },
-				{ name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
-				{ name: "Reason", value: reason },
-			)
-			.setTimestamp();
-
-		await logToChannel(interaction, embed);
-		return interaction.editReply({ embeds: [embed] });
 	}
 }

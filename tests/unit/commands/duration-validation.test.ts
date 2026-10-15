@@ -1,3 +1,4 @@
+import { container } from "@sapphire/framework";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PollCommand } from "../../../src/commands/fun/poll.js";
 import { GiveawayCommand } from "../../../src/commands/giveaway/giveaway.js";
@@ -19,7 +20,6 @@ vi.mock("../../../src/db/queries/giveaways.js", () => ({
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({ getOrCreateSettings: vi.fn() }));
 vi.mock("../../../src/db/queries/reminders.js", () => ({ markReminderSent: vi.fn() }));
 vi.mock("../../../src/lib/database.js", () => ({ db: { insert: vi.fn() } }));
-vi.mock("../../../src/commands/moderation/warn.js", () => ({ logToChannel: vi.fn() }));
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -35,13 +35,20 @@ describe("duration validation happens before any side effect", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		setupSapphireContainer();
+		container.logger = { warn: vi.fn(), error: vi.fn() } as unknown as typeof container.logger;
+		vi.mocked(getOrCreateSettings).mockResolvedValue({} as never);
 	});
 
 	describe("/mute", () => {
 		function setup(duration: string) {
 			const addRole = vi.fn(async () => null);
 			const editReply = vi.fn(async () => null);
-			const target = { id: "target", roles: { highest: { position: 1 }, add: addRole }, user: { tag: "t#0" } };
+			const target = {
+				id: "target",
+				manageable: true,
+				roles: { highest: { position: 1 }, add: addRole },
+				user: { tag: "t#0" },
+			};
 			const interaction = {
 				options: options({ duration }),
 				deferReply: vi.fn(async () => null),
@@ -51,7 +58,7 @@ describe("duration validation happens before any side effect", () => {
 				member: { roles: { highest: { position: 10 } } },
 				guild: {
 					members: { fetch: vi.fn(async () => target), me: { roles: { highest: { position: 20 } } } },
-					roles: { cache: new Map([["muted", { id: "muted" }]]) },
+					roles: { cache: new Map([["muted", { id: "muted", editable: true }]]) },
 				},
 			};
 			vi.mocked(getOrCreateSettings).mockResolvedValue({ mutedRoleId: "muted" } as never);
