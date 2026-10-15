@@ -2,7 +2,7 @@ import { container } from "@sapphire/framework";
 import { ChannelType } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchMinecraftPlayers, type MinecraftPlayer } from "../../../src/lib/minecraftRcon.js";
-import { SyncMinecraftTrackerTask } from "../../../src/scheduled-tasks/syncMinecraftTracker.js";
+import { createSyncMinecraftTracker } from "../../../src/tasks/syncMinecraftTracker.js";
 
 vi.mock("../../../src/lib/minecraftRcon.js", () => ({
 	fetchMinecraftPlayers: vi.fn(),
@@ -11,11 +11,8 @@ vi.mock("../../../src/lib/minecraftRcon.js", () => ({
 
 const mockedFetchMinecraftPlayers = vi.mocked(fetchMinecraftPlayers);
 
-function createTask(): SyncMinecraftTrackerTask {
-	return new SyncMinecraftTrackerTask(
-		{ store: {}, path: "syncMinecraftTracker.ts", root: ".", name: "syncMinecraftTracker" } as never,
-		{},
-	);
+function createTask() {
+	return createSyncMinecraftTracker();
 }
 
 function createGuild(withCategory = true) {
@@ -60,7 +57,7 @@ function setContainerGuild(guild: ReturnType<typeof createGuild>["guild"]) {
 
 const onlinePlayer: MinecraftPlayer = { name: "Athena" };
 
-describe("SyncMinecraftTrackerTask server states", () => {
+describe("createSyncMinecraftTracker server states", () => {
 	beforeEach(() => {
 		vi.stubEnv("TARGET_GUILD_ID", "guild-1");
 		mockedFetchMinecraftPlayers.mockReset();

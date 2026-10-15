@@ -8,14 +8,3 @@
  *   profiles stay available.
  */
 export const PERSONALITY_GENERATION_ENABLED = false;
-
-/** True when `filePath` belongs to a piece whose feature is switched off. */
-export function isPieceDisabled(filePath: string): boolean {
-	const normalized = filePath.replaceAll("\\", "/");
-
-	if (!PERSONALITY_GENERATION_ENABLED && normalized.endsWith("/scheduled-tasks/refreshPersonalityProfiles.ts")) {
-		return true;
-	}
-
-	return false;
-}

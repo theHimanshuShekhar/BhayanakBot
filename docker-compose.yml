@@ -20,23 +20,7 @@ services:
     networks:
       - botnet
 
-  # ── Layer 2: Supporting services ──────────────────────────────
-  valkey:
-    image: valkey/valkey:8-alpine
-    container_name: bhayanak_bot_valkey
-    restart: unless-stopped
-    command: valkey-server --appendonly yes
-    volumes:
-      - valkeydata:/data
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - botnet
-
-  # ── Layer 4: Application (depends on everything above) ────────
+  # ── Layer 2: Application (depends on everything above) ────────
   bot:
     build:
       context: .
@@ -50,8 +34,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      valkey:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'node.*dist/index' || exit 1"]
       interval: 30s
@@ -60,7 +42,6 @@ services:
       start_period: 30s
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot}
-      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
       ZEN_API_KEY: ${ZEN_API_KEY}
       ZEN_ALLOW_DISCORD_CONTENT: ${ZEN_ALLOW_DISCORD_CONTENT:-false}
       ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/zen/go/v1}
@@ -117,4 +98,3 @@ volumes:
       type: cifs
       o: "username=${CIFS_USERNAME},password=${CIFS_PASSWORD},uid=70,gid=70,file_mode=0700,dir_mode=0700,iocharset=utf8"
       device: "//10.1.1.195/weyland/Services/bhayanakbot/postgres"
-  valkeydata:

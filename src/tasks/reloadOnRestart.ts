@@ -1,26 +1,23 @@
-import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
+import { container } from "@sapphire/framework";
 import { and, eq } from "drizzle-orm";
 import { getUnsentReminders } from "../db/queries/reminders.js";
 import { giveaways, modCases, polls } from "../db/schema.js";
 import { db } from "../lib/database.js";
+import type { TaskDefinition } from "./scheduler.js";
 
 /**
- * Runs once on bot startup to re-queue any active scheduled items
+ * Runs once on bot startup (no interval) to log any active scheduled items
  * that may have been missed during downtime.
  *
  * The expireMutes, expireTempBans, sendReminders, endGiveaways, and endPolls
- * tasks are all pollers (they scan the DB every interval), so re-queuing
- * them on restart is simply ensuring the cron-like tasks are running.
- *
- * This task is invoked manually in index.ts after client login.
+ * tasks are all pollers (they scan the DB every interval), so nothing needs
+ * re-queuing on restart.
  */
-export class ReloadOnRestartTask extends ScheduledTask {
-	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
-		super(context, { ...options, name: "reloadOnRestart" });
-	}
-
-	public async run(): Promise<void> {
-		this.container.logger.info("[ReloadOnRestart] Checking for pending work after restart...");
+export const reloadOnRestart: TaskDefinition = {
+	name: "reloadOnRestart",
+	runOnStartup: true,
+	async run() {
+		container.logger.info("[ReloadOnRestart] Checking for pending work after restart...");
 
 		const [unsentReminders, activeGiveaways, activePolls, expiredMutes, expiredBans] = await Promise.all([
 			getUnsentReminders(),
@@ -30,7 +27,7 @@ export class ReloadOnRestartTask extends ScheduledTask {
 			db.query.modCases.findMany({ where: and(eq(modCases.type, "tempban"), eq(modCases.active, true)) }),
 		]);
 
-		this.container.logger.info(
+		container.logger.info(
 			`[ReloadOnRestart] Found: ${unsentReminders.length} reminders, ` +
 				`${activeGiveaways.length} giveaways, ${activePolls.length} polls, ` +
 				`${expiredMutes.length} mutes, ${expiredBans.length} tempbans`,
@@ -38,11 +35,5 @@ export class ReloadOnRestartTask extends ScheduledTask {
 
 		// The polling tasks run on intervals and will pick these up automatically.
 		// No explicit re-queuing needed — just log the state for visibility.
-	}
-}
-
-declare module "@sapphire/plugin-scheduled-tasks" {
-	interface ScheduledTasks {
-		reloadOnRestart: never;
-	}
-}
+	},
+};

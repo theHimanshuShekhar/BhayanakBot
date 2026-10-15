@@ -3,7 +3,7 @@ import { DiscordAPIError, RESTJSONErrorCodes } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCase, deactivateCase, getExpiredActiveCases } from "../../../src/db/queries/modCases.js";
 import { db } from "../../../src/lib/database.js";
-import { ExpireMutesTask } from "../../../src/scheduled-tasks/expireMutes.js";
+import { expireMutes } from "../../../src/tasks/expireMutes.js";
 
 vi.mock("../../../src/db/queries/modCases.js", () => ({
 	createCase: vi.fn(),
@@ -46,11 +46,7 @@ function createGuild(options: { fetchMember?: ReturnType<typeof vi.fn> } = {}) {
 	return { guild: { members: { fetch: fetchMember } }, remove, fetchMember };
 }
 
-function createTask(): ExpireMutesTask {
-	return new ExpireMutesTask({ store: {} as any, path: "expireMutes.ts", root: ".", name: "expireMutes" } as any, {});
-}
-
-describe("ExpireMutesTask", () => {
+describe("expireMutes", () => {
 	beforeEach(() => {
 		mockedCreateCase.mockReset();
 		mockedDeactivateCase.mockReset();
@@ -69,7 +65,7 @@ describe("ExpireMutesTask", () => {
 		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredMute(3)]);
 		(container.client.guilds.fetch as any).mockResolvedValueOnce(guild);
 
-		await createTask().run();
+		await expireMutes.run();
 
 		expect(remove).toHaveBeenCalledWith("muted-role", "Mute expired");
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(3);
@@ -82,7 +78,7 @@ describe("ExpireMutesTask", () => {
 			discordError(RESTJSONErrorCodes.MissingPermissions, 503),
 		);
 
-		await createTask().run();
+		await expireMutes.run();
 
 		expect(mockedDeactivateCase).not.toHaveBeenCalled();
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -92,7 +88,7 @@ describe("ExpireMutesTask", () => {
 		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredMute(5)]);
 		(container.client.guilds.fetch as any).mockRejectedValueOnce(discordError(RESTJSONErrorCodes.UnknownGuild));
 
-		await createTask().run();
+		await expireMutes.run();
 
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(5);
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -107,7 +103,7 @@ describe("ExpireMutesTask", () => {
 		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredMute()]);
 		(container.client.guilds.fetch as any).mockResolvedValueOnce(guild);
 
-		await createTask().run();
+		await expireMutes.run();
 
 		expect(mockedDeactivateCase).not.toHaveBeenCalled();
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -119,7 +115,7 @@ describe("ExpireMutesTask", () => {
 		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredMute()]);
 		(container.client.guilds.fetch as any).mockResolvedValueOnce(guild);
 
-		await createTask().run();
+		await expireMutes.run();
 
 		expect(mockedDeactivateCase).not.toHaveBeenCalled();
 		expect(container.logger.warn).toHaveBeenCalledWith(expect.stringContaining("will retry"));
@@ -132,7 +128,7 @@ describe("ExpireMutesTask", () => {
 		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredMute(9)]);
 		(container.client.guilds.fetch as any).mockResolvedValueOnce(guild);
 
-		await createTask().run();
+		await expireMutes.run();
 
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(9);
 		expect(mockedCreateCase).toHaveBeenCalledWith(expect.objectContaining({ type: "unmute" }));

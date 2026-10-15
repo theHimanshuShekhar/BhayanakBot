@@ -1,23 +1,15 @@
 import { join } from "node:path";
 import { LogLevel, SapphireClient } from "@sapphire/framework";
-import { type FilterResult, LoaderStrategy, Store } from "@sapphire/pieces";
+import { LoaderStrategy, Store } from "@sapphire/pieces";
 import { GatewayIntentBits, Partials } from "discord.js";
 import { Player } from "discord-player";
 import { DEFAULT_ALLOWED_MENTIONS } from "./allowedMentions.js";
-import { envOr } from "./env.js";
-import { isPieceDisabled } from "./features.js";
 
 class TypeScriptLoaderStrategy extends LoaderStrategy<any> {
 	public constructor() {
 		super();
 		// tsx is not detected by @sapphire/pieces, so we explicitly add TypeScript extensions
 		this.supportedExtensions.push(".ts", ".cts", ".mts");
-	}
-
-	// Compile-time feature switches: pieces for disabled subsystems never load.
-	public override filter(path: string): FilterResult {
-		if (isPieceDisabled(path)) return null;
-		return super.filter(path);
 	}
 }
 
@@ -111,7 +103,6 @@ export class BhayanakClient extends SapphireClient {
 	public readonly guildPersonalityCache = new BoundedMap<string, string>(100);
 
 	public constructor() {
-		const valkeyUrl = new URL(envOr("VALKEY_URL", "redis://localhost:6379"));
 		const entrypoint = process.argv[1] ?? "";
 		const baseUserDirectory = join(process.cwd(), entrypoint.includes("/dist/") ? "dist" : "src");
 		super({
@@ -133,14 +124,6 @@ export class BhayanakClient extends SapphireClient {
 				level: process.env.NODE_ENV === "production" ? LogLevel.Info : LogLevel.Debug,
 			},
 			loadMessageCommandListeners: true,
-			tasks: {
-				bull: {
-					connection: {
-						host: valkeyUrl.hostname,
-						port: Number(valkeyUrl.port || 6379),
-					},
-				},
-			},
 		});
 
 		this.player = new Player(this);

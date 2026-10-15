@@ -2,7 +2,7 @@ import { container } from "@sapphire/framework";
 import { ChannelType } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchPalworldPlayers, type PalworldPlayer } from "../../../src/lib/palworld.js";
-import { SyncPalworldTrackerTask } from "../../../src/scheduled-tasks/syncPalworldTracker.js";
+import { createSyncPalworldTracker } from "../../../src/tasks/syncPalworldTracker.js";
 
 vi.mock("../../../src/lib/palworld.js", () => ({
 	fetchPalworldPlayers: vi.fn(),
@@ -11,11 +11,8 @@ vi.mock("../../../src/lib/palworld.js", () => ({
 
 const mockedFetchPalworldPlayers = vi.mocked(fetchPalworldPlayers);
 
-function createTask(): SyncPalworldTrackerTask {
-	return new SyncPalworldTrackerTask(
-		{ store: {}, path: "syncPalworldTracker.ts", root: ".", name: "syncPalworldTracker" } as never,
-		{},
-	);
+function createTask() {
+	return createSyncPalworldTracker();
 }
 
 function createGuild() {
@@ -63,7 +60,7 @@ const onlinePlayer: PalworldPlayer = {
 	level: 80,
 };
 
-describe("SyncPalworldTrackerTask server states", () => {
+describe("createSyncPalworldTracker server states", () => {
 	beforeEach(() => {
 		vi.stubEnv("TARGET_GUILD_ID", "guild-1");
 		mockedFetchPalworldPlayers.mockReset();

@@ -46,7 +46,7 @@ The bot can build personality profiles from archived server conversation to gene
 - **Runtime**: Node.js with TypeScript (ESM)
 - **Bot framework**: [Sapphire Framework](https://www.sapphirejs.org/) v5 on Discord.js v14
 - **Database**: PostgreSQL via Drizzle ORM
-- **Cache/Queue**: Valkey (Redis-compatible) via BullMQ
+- **Background tasks**: in-process timers (no queue or cache service)
 - **Music**: discord-player v7
 - **AI**: opencode Zen is the only LLM provider, used for responders and summaries only when configured and explicitly allowed for Discord content; otherwise AI features stay silent
 
@@ -57,7 +57,6 @@ The bot can build personality profiles from archived server conversation to gene
 - Node.js 20+
 - pnpm
 - PostgreSQL
-- Valkey or Redis
 
 ### Install
 
@@ -75,7 +74,6 @@ Copy `.env.example` to `.env` and fill in:
 DISCORD_TOKEN=your_bot_token
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
-VALKEY_URL=redis://localhost:6379
 POSTGRES_PASSWORD=postgres
 ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
 ZEN_ALLOW_DISCORD_CONTENT=false      # must be true for responder/summary AI replies (no local fallback)
@@ -117,7 +115,7 @@ pnpm build && pnpm start  # production
 
 ## Docker
 
-The included `docker-compose.yml` runs everything (Postgres, Valkey, bot, and web). The bot container runs migrations before startup:
+The included `docker-compose.yml` runs everything (Postgres, bot, and web). The bot container runs migrations before startup:
 
 ```bash
 cp .env.example .env
@@ -125,7 +123,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Service hostnames (`postgres`, `valkey`) are injected automatically — `.env` values are only used for local development.
+The service hostname (`postgres`) is injected automatically — `.env` values are only used for local development.
 
 ## Development
 

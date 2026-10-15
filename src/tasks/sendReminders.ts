@@ -1,19 +1,19 @@
-import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
+import { container } from "@sapphire/framework";
 import { EmbedBuilder } from "discord.js";
 import { getPendingReminders, markReminderSent } from "../db/queries/reminders.js";
 import { notifyOnly } from "../lib/allowedMentions.js";
+import type { TaskDefinition } from "./scheduler.js";
 
-export class SendRemindersTask extends ScheduledTask {
-	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
-		super(context, { ...options, name: "sendReminders" });
-	}
-
-	public async run(): Promise<void> {
+export const sendReminders: TaskDefinition = {
+	name: "sendReminders",
+	intervalMs: 30_000,
+	runOnStartup: true,
+	async run() {
 		const due = await getPendingReminders();
 
 		for (const reminder of due) {
 			try {
-				const channel = await this.container.client.channels.fetch(reminder.channelId).catch(() => null);
+				const channel = await container.client.channels.fetch(reminder.channelId).catch(() => null);
 				if (channel && "send" in channel) {
 					const embed = new EmbedBuilder()
 						.setTitle("⏰ Reminder")
@@ -27,14 +27,8 @@ export class SendRemindersTask extends ScheduledTask {
 				}
 				await markReminderSent(reminder.id);
 			} catch (error) {
-				this.container.logger.error(`[SendReminders] Failed to send reminder #${reminder.id}:`, error);
+				container.logger.error(`[SendReminders] Failed to send reminder #${reminder.id}:`, error);
 			}
 		}
-	}
-}
-
-declare module "@sapphire/plugin-scheduled-tasks" {
-	interface ScheduledTasks {
-		sendReminders: never;
-	}
-}
+	},
+};

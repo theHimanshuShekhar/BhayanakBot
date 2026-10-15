@@ -1,27 +1,27 @@
-import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
+import { container } from "@sapphire/framework";
 import { type Guild, RESTJSONErrorCodes } from "discord.js";
 import { createCase, deactivateCase, getExpiredActiveCases } from "../db/queries/modCases.js";
 import { isDiscordApiError } from "../lib/discordErrors.js";
+import type { TaskDefinition } from "./scheduler.js";
 
-export class ExpireTempBansTask extends ScheduledTask {
-	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
-		super(context, { ...options, name: "expireTempBans" });
-	}
-
-	public async run(): Promise<void> {
+export const expireTempBans: TaskDefinition = {
+	name: "expireTempBans",
+	intervalMs: 30_000,
+	runOnStartup: true,
+	async run() {
 		const expired = await getExpiredActiveCases("tempban");
 
 		for (const modCase of expired) {
 			try {
 				let guild: Guild;
 				try {
-					guild = await this.container.client.guilds.fetch(modCase.guildId);
+					guild = await container.client.guilds.fetch(modCase.guildId);
 				} catch (error) {
 					if (isDiscordApiError(error, RESTJSONErrorCodes.UnknownGuild)) {
 						// The bot was removed from the guild and can no longer lift the ban.
 						await deactivateCase(modCase.id);
 					} else {
-						this.container.logger.warn(
+						container.logger.warn(
 							`[ExpireTempBans] Failed to fetch guild ${modCase.guildId} for case #${modCase.id} (${String(error)}) — will retry`,
 						);
 					}
@@ -33,7 +33,7 @@ export class ExpireTempBansTask extends ScheduledTask {
 				} catch (error) {
 					// Unknown Ban means the user is already unbanned, which is the outcome we wanted.
 					if (!isDiscordApiError(error, RESTJSONErrorCodes.UnknownBan)) {
-						this.container.logger.warn(
+						container.logger.warn(
 							`[ExpireTempBans] Failed to unban ${modCase.userId} in ${modCase.guildId} (${String(error)}) — will retry`,
 						);
 						continue;
@@ -45,20 +45,14 @@ export class ExpireTempBansTask extends ScheduledTask {
 				await createCase({
 					guildId: modCase.guildId,
 					userId: modCase.userId,
-					moderatorId: this.container.client.user!.id,
+					moderatorId: container.client.user!.id,
 					type: "unban",
 					reason: "Temporary ban expired",
 					active: false,
 				});
 			} catch (error) {
-				this.container.logger.error(`[ExpireTempBans] Failed to process case #${modCase.id}:`, error);
+				container.logger.error(`[ExpireTempBans] Failed to process case #${modCase.id}:`, error);
 			}
 		}
-	}
-}
-
-declare module "@sapphire/plugin-scheduled-tasks" {
-	interface ScheduledTasks {
-		expireTempBans: never;
-	}
-}
+	},
+};

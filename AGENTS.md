@@ -28,9 +28,9 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 ## Architecture
 
-**Framework:** Sapphire Framework on Discord.js v14. Sapphire auto-discovers and loads stores from their directories; manual registration is not needed for standard stores.
+**Framework:** Sapphire Framework on Discord.js v14. Sapphire auto-discovers and loads stores from their directories; manual registration is not needed for standard stores. Background tasks are not a Sapphire store; see Scheduled Tasks.
 
-**Feature switches:** `src/lib/features.ts` holds the compile-time switch `PERSONALITY_GENERATION_ENABLED`. It is currently `false`: personality generation is inactive, though its code remains. The custom loader strategy skips pieces for disabled subsystems, and help omits categories with no loaded commands. Flip a flag and its wiring comes back.
+**Feature switches:** `src/lib/features.ts` holds the compile-time switch `PERSONALITY_GENERATION_ENABLED`. It is currently `false`: personality generation is inactive, though its code remains, and `refreshPersonalityProfiles` is left out of the task list in `src/tasks/index.ts`. Flip a flag and its wiring comes back.
 
 **Stores:**
 
@@ -40,13 +40,12 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 | Listeners | `src/listeners/<category>/` | `Listener` |
 | Interaction handlers | `src/interaction-handlers/` | `InteractionHandler` |
 | Preconditions | `src/preconditions/` | `AllFlowsPrecondition` |
-| Scheduled tasks | `src/scheduled-tasks/` | `ScheduledTask` |
 
 **Client:** `src/lib/BhayanakClient.ts` extends `SapphireClient`. It adds `player`, bounded in-memory caches for snipe/edit-snipe data, anti-raid join tracking, user personality profiles, and guild personality profiles. It installs a custom Sapphire loader strategy so `tsx` development can load `.ts`, `.cts`, and `.mts` pieces.
 
 **Mention Policy:** the client sets `allowedMentions` to `DEFAULT_ALLOWED_MENTIONS` (`src/lib/allowedMentions.ts`): no user/role/everyone parsing and no reply pings, so every bot message notifies nobody. A per-send `allowedMentions` replaces the default entirely, so features that must reach specific members (reminder owner, levelled-up member, giveaway winners) pass `notifyOnly([...userIds])`. Do not sanitise text instead.
 
-**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts scheduled tasks, and installs shutdown/process error handlers.
+**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts the in-process task scheduler, and installs shutdown/process error handlers.
 
 **Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool. Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.
 
@@ -101,7 +100,6 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 | `DISCORD_TOKEN` | required | Bot token |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot` | Postgres connection |
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
-| `VALKEY_URL` | `redis://localhost:6379` | Valkey/Redis for Sapphire scheduled-task BullMQ backing |
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password; also the password in Compose's default `DATABASE_URL` for the bot and web services |
 | `ZEN_API_KEY` | unset | opencode Zen API key; responder and summary replies require it (plus `ZEN_ALLOW_DISCORD_CONTENT=true`). Personality generation is disabled independently |
 | `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; with local LLM disabled there is no other provider |
@@ -141,7 +139,9 @@ Every Zen call picks a budget mode (`LLM_BUDGETS`): `chat` (1500 output tokens, 
 
 ## Scheduled Tasks
 
-Scheduled tasks are declared as `ScheduledTask` classes but scheduled manually in `src/index.ts`. Startup runs `expireMutes`, `expireTempBans`, `sendReminders`, `endGiveaways`, `endPolls`, `reloadOnRestart`, and `syncPalworldTracker` once in a non-blocking cold-start pass; `refreshPersonalityProfiles` joins only when its feature flag is on. Runtime intervals run moderation/reminder/poll/giveaway tasks every 30 seconds, Palworld sync every 10 minutes, plus the flagged personality refresh at 6-hour cadence when enabled.
+Background tasks are plain modules under `src/tasks/`, each a `TaskDefinition` (`name`, optional `intervalMs`, `runOnStartup`, `run()`), listed by `getTasks()` in `src/tasks/index.ts` and driven by the in-process scheduler in `src/tasks/scheduler.ts` (ADR 0005). `index.ts` starts the scheduler once after login: it fires every `runOnStartup` task in a non-blocking cold-start pass, then arms one `setInterval` per task. A per-task guard, shared by the startup and interval runs, skips a tick while the previous run is still going; errors are logged per task and never stop the timer. `stop()` clears the timers. Tasks reach the client and logger through Sapphire's `container`; the trackers (`createSync*Tracker()`) hold their failure counters in a closure, so build them fresh per `getTasks()` call.
+
+Cadence: `expireMutes`, `expireTempBans`, `sendReminders`, `endGiveaways`, and `endPolls` every 30 seconds; `syncPalworldTracker` and `syncMinecraftTracker` every 10 minutes; `publicStats` and `dashboardPresence` every `PUBLIC_STATS_INTERVAL_MS` / `DASHBOARD_PRESENCE_INTERVAL_MS` (they wait for `clientReady` before reading the guild cache); `refreshPersonalityProfiles` every 6 hours, only when `PERSONALITY_GENERATION_ENABLED`. All of these also run once at startup; `reloadOnRestart` runs only then. The bot must stay a single instance: a second process would run every task twice.
 
 ## Music
 
@@ -179,7 +179,7 @@ Real-Zen personality e2e coverage is opt-in with `RUN_ZEN_E2E=1 ZEN_API_KEY=<key
 
 ## Deployment
 
-`docker-compose.yml` runs Postgres, Valkey, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `node dist/index.js`.
+`docker-compose.yml` runs Postgres, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `node dist/index.js`.
 
 The `Dockerfile` has these stages:
 
@@ -187,7 +187,7 @@ The `Dockerfile` has these stages:
 - `migration` is a small image target that can run `drizzle-kit migrate` if used separately.
 - `production` is Debian-based, installs runtime dependencies, copies source, and runs the bot through `tsx`.
 
-Compose injects service hostnames for `DATABASE_URL` and `VALKEY_URL`, so local `.env` values are mainly for non-Docker development.
+Compose injects the service hostname for `DATABASE_URL`, so local `.env` values are mainly for non-Docker development.
 
 ## Agent skills
 

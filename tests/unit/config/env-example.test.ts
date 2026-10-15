@@ -9,7 +9,6 @@ describe(".env.example", () => {
 			"DISCORD_TOKEN",
 			"DATABASE_URL",
 			"TEST_DATABASE_URL",
-			"VALKEY_URL",
 			"POSTGRES_PASSWORD",
 			"ZEN_API_KEY",
 			"ZEN_ALLOW_DISCORD_CONTENT",

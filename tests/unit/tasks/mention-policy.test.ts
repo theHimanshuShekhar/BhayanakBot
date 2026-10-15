@@ -2,8 +2,8 @@ import { container } from "@sapphire/framework";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { endGiveaway, getActiveExpiredGiveaways } from "../../../src/db/queries/giveaways.js";
 import { getPendingReminders, markReminderSent } from "../../../src/db/queries/reminders.js";
-import { EndGiveawaysTask } from "../../../src/scheduled-tasks/endGiveaways.js";
-import { SendRemindersTask } from "../../../src/scheduled-tasks/sendReminders.js";
+import { endGiveaways } from "../../../src/tasks/endGiveaways.js";
+import { sendReminders } from "../../../src/tasks/sendReminders.js";
 import { NOTIFIES_NOBODY, resolveAllowedMentions } from "../../helpers/allowedMentions.js";
 import { createGuild } from "../../helpers/giveawayMocks.js";
 
@@ -20,11 +20,7 @@ function createChannel() {
 	return { send: vi.fn(async () => null), messages: { fetch: vi.fn(async () => null) } };
 }
 
-function createTask<T>(TaskClass: new (...args: any[]) => T, name: string): T {
-	return new TaskClass({ store: {} as any, path: `${name}.ts`, root: ".", name } as any, {});
-}
-
-describe("scheduled task Mention Policy", () => {
+describe("task Mention Policy", () => {
 	const channel = createChannel();
 	const guild = createGuild(["w1", "w2", "w3"]);
 
@@ -44,7 +40,7 @@ describe("scheduled task Mention Policy", () => {
 			{ id: 1, userId: "owner-1", channelId: "c1", message: "@everyone ping", createdAt: new Date() },
 		] as never);
 
-		await createTask(SendRemindersTask, "sendReminders").run();
+		await sendReminders.run();
 
 		const [sent] = channel.send.mock.calls[0] as unknown as [{ content: string; allowedMentions: unknown }];
 		expect(sent.content).toBe("<@owner-1>");
@@ -70,7 +66,7 @@ describe("scheduled task Mention Policy", () => {
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.999);
 
 		try {
-			await createTask(EndGiveawaysTask, "endGiveaways").run();
+			await endGiveaways.run();
 		} finally {
 			randomSpy.mockRestore();
 		}

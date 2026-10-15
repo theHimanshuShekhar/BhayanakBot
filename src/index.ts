@@ -1,7 +1,6 @@
 import "dotenv/config";
 import "@sapphire/plugin-logger/register";
 import "@sapphire/plugin-subcommands/register";
-import "@sapphire/plugin-scheduled-tasks/register";
 
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
@@ -12,14 +11,14 @@ import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conve
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
-import { getDashboardPresenceIntervalMs, writeDashboardPresenceSnapshotForClient } from "./lib/dashboardPresence.js";
 import { optionalEnv } from "./lib/env.js";
 import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { removeGlobalHomeServerCommands } from "./lib/homeServer.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
-import { getPublicStatsIntervalMs, writePublicBotStatsSnapshotForClient } from "./lib/publicStats.js";
+import { getTasks } from "./tasks/index.js";
+import { createTaskScheduler } from "./tasks/scheduler.js";
 
 validateRuntimeConfig();
 
@@ -96,34 +95,6 @@ async function main() {
 		YTLog.setLevel(YTLog.Level.NONE);
 		registerPlayerEvents(client.player);
 
-		let publicStatsWriteRunning = false;
-		const writePublicStats = async () => {
-			if (publicStatsWriteRunning) return;
-			publicStatsWriteRunning = true;
-			try {
-				await writePublicBotStatsSnapshotForClient(client);
-				client.logger.info("[public-stats] Snapshot written");
-			} catch (err) {
-				client.logger.error("[public-stats] Snapshot failed:", err);
-			} finally {
-				publicStatsWriteRunning = false;
-			}
-		};
-
-		let dashboardPresenceWriteRunning = false;
-		const writeDashboardPresence = async () => {
-			if (dashboardPresenceWriteRunning) return;
-			dashboardPresenceWriteRunning = true;
-			try {
-				await writeDashboardPresenceSnapshotForClient(client);
-				client.logger.info("[dashboard-presence] Snapshot written");
-			} catch (err) {
-				client.logger.error("[dashboard-presence] Snapshot failed:", err);
-			} finally {
-				dashboardPresenceWriteRunning = false;
-			}
-		};
-
 		client.once("clientReady", () => {
 			client.logger.info(`[ready] Logged in as ${client.user?.tag} (${client.user?.id})`);
 			client.logger.info(`[ready] Serving ${client.guilds.cache.size} guild(s):`);
@@ -134,20 +105,8 @@ async function main() {
 			}
 
 			if (client.application) void removeGlobalHomeServerCommands(client.application.commands, client.logger);
-			void writePublicStats();
-			void writeDashboardPresence();
 			void preloadConversationHistoryCache().catch((err) =>
 				client.logger.error("[conversation-history] Startup preload failed:", err),
-			);
-			setInterval(
-				() => void writePublicStats(),
-				getPublicStatsIntervalMs({ PUBLIC_STATS_INTERVAL_MS: process.env.PUBLIC_STATS_INTERVAL_MS }),
-			);
-			setInterval(
-				() => void writeDashboardPresence(),
-				getDashboardPresenceIntervalMs({
-					DASHBOARD_PRESENCE_INTERVAL_MS: process.env.DASHBOARD_PRESENCE_INTERVAL_MS,
-				}),
 			);
 
 			void backfillGuessWhoMessages(client)
@@ -159,116 +118,8 @@ async function main() {
 		});
 		await client.login(process.env.DISCORD_TOKEN);
 
-		// Run initial scheduled tasks non-blocking so startup can't hang
-		// If a task fails, it logs but doesn't block the bot from processing events
-		const runTask = async (name: string) => {
-			const start = Date.now();
-			try {
-				await client.stores
-					.get("scheduled-tasks")
-					.get(name)
-					?.run(null as never);
-				client.logger.info(`[startup] Task ${name} completed in ${Date.now() - start}ms`);
-			} catch (err) {
-				client.logger.error(`[startup] Task ${name} failed after ${Date.now() - start}ms:`, err);
-			}
-		};
-
-		const startupTasks = [
-			"expireMutes",
-			"expireTempBans",
-			"sendReminders",
-			"endGiveaways",
-			"endPolls",
-			"reloadOnRestart",
-			"syncPalworldTracker",
-			"syncMinecraftTracker",
-		];
-		if (PERSONALITY_GENERATION_ENABLED) startupTasks.push("refreshPersonalityProfiles");
-		for (const taskName of startupTasks) {
-			void runTask(taskName);
-		}
-
-		// Schedule interval runs (every 30 seconds)
-		const tasks = ["expireMutes", "expireTempBans", "sendReminders", "endGiveaways", "endPolls"] as const;
-		const taskRunning: Partial<Record<(typeof tasks)[number], boolean>> = {};
-		for (const taskName of tasks) {
-			setInterval(async () => {
-				if (taskRunning[taskName]) return;
-				taskRunning[taskName] = true;
-				try {
-					await client.stores
-						.get("scheduled-tasks")
-						.get(taskName)
-						?.run(null as never);
-				} catch (err) {
-					client.logger.error(`[ScheduledTask:${taskName}] Error:`, err);
-				} finally {
-					taskRunning[taskName] = false;
-				}
-			}, 30_000);
-		}
-
-		if (PERSONALITY_GENERATION_ENABLED) {
-			// Refresh personality profiles every 6 hours
-			let personalityTaskRunning = false;
-			setInterval(
-				async () => {
-					if (personalityTaskRunning) return;
-					personalityTaskRunning = true;
-					try {
-						await client.stores
-							.get("scheduled-tasks")
-							.get("refreshPersonalityProfiles")
-							?.run(null as never);
-					} catch (err) {
-						client.logger.error("[ScheduledTask:refreshPersonalityProfiles] Error:", err);
-					} finally {
-						personalityTaskRunning = false;
-					}
-				},
-				6 * 60 * 60 * 1000,
-			);
-		}
-
-		// Sweep the Palworld roster every 10 minutes
-		let palworldTaskRunning = false;
-		setInterval(
-			async () => {
-				if (palworldTaskRunning) return;
-				palworldTaskRunning = true;
-				try {
-					await client.stores
-						.get("scheduled-tasks")
-						.get("syncPalworldTracker")
-						?.run(null as never);
-				} catch (err) {
-					client.logger.error("[ScheduledTask:syncPalworldTracker] Error:", err);
-				} finally {
-					palworldTaskRunning = false;
-				}
-			},
-			10 * 60 * 1000,
-		);
-		// Sweep the Minecraft roster every 10 minutes
-		let minecraftTaskRunning = false;
-		setInterval(
-			async () => {
-				if (minecraftTaskRunning) return;
-				minecraftTaskRunning = true;
-				try {
-					await client.stores
-						.get("scheduled-tasks")
-						.get("syncMinecraftTracker")
-						?.run(null as never);
-				} catch (err) {
-					client.logger.error("[ScheduledTask:syncMinecraftTracker] Error:", err);
-				} finally {
-					minecraftTaskRunning = false;
-				}
-			},
-			10 * 60 * 1000,
-		);
+		// Cold-start pass is non-blocking so a slow task can't hang startup; failures are logged per task.
+		createTaskScheduler(getTasks(), client.logger).start();
 	} catch (error) {
 		client.logger.fatal(error);
 		client.destroy();

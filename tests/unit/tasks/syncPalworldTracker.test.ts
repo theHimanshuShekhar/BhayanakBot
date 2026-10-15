@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from "../../../src/lib/palworld.js";
-import { channelNameSlug, playerChannelName } from "../../../src/scheduled-tasks/syncPalworldTracker.js";
+import { channelNameSlug, playerChannelName } from "../../../src/tasks/syncPalworldTracker.js";
 
 function player(overrides: Partial<PalworldPlayer> = {}): PalworldPlayer {
 	return { name: "Z1N1", accountName: "Athena", userId: "steam_76561198271516743", level: 80, ...overrides };

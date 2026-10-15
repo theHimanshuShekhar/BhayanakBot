@@ -2,7 +2,7 @@ import { container } from "@sapphire/framework";
 import { DiscordAPIError, RESTJSONErrorCodes } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCase, deactivateCase, getExpiredActiveCases } from "../../../src/db/queries/modCases.js";
-import { ExpireTempBansTask } from "../../../src/scheduled-tasks/expireTempBans.js";
+import { expireTempBans } from "../../../src/tasks/expireTempBans.js";
 
 vi.mock("../../../src/db/queries/modCases.js", () => ({
 	createCase: vi.fn(),
@@ -34,14 +34,7 @@ function expiredTempBan(id = 1) {
 	};
 }
 
-function createTask(): ExpireTempBansTask {
-	return new ExpireTempBansTask(
-		{ store: {} as any, path: "expireTempBans.ts", root: ".", name: "expireTempBans" } as any,
-		{},
-	);
-}
-
-describe("ExpireTempBansTask", () => {
+describe("expireTempBans", () => {
 	beforeEach(() => {
 		mockedCreateCase.mockReset();
 		mockedDeactivateCase.mockReset();
@@ -73,7 +66,7 @@ describe("ExpireTempBansTask", () => {
 			members: { unban: vi.fn().mockRejectedValueOnce(new Error("missing permissions")) },
 		});
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).not.toHaveBeenCalled();
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -100,7 +93,7 @@ describe("ExpireTempBansTask", () => {
 			members: { unban: vi.fn().mockResolvedValueOnce(undefined) },
 		});
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(2);
 		expect(mockedCreateCase).toHaveBeenCalledWith(
@@ -118,7 +111,7 @@ describe("ExpireTempBansTask", () => {
 			members: { unban: vi.fn().mockRejectedValueOnce(error) },
 		});
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).not.toHaveBeenCalled();
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -130,7 +123,7 @@ describe("ExpireTempBansTask", () => {
 			discordError(RESTJSONErrorCodes.MissingPermissions, 503),
 		);
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).not.toHaveBeenCalled();
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -140,7 +133,7 @@ describe("ExpireTempBansTask", () => {
 		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredTempBan(7)]);
 		(container.client.guilds.fetch as any).mockRejectedValueOnce(discordError(RESTJSONErrorCodes.UnknownGuild));
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(7);
 		expect(mockedCreateCase).not.toHaveBeenCalled();
@@ -152,7 +145,7 @@ describe("ExpireTempBansTask", () => {
 			members: { unban: vi.fn().mockRejectedValueOnce(discordError(RESTJSONErrorCodes.UnknownBan)) },
 		});
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(8);
 		expect(mockedCreateCase).toHaveBeenCalledWith(expect.objectContaining({ type: "unban", userId: "user-1" }));
@@ -164,7 +157,7 @@ describe("ExpireTempBansTask", () => {
 			.mockResolvedValueOnce({ members: { unban: vi.fn().mockRejectedValueOnce(new Error("boom")) } })
 			.mockResolvedValueOnce({ members: { unban: vi.fn().mockResolvedValueOnce(undefined) } });
 
-		await createTask().run();
+		await expireTempBans.run();
 
 		expect(mockedDeactivateCase).toHaveBeenCalledTimes(1);
 		expect(mockedDeactivateCase).toHaveBeenCalledWith(2);

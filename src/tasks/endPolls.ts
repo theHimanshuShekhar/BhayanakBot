@@ -1,15 +1,15 @@
-import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
+import { container } from "@sapphire/framework";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, type TextChannel } from "discord.js";
 import { and, eq, isNotNull, lte } from "drizzle-orm";
 import { polls } from "../db/schema.js";
 import { db } from "../lib/database.js";
+import type { TaskDefinition } from "./scheduler.js";
 
-export class EndPollsTask extends ScheduledTask {
-	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
-		super(context, { ...options, name: "endPolls" });
-	}
-
-	public async run(): Promise<void> {
+export const endPolls: TaskDefinition = {
+	name: "endPolls",
+	intervalMs: 30_000,
+	runOnStartup: true,
+	async run() {
 		const expiredPolls = await db.query.polls.findMany({
 			where: and(eq(polls.closed, false), isNotNull(polls.expiresAt), lte(polls.expiresAt, new Date())),
 		});
@@ -40,7 +40,7 @@ export class EndPollsTask extends ScheduledTask {
 						text: `Winner: ${winner?.label ?? "Tie"} · ${totalVotes} total vote${totalVotes !== 1 ? "s" : ""}`,
 					});
 
-				const channel = await this.container.client.channels.fetch(poll.channelId).catch(() => null);
+				const channel = await container.client.channels.fetch(poll.channelId).catch(() => null);
 				if (channel && "send" in channel) {
 					// Update original message
 					const msg = await (channel as TextChannel).messages.fetch(poll.messageId).catch(() => null);
@@ -61,14 +61,8 @@ export class EndPollsTask extends ScheduledTask {
 					await (channel as TextChannel).send({ content: "Poll has ended!", embeds: [embed] }).catch(() => null);
 				}
 			} catch (error) {
-				this.container.logger.error(`[EndPolls] Failed to end poll #${poll.id}:`, error);
+				container.logger.error(`[EndPolls] Failed to end poll #${poll.id}:`, error);
 			}
 		}
-	}
-}
-
-declare module "@sapphire/plugin-scheduled-tasks" {
-	interface ScheduledTasks {
-		endPolls: never;
-	}
-}
+	},
+};
