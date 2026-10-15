@@ -157,4 +157,83 @@ describe("createSyncPalworldTracker server states", () => {
 
 		expect(category.setPosition).toHaveBeenCalledWith(0, expect.objectContaining({ reason: expect.any(String) }));
 	});
+
+	it("never adopts, renames or empties a human-made Palworld category", async () => {
+		const { category, guild } = createGuild();
+		const humanCategory = {
+			type: ChannelType.GuildCategory,
+			name: "Palworld Chat",
+			id: "human-category",
+			position: 1,
+			children: { cache: new Map([["general", { id: "general", delete: vi.fn() }]]) },
+			delete: vi.fn(),
+			setName: vi.fn(),
+			setPosition: vi.fn(),
+		};
+		guild.channels.cache.unshift(humanCategory);
+		setContainerGuild(guild);
+		mockedFetchPalworldPlayers.mockResolvedValue(null);
+
+		const task = createTask();
+		await task.run();
+		await task.run();
+
+		expect(category.delete).toHaveBeenCalledTimes(1);
+		expect(humanCategory.delete).not.toHaveBeenCalled();
+		expect(humanCategory.children.cache.get("general")?.delete).not.toHaveBeenCalled();
+	});
+
+	it("creates its own category instead of adopting a human-made Palworld category", async () => {
+		const { guild } = createGuild();
+		guild.channels.cache.splice(0, 1);
+		const humanCategory = {
+			type: ChannelType.GuildCategory,
+			name: "Palworld Chat",
+			id: "human-category",
+			position: 1,
+			children: { cache: new Map([["general", { id: "general", delete: vi.fn() }]]) },
+			delete: vi.fn(),
+			setName: vi.fn(),
+			setPosition: vi.fn(),
+		};
+		guild.channels.cache.push(humanCategory);
+		guild.channels.create
+			.mockResolvedValueOnce({
+				type: ChannelType.GuildCategory,
+				name: "Palworld — 1 online",
+				id: "tracker-category",
+				position: 0,
+				children: { cache: new Map() },
+				setName: vi.fn(),
+				setPosition: vi.fn(),
+			})
+			.mockResolvedValueOnce({});
+		setContainerGuild(guild);
+		mockedFetchPalworldPlayers.mockResolvedValue([onlinePlayer]);
+
+		await createTask().run();
+
+		expect(guild.channels.create).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Palworld — 1 online", type: ChannelType.GuildCategory }),
+		);
+		expect(humanCategory.delete).not.toHaveBeenCalled();
+		expect(humanCategory.setName).not.toHaveBeenCalled();
+		expect(humanCategory.children.cache.get("general")?.delete).not.toHaveBeenCalled();
+	});
+
+	it("keeps the category after one failed poll and when failures are not consecutive", async () => {
+		const { category, guild } = createGuild();
+		setContainerGuild(guild);
+		mockedFetchPalworldPlayers
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce([onlinePlayer])
+			.mockResolvedValueOnce([])
+			.mockResolvedValueOnce([onlinePlayer]);
+		guild.channels.create.mockResolvedValue({});
+
+		const task = createTask();
+		for (let i = 0; i < 4; i++) await task.run();
+
+		expect(category.delete).not.toHaveBeenCalled();
+	});
 });

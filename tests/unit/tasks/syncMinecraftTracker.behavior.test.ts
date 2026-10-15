@@ -163,4 +163,82 @@ describe("createSyncMinecraftTracker server states", () => {
 
 		expect(category.setPosition).toHaveBeenCalledWith(0, expect.objectContaining({ reason: expect.any(String) }));
 	});
+
+	it("never adopts, renames or empties a human-made Minecraft category", async () => {
+		const { category, guild } = createGuild();
+		const humanCategory = {
+			type: ChannelType.GuildCategory,
+			name: "Minecraft Chat",
+			id: "human-category",
+			position: 1,
+			children: { cache: new Map([["general", { id: "general", delete: vi.fn() }]]) },
+			delete: vi.fn(),
+			setName: vi.fn(),
+			setPosition: vi.fn(),
+		};
+		guild.channels.cache.unshift(humanCategory);
+		setContainerGuild(guild);
+		mockedFetchMinecraftPlayers.mockResolvedValue(null);
+
+		const task = createTask();
+		await task.run();
+		await task.run();
+
+		expect(category.delete).toHaveBeenCalledTimes(1);
+		expect(humanCategory.delete).not.toHaveBeenCalled();
+		expect(humanCategory.children.cache.get("general")?.delete).not.toHaveBeenCalled();
+	});
+
+	it("creates its own category instead of adopting a human-made Minecraft category", async () => {
+		const { guild } = createGuild(false);
+		const humanCategory = {
+			type: ChannelType.GuildCategory,
+			name: "Minecraft Chat",
+			id: "human-category",
+			position: 1,
+			children: { cache: new Map([["general", { id: "general", delete: vi.fn() }]]) },
+			delete: vi.fn(),
+			setName: vi.fn(),
+			setPosition: vi.fn(),
+		};
+		guild.channels.cache.push(humanCategory);
+		guild.channels.create
+			.mockResolvedValueOnce({
+				type: ChannelType.GuildCategory,
+				name: "Minecraft — 1 online",
+				id: "tracker-category",
+				position: 0,
+				children: { cache: new Map() },
+				setName: vi.fn(),
+				setPosition: vi.fn(),
+			})
+			.mockResolvedValueOnce({});
+		setContainerGuild(guild);
+		mockedFetchMinecraftPlayers.mockResolvedValue([onlinePlayer]);
+
+		await createTask().run();
+
+		expect(guild.channels.create).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Minecraft — 1 online", type: ChannelType.GuildCategory }),
+		);
+		expect(humanCategory.delete).not.toHaveBeenCalled();
+		expect(humanCategory.setName).not.toHaveBeenCalled();
+		expect(humanCategory.children.cache.get("general")?.delete).not.toHaveBeenCalled();
+	});
+
+	it("keeps the category after one failed poll and when failures are not consecutive", async () => {
+		const { category, guild } = createGuild();
+		setContainerGuild(guild);
+		mockedFetchMinecraftPlayers
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce([onlinePlayer])
+			.mockResolvedValueOnce([])
+			.mockResolvedValueOnce([onlinePlayer]);
+		guild.channels.create.mockResolvedValue({});
+
+		const task = createTask();
+		for (let i = 0; i < 4; i++) await task.run();
+
+		expect(category.delete).not.toHaveBeenCalled();
+	});
 });

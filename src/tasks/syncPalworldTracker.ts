@@ -5,6 +5,8 @@ import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from 
 import type { TaskDefinition } from "./scheduler.js";
 
 const CATEGORY_PREFIX = "Palworld";
+// Anchored so a human-made category such as "Palworld Chat" is never adopted or emptied.
+const CATEGORY_NAME_PATTERN = /^Palworld — \d+ online$/;
 const MAX_CHANNEL_NAME_LENGTH = 100;
 const FAILURES_BEFORE_UNREACHABLE = 2;
 // Uncategorized channels always render above categories, so position 0 is the
@@ -44,7 +46,7 @@ export function channelNameSlug(name: string): string {
 function findCategory(guild: Guild): CategoryChannel | undefined {
 	return guild.channels.cache.find(
 		(channel): channel is CategoryChannel =>
-			channel.type === ChannelType.GuildCategory && channel.name.startsWith(CATEGORY_PREFIX),
+			channel.type === ChannelType.GuildCategory && CATEGORY_NAME_PATTERN.test(channel.name),
 	);
 }
 

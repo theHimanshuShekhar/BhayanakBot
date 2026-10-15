@@ -262,11 +262,31 @@ export function adaptGuildView(guild: Guild): PresenceGuildView {
 
 type SnapshotClient = Pick<Client, "guilds">;
 
+// Guilds whose full member list has been fetched once. After that the GuildMembers
+// intent keeps the member cache current through gateway events.
+const fullyFetchedGuilds = new WeakSet<Guild>();
+
+/**
+ * Makes the member cache complete enough for bot flags and voice occupants. The full
+ * member list is fetched once per guild; later calls only fetch voice-state members
+ * the cache is missing, instead of re-downloading the whole guild every interval.
+ */
+async function ensureMembersCached(guild: Guild): Promise<void> {
+	if (!fullyFetchedGuilds.has(guild)) {
+		await guild.members.fetch();
+		fullyFetchedGuilds.add(guild);
+		return;
+	}
+	const missing = guild.voiceStates.cache
+		.filter((voice) => voice.channelId !== null && !guild.members.cache.has(voice.id))
+		.map((voice) => voice.id);
+	if (missing.length > 0) await guild.members.fetch({ user: missing });
+}
+
 export async function writeDashboardPresenceSnapshotForClient(client: SnapshotClient): Promise<void> {
 	const guild = client.guilds.cache.get(TARGET_GUILD_ID);
 	if (!guild) throw new Error(`target guild ${TARGET_GUILD_ID} is not in the client cache`);
-	// Populate the member cache so bot flags and voice states are complete.
-	await guild.members.fetch();
+	await ensureMembersCached(guild);
 	const [widget] = await Promise.all([fetchWidgetView(guild.id)]);
 	await writeDashboardPresenceSnapshot(buildDashboardPresencePayload(adaptGuildView(guild), widget));
 }
