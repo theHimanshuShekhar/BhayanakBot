@@ -5,6 +5,7 @@ import { getEligibleUserTrainingMessages } from "../../db/queries/personalityTra
 import { userPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
+import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
 
 const OLLAMA_TIMEOUT_MS = 90_000;
@@ -16,6 +17,7 @@ export const INITIAL_USER_PROFILE_THRESHOLD = 100;
 export const REFRESH_USER_PROFILE_THRESHOLD = 20;
 export type PersonalityBuildStatus =
 	| "built"
+	| "skipped_generation_disabled"
 	| "skipped_cooldown"
 	| "skipped_in_progress"
 	| "skipped_insufficient_evidence"
@@ -45,6 +47,7 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 export async function buildPersonalityProfile(userId: string, guildId: string): Promise<PersonalityBuildResult> {
+	if (!PERSONALITY_GENERATION_ENABLED) return { status: "skipped_generation_disabled" };
 	const rebuildKey = `${userId}:${guildId}`;
 	container.logger.debug(`[personality] build requested userId=${userId} guildId=${guildId}`);
 	if (rebuildInProgress.has(rebuildKey)) {

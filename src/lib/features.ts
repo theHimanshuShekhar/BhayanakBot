@@ -4,8 +4,10 @@
  *
  * - LOCAL_LLM_ENABLED: Ollama startup warmup and the local fallback in llmProvider.
  *   When false, autoresponder and summarize run remote-API (Zen) only.
- * - PERSONALITY_GENERATION_ENABLED: profile builds (startup backfill, refresh task,
- *   /personality refresh). Viewing existing profiles stays available.
+ * - PERSONALITY_GENERATION_ENABLED: profile builds. Enforced inside both profile builders,
+ *   so every caller (listener threshold trigger, startup backfill, refresh task,
+ *   /personality refresh) is covered. Archiving, evidence counting, and viewing existing
+ *   profiles stay available.
  */
 export const LOCAL_LLM_ENABLED = false;
 export const PERSONALITY_GENERATION_ENABLED = false;

@@ -22,6 +22,15 @@ import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfi
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
 
+const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
+
+vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../../../src/lib/features.js")>()),
+	get PERSONALITY_GENERATION_ENABLED() {
+		return featureFlags.personalityGeneration;
+	},
+}));
+
 vi.mock("../../../src/lib/constants.js", () => ({
 	GUESS_WHO_CHANNEL_ID: "guess-general",
 	TARGET_TEXT_CHANNEL_ID: "legacy-target",
@@ -208,6 +217,7 @@ async function countStoredUserMessages(): Promise<number> {
 
 describe("messageCreate personality archive flow", () => {
 	beforeEach(async () => {
+		featureFlags.personalityGeneration = true;
 		await cleanupRows();
 		archivedChannelMessageTestHooks.afterPendingDeleteRead = undefined;
 		mockedCallBackgroundLlm.mockClear();
@@ -373,6 +383,40 @@ describe("messageCreate personality archive flow", () => {
 			"Threshold triggering archived message must be visible to builder.",
 		);
 		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
+	});
+
+	it("keeps archiving and counting but starts no user build at the 100-message threshold while generation is disabled", async () => {
+		featureFlags.personalityGeneration = false;
+		await archiveListenerMessages({ count: 99 });
+
+		await createListener().run(
+			createMessage({ messageId: "off-user-threshold", createdAt: new Date("2026-05-28T12:02:00.000Z") }) as never,
+		);
+		// Inline builds are fire-and-forget; give any (wrongly) started build time to reach the LLM.
+		await new Promise((resolve) => setTimeout(resolve, 200));
+
+		expect(await countArchivedRows()).toBe(100);
+		expect((await getUserProfile())?.newMessageCount).toBe(100);
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
+		expect((await getUserProfile())?.profile).toBeNull();
+	});
+
+	it("keeps archiving and counting but starts no guild build at the 200-message threshold while generation is disabled", async () => {
+		featureFlags.personalityGeneration = false;
+		await archiveListenerMessages({ count: 199, authorCount: 20 });
+
+		await createListener().run(
+			createMessage({
+				messageId: "off-guild-threshold",
+				createdAt: new Date("2026-05-28T12:10:00.000Z"),
+			}) as never,
+		);
+		await new Promise((resolve) => setTimeout(resolve, 200));
+
+		expect(await countArchivedRows()).toBe(200);
+		expect((await getGuildProfile())?.messageCount).toBe(200);
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
+		expect((await getGuildProfile())?.profile).toBeNull();
 	});
 
 	it("builds a guild profile from messages inserted through the listener archive flow", async () => {

@@ -4,6 +4,7 @@ import { getEligibleGuildTrainingMessageWindow, type TrainingMessage } from "../
 import { guildPersonalityProfiles } from "../../db/schema.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
+import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
 
 const OLLAMA_TIMEOUT_MS = 90_000;
@@ -14,6 +15,7 @@ export const REFRESH_GUILD_PROFILE_THRESHOLD = 40;
 const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 export type GuildPersonalityBuildStatus =
 	| "built"
+	| "skipped_generation_disabled"
 	| "skipped_cooldown"
 	| "skipped_in_progress"
 	| "skipped_insufficient_evidence"
@@ -40,6 +42,7 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 export async function buildGuildPersonalityProfile(guildId: string): Promise<GuildPersonalityBuildResult> {
+	if (!PERSONALITY_GENERATION_ENABLED) return { status: "skipped_generation_disabled" };
 	container.logger.debug(`[guild-personality] build requested guildId=${guildId}`);
 	if (rebuildInProgress.has(guildId)) {
 		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=in-progress`);

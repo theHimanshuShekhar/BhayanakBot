@@ -9,6 +9,15 @@ import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
 
+const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
+
+vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../../../src/lib/features.js")>()),
+	get PERSONALITY_GENERATION_ENABLED() {
+		return featureFlags.personalityGeneration;
+	},
+}));
+
 vi.mock("../../../src/lib/llmProvider.js", () => ({
 	callBackgroundLlm: vi.fn(async () => "Profile summary without direct quotes."),
 }));
@@ -142,6 +151,7 @@ function authorLabelForPromptContent(userPrompt: string, content: string): strin
 
 describe("personality profile builders", () => {
 	beforeEach(async () => {
+		featureFlags.personalityGeneration = true;
 		await cleanupBuilderRows();
 		mockedCallBackgroundLlm.mockClear();
 		container.logger = {
@@ -536,5 +546,32 @@ describe("personality profile builders", () => {
 		expect(profileAfterFailure?.lastTrainingMessageId).toBeNull();
 		expect(profileAfterFailure?.messageCount).toBe(250);
 		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+	});
+
+	it("builds no user profile and makes no LLM call while personality generation is disabled", async () => {
+		featureFlags.personalityGeneration = false;
+		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
+
+		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
+
+		expect(result.status).toBe("skipped_generation_disabled");
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
+		expect(await getBuilderProfile()).toBeUndefined();
+	});
+
+	it("builds no guild profile and makes no LLM call while personality generation is disabled", async () => {
+		featureFlags.personalityGeneration = false;
+		await archiveGuildMessages({
+			count: 200,
+			idPrefix: "gb",
+			start: new Date("2026-05-01T00:00:00.000Z"),
+			authorCount: 20,
+		});
+
+		const result = await buildGuildPersonalityProfile(GUILD_ID);
+
+		expect(result.status).toBe("skipped_generation_disabled");
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
+		expect(await getGuildBuilderProfile()).toBeUndefined();
 	});
 });

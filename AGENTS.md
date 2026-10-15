@@ -135,7 +135,7 @@ Startup runs `backfillGuessWhoMessages()` after `clientReady` to scan up to `GUE
 
 Personality profile builders read eligible archived messages in bounded cursor windows. User profile creation needs 100 eligible messages; later refreshes need 20. Guild culture profile creation needs 200 eligible messages; later refreshes need 40. Profiles must not quote source messages directly.
 
-`personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. With `PERSONALITY_GENERATION_ENABLED=false`, profile generation (startup backfill, the refresh task, and `/personality refresh`) answers that generation is disabled.
+`personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. With `PERSONALITY_GENERATION_ENABLED=false`, both profile builders return `skipped_generation_disabled` as their first step, so no caller (the `messageCreate` threshold trigger, startup backfill, the refresh task, `/personality refresh`) builds a profile or sends archived content to the LLM. Archiving and evidence counting keep running so re-enabling needs no backfill.
 
 Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. The local Ollama fallback is inactive while `LOCAL_LLM_ENABLED=false`.
 

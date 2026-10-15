@@ -46,6 +46,7 @@ function formatRefreshResult(
 	}
 
 	const reasons: Record<Exclude<typeof result.status, "built">, string> = {
+		skipped_generation_disabled: "personality generation is disabled",
 		skipped_cooldown: "the profile is still in the refresh cooldown",
 		skipped_in_progress: "another refresh is already running",
 		skipped_insufficient_evidence: "there is not enough archived training evidence",
