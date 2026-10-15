@@ -1,6 +1,7 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { EmbedBuilder } from "discord.js";
 import { getPendingReminders, markReminderSent } from "../db/queries/reminders.js";
+import { notifyOnly } from "../lib/allowedMentions.js";
 
 export class SendRemindersTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
@@ -20,7 +21,9 @@ export class SendRemindersTask extends ScheduledTask {
 						.setColor(0x5865f2)
 						.setFooter({ text: `Set ${reminder.createdAt.toUTCString()}` });
 
-					await (channel as any).send({ content: `<@${reminder.userId}>`, embeds: [embed] }).catch(() => null);
+					await (channel as any)
+						.send({ content: `<@${reminder.userId}>`, embeds: [embed], allowedMentions: notifyOnly([reminder.userId]) })
+						.catch(() => null);
 				}
 				await markReminderSent(reminder.id);
 			} catch (error) {

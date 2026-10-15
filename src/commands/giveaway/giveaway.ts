@@ -2,6 +2,7 @@ import { Subcommand } from "@sapphire/plugin-subcommands";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
 import ms from "ms";
 import { createGiveaway, endGiveaway, getGiveawayByMessage } from "../../db/queries/giveaways.js";
+import { notifyOnly } from "../../lib/allowedMentions.js";
 
 export class GiveawayCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -153,6 +154,7 @@ export class GiveawayCommand extends Subcommand {
 
 		return interaction.reply({
 			content: `🎉 Reroll! New winner${winners.length > 1 ? "s" : ""}: ${winners.map((w) => `<@${w}>`).join(", ")}`,
+			allowedMentions: notifyOnly(winners),
 		});
 	}
 
@@ -172,6 +174,7 @@ export class GiveawayCommand extends Subcommand {
 
 			await (channel as TextChannel).send({
 				content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,
+				allowedMentions: notifyOnly(winners),
 			});
 
 			// Disable entry button on original message

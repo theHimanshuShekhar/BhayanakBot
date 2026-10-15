@@ -1,6 +1,7 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type TextChannel } from "discord.js";
 import { endGiveaway, getActiveExpiredGiveaways } from "../db/queries/giveaways.js";
+import { notifyOnly } from "../lib/allowedMentions.js";
 
 function shuffled<T>(arr: T[]): T[] {
 	const a = [...arr];
@@ -34,6 +35,7 @@ export class EndGiveawaysTask extends ScheduledTask {
 					await (channel as TextChannel)
 						.send({
 							content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,
+							allowedMentions: notifyOnly(winners),
 						})
 						.catch(() => null);
 

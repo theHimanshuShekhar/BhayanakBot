@@ -14,6 +14,7 @@ import {
 	userMessages,
 	userPersonalityProfiles,
 } from "../../db/schema.js";
+import { notifyOnly } from "../../lib/allowedMentions.js";
 import {
 	addConversationHistoryMessage,
 	getConversationContext,
@@ -685,7 +686,9 @@ export class MessageCreateListener extends Listener {
 			? (message.guild!.channels.cache.get(settings.levelUpChannelId) as TextChannel | undefined)
 			: (message.channel as TextChannel);
 
-		await targetChannel?.send(levelUpMsg).catch(() => null);
+		await targetChannel
+			?.send({ content: levelUpMsg, allowedMentions: notifyOnly([message.author.id]) })
+			.catch(() => null);
 
 		// Assign level reward roles
 		const { getLevelRewards } = await import("../../db/queries/users.js");

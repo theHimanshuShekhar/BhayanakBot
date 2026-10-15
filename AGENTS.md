@@ -44,6 +44,8 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Client:** `src/lib/BhayanakClient.ts` extends `SapphireClient`. It adds `player`, bounded in-memory caches for snipe/edit-snipe data, anti-raid join tracking, user personality profiles, and guild personality profiles. It installs a custom Sapphire loader strategy so `tsx` development can load `.ts`, `.cts`, and `.mts` pieces.
 
+**Mention Policy:** the client sets `allowedMentions` to `DEFAULT_ALLOWED_MENTIONS` (`src/lib/allowedMentions.ts`): no user/role/everyone parsing and no reply pings, so every bot message notifies nobody. A per-send `allowedMentions` replaces the default entirely, so features that must reach specific members (reminder owner, levelled-up member, giveaway winners) pass `notifyOnly([...userIds])`. Do not sanitise text instead.
+
 **Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, ensures/pulls and warms the Ollama model only when `LOCAL_LLM_ENABLED`, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts scheduled tasks, and installs shutdown/process error handlers.
 
 **Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool. Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.

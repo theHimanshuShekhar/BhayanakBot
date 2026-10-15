@@ -3,6 +3,7 @@ import { LogLevel, SapphireClient } from "@sapphire/framework";
 import { type FilterResult, LoaderStrategy, Store } from "@sapphire/pieces";
 import { GatewayIntentBits, Partials } from "discord.js";
 import { Player } from "discord-player";
+import { DEFAULT_ALLOWED_MENTIONS } from "./allowedMentions.js";
 import { isPieceDisabled } from "./features.js";
 
 class TypeScriptLoaderStrategy extends LoaderStrategy<any> {
@@ -70,6 +71,7 @@ export class BhayanakClient extends SapphireClient {
 		const baseUserDirectory = join(process.cwd(), entrypoint.includes("/dist/") ? "dist" : "src");
 		super({
 			rest: { timeout: 60_000 },
+			allowedMentions: DEFAULT_ALLOWED_MENTIONS,
 			baseUserDirectory,
 			intents: [
 				GatewayIntentBits.Guilds,

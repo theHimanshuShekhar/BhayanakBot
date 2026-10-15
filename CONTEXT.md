@@ -208,7 +208,7 @@ A feature any guild that invites the bot may use, such as moderation, music, lev
 
 ## Mention Policy
 
-Bot messages notify nobody by default. A feature may notify only the specific members it exists to reach: the reminder owner, the levelled-up member, and giveaway winners. Mass mentions are never sent. AI-generated replies notify nobody, even when they name members.
+Bot messages notify nobody by default. A feature may notify only the specific members it exists to reach: the reminder owner, the levelled-up member, the newly joined member, and giveaway winners. Mass mentions are never sent. AI-generated replies notify nobody, even when they name members.
 
 ## Guess Who Guess
 

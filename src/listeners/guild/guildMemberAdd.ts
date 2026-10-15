@@ -1,6 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { EmbedBuilder, type GuildMember, type TextChannel } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
+import { notifyOnly } from "../../lib/allowedMentions.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 
 export class GuildMemberAddListener extends Listener {
@@ -73,7 +74,10 @@ export class GuildMemberAddListener extends Listener {
 					.setThumbnail(member.user.displayAvatarURL())
 					.setTimestamp();
 
-				await channel.send({ embeds: [embed] }).catch(() => null);
+				// Mentions inside an embed never notify, so the ping goes in the message content.
+				await channel
+					.send({ content: `<@${member.id}>`, embeds: [embed], allowedMentions: notifyOnly([member.id]) })
+					.catch(() => null);
 			}
 		}
 	}
