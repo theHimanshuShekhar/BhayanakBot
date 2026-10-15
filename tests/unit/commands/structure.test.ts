@@ -174,7 +174,7 @@ describe("Home-Server Feature commands", () => {
 		const context = createCommandContext(file.replace(/\.\.\/\.\.\/\.\.\//, "src/").replace(".js", ".ts"));
 		const instance = new CommandClass(context, {});
 		const registrations: { name: string; options: { guildIds?: string[] } | undefined }[] = [];
-		instance.registerApplicationCommands({
+		instance.registerApplicationCommands!({
 			registerChatInputCommand(register: (builder: SlashCommandBuilder) => unknown, options?: { guildIds?: string[] }) {
 				const json = (register(new SlashCommandBuilder()) as SlashCommandBuilder).toJSON();
 				registrations.push({ name: json.name, options });
@@ -218,10 +218,9 @@ describe("autorespond command metadata", () => {
 		const instance = new CommandClass(createCommandContext("src/commands/autorespond/autorespond.ts"), {});
 		let commandJson: ReturnType<SlashCommandBuilder["toJSON"]> | undefined;
 
-		instance.registerApplicationCommands({
-			registerChatInputCommand(register) {
-				const builder = new SlashCommandBuilder();
-				commandJson = register(builder).toJSON();
+		instance.registerApplicationCommands!({
+			registerChatInputCommand(register: (builder: SlashCommandBuilder) => SlashCommandBuilder) {
+				commandJson = register(new SlashCommandBuilder()).toJSON();
 			},
 		} as never);
 
@@ -242,7 +241,7 @@ describe("guess who embeds", () => {
 		messageCreatedAt: new Date("2025-01-01T00:00:00.000Z"),
 		editedAt: null,
 		deletedAt: null,
-		createdAt: new Date("2025-01-01T00:00:00.000Z"),
+		archivedAt: new Date("2025-01-01T00:00:00.000Z"),
 		updatedAt: new Date("2025-01-01T00:00:00.000Z"),
 	};
 

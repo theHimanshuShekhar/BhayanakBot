@@ -1,3 +1,4 @@
+import { InteractionHandlerTypes } from "@sapphire/framework";
 import { MessageFlags } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPoll, getPollByMessage } from "../../../src/db/queries/polls.js";
@@ -37,7 +38,9 @@ async function seed(expiresAt: Date) {
 
 describe("poll vote button", () => {
 	const handler = () =>
-		new PollVoteButtonsHandler(createCommandContext("src/interaction-handlers/pollVoteButtons.ts") as never, {});
+		new PollVoteButtonsHandler(createCommandContext("src/interaction-handlers/pollVoteButtons.ts") as never, {
+			interactionHandlerType: InteractionHandlerTypes.Button,
+		});
 
 	beforeEach(() => setupSapphireContainer());
 

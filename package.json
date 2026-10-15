@@ -10,6 +10,8 @@
     "lint": "biome lint .",
     "format": "biome format . --write",
     "check": "biome check . --write",
+    "check:ci": "biome ci .",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -19,7 +21,8 @@
     "db:studio": "drizzle-kit studio",
     "web:dev": "astro dev --root web",
     "web:build": "astro build --root web",
-    "web:preview": "astro preview --root web"
+    "web:preview": "astro preview --root web",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true"
   },
   "keywords": [],
   "author": "",

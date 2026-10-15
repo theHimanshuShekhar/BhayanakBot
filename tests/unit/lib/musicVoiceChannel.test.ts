@@ -1,3 +1,4 @@
+import { InteractionHandlerTypes } from "@sapphire/framework";
 import { PermissionFlagsBits } from "discord.js";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { getVoiceChannelRefusal, getYouTubeVideoId } from "../../../src/lib/music/voiceChannel.js";
@@ -78,7 +79,7 @@ describe("music buttons", () => {
 		const { MusicButtonsHandler } = await import("../../../src/interaction-handlers/musicButtons.js");
 		const handler = new MusicButtonsHandler(
 			{ store: {}, path: "/x/musicButtons.ts", root: "/x", name: "musicButtons" } as any,
-			{},
+			{ interactionHandlerType: InteractionHandlerTypes.Button },
 		);
 		const interaction = {
 			customId,

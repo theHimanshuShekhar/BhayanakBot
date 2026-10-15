@@ -30,6 +30,7 @@ import { isHomeServer } from "../../lib/homeServer.js";
 import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
+import { trackInlineBuild } from "../../lib/personality/inlineBuilds.js";
 
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
@@ -191,10 +192,12 @@ export class MessageCreateListener extends Listener {
 				this.container.logger.debug(
 					`[personality-ingest] trigger-user-build userId=${message.author.id} guildId=${guildId} newMessageCount=${evidence.userCount}`,
 				);
-				void buildPersonalityProfile(message.author.id, guildId).catch((err) =>
-					this.container.logger.error(
-						`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
-						err,
+				void trackInlineBuild(
+					buildPersonalityProfile(message.author.id, guildId).catch((err) =>
+						this.container.logger.error(
+							`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
+							err,
+						),
 					),
 				);
 			}
@@ -204,8 +207,10 @@ export class MessageCreateListener extends Listener {
 				this.container.logger.debug(
 					`[personality-ingest] trigger-guild-build guildId=${guildId} messageCount=${evidence.guildCount}`,
 				);
-				void buildGuildPersonalityProfile(guildId).catch((err) =>
-					this.container.logger.error(`[guild-personality] Inline build failed for guildId=${guildId}:`, err),
+				void trackInlineBuild(
+					buildGuildPersonalityProfile(guildId).catch((err) =>
+						this.container.logger.error(`[guild-personality] Inline build failed for guildId=${guildId}:`, err),
+					),
 				);
 			}
 		}

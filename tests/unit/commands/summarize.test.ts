@@ -39,9 +39,9 @@ function createInteraction(history: string[], options: Options = {}) {
 			getString: () => options.time ?? null,
 			getInteger: () => options.count ?? null,
 		},
-		reply: vi.fn(async () => null),
-		deferReply: vi.fn(async () => null),
-		editReply: vi.fn(async () => null),
+		reply: vi.fn(async (_payload?: unknown) => null),
+		deferReply: vi.fn(async (_payload?: unknown) => null),
+		editReply: vi.fn(async (_payload?: unknown) => null),
 	};
 }
 

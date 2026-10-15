@@ -1,6 +1,6 @@
 import { container } from "@sapphire/framework";
 import { and, eq, sql } from "drizzle-orm";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	archivedChannelMessageTestHooks,
 	markArchivedChannelMessageDeleted,
@@ -14,6 +14,7 @@ import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
+import { settleInlineBuilds } from "../../../src/lib/personality/inlineBuilds.js";
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
 
@@ -75,6 +76,10 @@ vi.mock("../../../src/lib/llmProvider.js", () => ({
 const GUILD_ID = "listener-guild";
 const USER_ID = "listener-user";
 const OTHER_USER_ID = "listener-other";
+
+// Archiving 100-200 messages through the listener is several DB round trips per message, so these
+// tests are genuinely slow under CPU load; the default 5s timeout is only right for single-message tests.
+const SLOW_SEED_TIMEOUT_MS = 30_000;
 
 const mockedCallBackgroundLlm = vi.mocked(callBackgroundLlm);
 const mockedGenerateAutoResponse = vi.mocked(generateAutoResponse);
@@ -222,6 +227,11 @@ describe("messageCreate personality archive flow", () => {
 		} as unknown as typeof container.client;
 	});
 
+	afterEach(async () => {
+		// Threshold crossings start fire-and-forget profile builds; none may outlive its test.
+		await settleInlineBuilds();
+	});
+
 	it("archives eligible human messages from the Guess Who general channel and increments personality counters", async () => {
 		await createListener().run(createMessage({ messageId: "live-eligible" }) as never);
 
@@ -336,7 +346,9 @@ describe("messageCreate personality archive flow", () => {
 		expect(await getGuildProfile()).toBeUndefined();
 	});
 
-	it("builds a user profile from messages inserted through the listener archive flow", async () => {
+	it("builds a user profile from messages inserted through the listener archive flow", {
+		timeout: SLOW_SEED_TIMEOUT_MS,
+	}, async () => {
 		await db.insert(userPersonalityProfiles).values({ userId: USER_ID, guildId: GUILD_ID, newMessageCount: -100 });
 		await archiveListenerMessages({ count: 100 });
 
@@ -347,7 +359,9 @@ describe("messageCreate personality archive flow", () => {
 		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
 	});
 
-	it("listener-triggered threshold build sees the triggering archived message", async () => {
+	it("listener-triggered threshold build sees the triggering archived message", {
+		timeout: SLOW_SEED_TIMEOUT_MS,
+	}, async () => {
 		await archiveListenerMessages({ count: 99 });
 		mockedCallBackgroundLlm.mockClear();
 
@@ -359,22 +373,25 @@ describe("messageCreate personality archive flow", () => {
 			}) as never,
 		);
 
-		await vi.waitFor(() => expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1));
+		await settleInlineBuilds();
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 		expect(mockedCallBackgroundLlm.mock.calls[0]?.[1]).toContain(
 			"Threshold triggering archived message must be visible to builder.",
 		);
 		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
 	});
 
-	it("keeps archiving and counting but starts no user build at the 100-message threshold while generation is disabled", async () => {
+	it("keeps archiving and counting but starts no user build at the 100-message threshold while generation is disabled", {
+		timeout: SLOW_SEED_TIMEOUT_MS,
+	}, async () => {
 		featureFlags.personalityGeneration = false;
 		await archiveListenerMessages({ count: 99 });
 
 		await createListener().run(
 			createMessage({ messageId: "off-user-threshold", createdAt: new Date("2026-05-28T12:02:00.000Z") }) as never,
 		);
-		// Inline builds are fire-and-forget; give any (wrongly) started build time to reach the LLM.
-		await new Promise((resolve) => setTimeout(resolve, 200));
+		// Inline builds are fire-and-forget; wait for any (wrongly) started build to reach the LLM.
+		await settleInlineBuilds();
 
 		expect(await countArchivedRows()).toBe(100);
 		expect((await getUserProfile())?.newMessageCount).toBe(100);
@@ -382,7 +399,9 @@ describe("messageCreate personality archive flow", () => {
 		expect((await getUserProfile())?.profile).toBeNull();
 	});
 
-	it("keeps archiving and counting but starts no guild build at the 200-message threshold while generation is disabled", async () => {
+	it("keeps archiving and counting but starts no guild build at the 200-message threshold while generation is disabled", {
+		timeout: SLOW_SEED_TIMEOUT_MS,
+	}, async () => {
 		featureFlags.personalityGeneration = false;
 		await archiveListenerMessages({ count: 199, authorCount: 20 });
 
@@ -392,7 +411,7 @@ describe("messageCreate personality archive flow", () => {
 				createdAt: new Date("2026-05-28T12:10:00.000Z"),
 			}) as never,
 		);
-		await new Promise((resolve) => setTimeout(resolve, 200));
+		await settleInlineBuilds();
 
 		expect(await countArchivedRows()).toBe(200);
 		expect((await getGuildProfile())?.messageCount).toBe(200);
@@ -400,7 +419,9 @@ describe("messageCreate personality archive flow", () => {
 		expect((await getGuildProfile())?.profile).toBeNull();
 	});
 
-	it("builds a guild profile from messages inserted through the listener archive flow", async () => {
+	it("builds a guild profile from messages inserted through the listener archive flow", {
+		timeout: SLOW_SEED_TIMEOUT_MS,
+	}, async () => {
 		await db.insert(guildPersonalityProfiles).values({ guildId: GUILD_ID, messageCount: -200 });
 		await archiveListenerMessages({ count: 200, authorCount: 20 });
 
@@ -411,7 +432,9 @@ describe("messageCreate personality archive flow", () => {
 		expect((await getGuildProfile())?.profile).toBe("Profile summary from listener archived messages.");
 	});
 
-	it("does not train on listener-archived messages that are too short or later deleted", async () => {
+	it("does not train on listener-archived messages that are too short or later deleted", {
+		timeout: SLOW_SEED_TIMEOUT_MS,
+	}, async () => {
 		await db.insert(userPersonalityProfiles).values({ userId: USER_ID, guildId: GUILD_ID, newMessageCount: -100 });
 		const listener = createListener();
 		await listener.run(createMessage({ messageId: "short-row", content: "too short" }) as never);

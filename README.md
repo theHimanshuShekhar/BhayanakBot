@@ -128,10 +128,14 @@ The service hostname (`postgres`) is injected automatically — `.env` values ar
 ## Development
 
 ```bash
-pnpm check    # lint + format (Biome)
-pnpm db:push  # push schema changes without a migration (dev only)
+pnpm check      # lint + format (Biome, auto-fix)
+pnpm typecheck  # TypeScript over src and tests
+pnpm test       # Vitest (needs the test Postgres database)
+pnpm db:push    # push schema changes without a migration (dev only)
 ```
 
 Biome enforces: tabs, double quotes, trailing commas, 120-char line width.
+
+`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. CI (the `verify` job) additionally runs the type check, the full test suite against a Postgres service, and the web build; the Docker image is only built and pushed after `verify` passes.
 
 When adding new Drizzle `pgEnum` values, always generate and run a migration — `db:push` skips enum changes.

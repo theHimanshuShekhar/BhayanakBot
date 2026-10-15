@@ -9,6 +9,8 @@ pnpm start          # Run compiled bot output
 pnpm lint           # Biome lint
 pnpm format         # Biome format --write
 pnpm check          # Biome check --write
+pnpm check:ci       # Biome in CI mode (no writes; what CI runs)
+pnpm typecheck      # tsc over src (tsconfig.json), then src + tests (tsconfig.test.json)
 
 pnpm test           # Run Vitest tests
 pnpm test:watch     # Run Vitest in watch mode
@@ -178,6 +180,22 @@ New `pgEnum` values in Drizzle schema require a migration (`pnpm db:generate` + 
 Use `pnpm test` for the full suite. DB-backed tests need a reachable test Postgres database.
 
 Real-Zen personality e2e coverage is opt-in with `RUN_ZEN_E2E=1 ZEN_API_KEY=<key> ZEN_ALLOW_DISCORD_CONTENT=true pnpm vitest run tests/e2e/personality/zen-profile-generation.test.ts`; default runs and CI skip it. It makes real network calls to Zen and is required when prompts, the Zen integration, or profile generation change. It asserts profile structure, not prose.
+
+Test hygiene rules (the suite runs files in parallel against one database):
+
+- Give every DB-backed test file its own guild/user/message IDs; files must not share rows.
+- Fire-and-forget work must be awaited before a test ends. Inline personality builds started by `messageCreate` are tracked in `src/lib/personality/inlineBuilds.ts`; call `settleInlineBuilds()` in `afterEach` and before asserting on their results.
+- Seed large fixtures with one INSERT (`tests/helpers/archive.ts`), not a per-row loop. Raise a timeout only for work that is genuinely slow, per test.
+- `vi.stubGlobal` and `vi.stubEnv` are undone automatically after each test (`unstubGlobals` / `unstubEnvs` in `vitest.config.ts`).
+- Flip a feature flag inside the test (mock `src/lib/features.js` with a `vi.hoisted` getter, see `tests/integration/personality/profile-builders.test.ts`) instead of `it.skip`.
+
+Tests are type-checked by `tsconfig.test.json` (Vitest-style ESM/bundler resolution, covers `src` and `tests`); `pnpm typecheck` runs it after the root `tsc --noEmit`.
+
+## Pre-commit hook
+
+`.githooks/pre-commit` runs `biome check --staged` (no auto-fix). `pnpm install` enables it through the `prepare` script, which sets `core.hooksPath` to `.githooks` and is a no-op where there is no repository (e.g. Docker). Typecheck and tests are left to CI.
+
+Real-Ollama personality e2e coverage is opt-in with `RUN_OLLAMA_E2E=1 pnpm vitest run tests/e2e/personality/ollama-profile-generation.test.ts`; default runs skip it when not opted in.
 
 ## Deployment
 

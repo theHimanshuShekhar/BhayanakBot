@@ -1,4 +1,5 @@
 import { container, Events, SapphireClient } from "@sapphire/framework";
+import type { ClientOptions } from "discord.js";
 import "@sapphire/plugin-subcommands/register";
 import { SubcommandPluginEvents } from "@sapphire/plugin-subcommands";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,7 +20,8 @@ describe("error listeners", () => {
 	let client: SapphireClient;
 
 	beforeAll(async () => {
-		client = new SapphireClient({ intents: [], logger: { instance: logger as any } });
+		// The scheduled-tasks plugin augments ClientOptions with a required `tasks`, which this test never registers.
+		client = new SapphireClient({ intents: [], logger: { instance: logger as any } } as unknown as ClientOptions);
 		const { CommandErrorListener } = await import("../../../src/listeners/commands/commandError.js");
 		const { SubcommandErrorListener } = await import("../../../src/listeners/commands/subcommandError.js");
 		const { InteractionHandlerErrorListener } = await import(
@@ -36,7 +38,7 @@ describe("error listeners", () => {
 			InteractionHandlerParseErrorListener,
 		};
 		for (const [name, piece] of Object.entries(ours)) {
-			await store.loadPiece({ name, piece: piece as any, store: "listeners" });
+			await store.loadPiece({ name, piece: piece as any });
 		}
 		await store.loadAll();
 	});

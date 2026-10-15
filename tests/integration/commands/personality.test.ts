@@ -2,7 +2,6 @@ import { container } from "@sapphire/framework";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PersonalityCommand } from "../../../src/commands/utility/personality.js";
-import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedChannelMessages.js";
 import {
 	archivedChannelMessages,
 	guildPersonalityProfiles,
@@ -14,7 +13,17 @@ import { db } from "../../../src/lib/database.js";
 import { invalidateGuildSettings } from "../../../src/lib/music/guildSettingsCache.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
+import { seedArchivedMessages } from "../../helpers/archive.js";
 import { createCommandContext, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
+
+const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
+
+vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../../../src/lib/features.js")>()),
+	get PERSONALITY_GENERATION_ENABLED() {
+		return featureFlags.personalityGeneration;
+	},
+}));
 
 vi.mock("../../../src/lib/personality/buildProfile.js", () => ({
 	buildPersonalityProfile: vi.fn(async () => ({ status: "built" })),
@@ -44,19 +53,21 @@ async function cleanupRows(): Promise<void> {
 }
 
 async function archiveMessages(input: { count: number; authorUserId?: string; idPrefix: string }): Promise<void> {
-	for (let index = 0; index < input.count; index++) {
-		const paddedIndex = String(index).padStart(3, "0");
-		await upsertArchivedChannelMessage({
-			guildId: GUILD_ID,
-			channelId: GUESS_WHO_CHANNEL_ID,
-			authorUserId: input.authorUserId ?? `guild-author-${index % 8}`,
-			authorUsername: "archive-user",
-			authorDisplayName: "Archive User",
-			messageId: `${input.idPrefix}-${paddedIndex}`,
-			content: `Archived command evidence ${input.idPrefix} ${paddedIndex} with enough personality context.`,
-			messageCreatedAt: new Date(Date.UTC(2026, 4, 29, 12, 0, index)),
-		});
-	}
+	await seedArchivedMessages(
+		Array.from({ length: input.count }, (_, index) => {
+			const paddedIndex = String(index).padStart(3, "0");
+			return {
+				guildId: GUILD_ID,
+				channelId: GUESS_WHO_CHANNEL_ID,
+				authorUserId: input.authorUserId ?? `guild-author-${index % 8}`,
+				authorUsername: "archive-user",
+				authorDisplayName: "Archive User",
+				messageId: `${input.idPrefix}-${paddedIndex}`,
+				content: `Archived command evidence ${input.idPrefix} ${paddedIndex} with enough personality context.`,
+				messageCreatedAt: new Date(Date.UTC(2026, 4, 29, 12, 0, index)),
+			};
+		}),
+	);
 }
 
 function createInteraction(input: {
@@ -122,6 +133,7 @@ function createCommand(): PersonalityCommand {
 describe("/personality command", () => {
 	beforeEach(async () => {
 		vi.clearAllMocks();
+		featureFlags.personalityGeneration = true;
 		await cleanupRows();
 	});
 
@@ -222,9 +234,7 @@ describe("/personality command", () => {
 		expect(lastEmbedFieldValue(editReply, "Archived evidence after cursor")).not.toContain("999");
 	});
 
-	// Personality generation is switched off (src/lib/features.ts): /personality refresh
-	// replies that generation is disabled until PERSONALITY_GENERATION_ENABLED returns.
-	it.skip("refresh user below the archived threshold reports insufficient archived evidence", async () => {
+	it("refresh user below the archived threshold reports insufficient archived evidence", async () => {
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "user" });
 
 		await createCommand().chatInputRun(interaction);
@@ -235,7 +245,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toMatch(/opt\s*-?in|consent/i);
 	});
 
-	it.skip("refresh guild below the archived threshold reports insufficient archived evidence", async () => {
+	it("refresh guild below the archived threshold reports insufficient archived evidence", async () => {
 		await archiveMessages({ count: 199, idPrefix: "guild-below" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });
 
@@ -246,7 +256,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).toContain("at least 200");
 	});
 
-	it.skip("refresh user starts an incremental archive refresh when threshold conditions allow", async () => {
+	it("refresh user starts an incremental archive refresh when threshold conditions allow", async () => {
 		await archiveMessages({ count: 100, authorUserId: USER_ID, idPrefix: "user-ready" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "user" });
 
@@ -257,7 +267,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toMatch(/rebuild/i);
 	});
 
-	it.skip("refresh user reports when the builder skips due to cooldown", async () => {
+	it("refresh user reports when the builder skips due to cooldown", async () => {
 		mockedBuildPersonalityProfile.mockResolvedValueOnce({ status: "skipped_cooldown" } as never);
 		await archiveMessages({ count: 100, authorUserId: USER_ID, idPrefix: "user-cooldown" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "user" });
@@ -270,7 +280,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toContain("Incremental refresh started");
 	});
 
-	it.skip("refresh guild starts an incremental archive refresh when threshold conditions allow", async () => {
+	it("refresh guild starts an incremental archive refresh when threshold conditions allow", async () => {
 		await archiveMessages({ count: 200, idPrefix: "guild-ready" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });
 
@@ -281,7 +291,7 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).not.toMatch(/rebuild/i);
 	});
 
-	it.skip("refresh guild reports when the builder skips due to cooldown", async () => {
+	it("refresh guild reports when the builder skips due to cooldown", async () => {
 		mockedBuildGuildPersonalityProfile.mockResolvedValueOnce({ status: "skipped_cooldown" } as never);
 		await archiveMessages({ count: 200, idPrefix: "guild-cooldown" });
 		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });
@@ -292,6 +302,17 @@ describe("/personality command", () => {
 		expect(lastEmbedDescription(editReply)).toContain("Refresh skipped");
 		expect(lastEmbedDescription(editReply)).toContain("cooldown");
 		expect(lastEmbedDescription(editReply)).not.toContain("Incremental refresh started");
+	});
+
+	it("refresh answers that generation is disabled and builds nothing while personality generation is off", async () => {
+		featureFlags.personalityGeneration = false;
+		await archiveMessages({ count: 200, idPrefix: "guild-off" });
+		const { interaction, editReply } = createInteraction({ subcommandGroup: "refresh", subcommand: "guild" });
+
+		await createCommand().chatInputRun(interaction);
+
+		expect(mockedBuildGuildPersonalityProfile).not.toHaveBeenCalled();
+		expect(lastEmbedTitle(editReply)).toBe("Profile Generation Disabled");
 	});
 
 	it("reports the operational feature toggle as disabled without opt-in wording", async () => {

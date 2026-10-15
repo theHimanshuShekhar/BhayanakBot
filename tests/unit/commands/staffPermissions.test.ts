@@ -8,15 +8,16 @@ async function load(dir: string, file: string) {
 }
 
 function moderatorPermission(instance: Awaited<ReturnType<typeof load>>): bigint | undefined {
-	const entry = instance.options.preconditions?.find(
-		(p): p is { name: string; context: { permission: bigint } } => typeof p === "object" && "name" in p,
+	const preconditions: readonly unknown[] = instance.options.preconditions ?? [];
+	const entry = preconditions.find(
+		(p): p is { name: string; context: { permission: bigint } } => typeof p === "object" && p !== null && "name" in p,
 	);
 	return entry?.name === "IsModerator" ? entry.context.permission : undefined;
 }
 
 async function defaultMemberPermissions(instance: Awaited<ReturnType<typeof load>>) {
 	let json: ReturnType<SlashCommandBuilder["toJSON"]> | undefined;
-	instance.registerApplicationCommands({
+	instance.registerApplicationCommands!({
 		registerChatInputCommand(register: (b: SlashCommandBuilder) => SlashCommandBuilder) {
 			json = register(new SlashCommandBuilder()).toJSON();
 		},

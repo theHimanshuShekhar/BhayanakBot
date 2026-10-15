@@ -1,0 +1,14 @@
+{
+	// Type-checks src and tests together. Tests run under Vitest (ESM, bundler-style
+	// resolution), so unlike the root config this one does not emit or use NodeNext.
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"rootDir": ".",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": ["ES2024"],
+		"types": ["node", "vitest/globals"]
+	},
+	"include": ["src/**/*", "tests/**/*", "vitest.config.ts"]
+}

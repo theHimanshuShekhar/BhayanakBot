@@ -1,13 +1,13 @@
 import { container } from "@sapphire/framework";
 import { and, eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedChannelMessages.js";
 import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
+import { seedArchivedMessages } from "../../helpers/archive.js";
 
 const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
 
@@ -43,19 +43,21 @@ async function archiveUserMessages(input: {
 	start: Date;
 	channelId?: string;
 }): Promise<void> {
-	for (let index = 0; index < input.count; index++) {
-		const paddedIndex = String(index).padStart(3, "0");
-		await upsertArchivedChannelMessage({
-			guildId: GUILD_ID,
-			channelId: input.channelId ?? CHANNEL_ID,
-			authorUserId: USER_ID,
-			authorUsername: USER_ID,
-			authorDisplayName: USER_ID,
-			messageId: `${input.idPrefix}-${paddedIndex}`,
-			content: `Archived eligible message ${input.idPrefix} ${paddedIndex} with enough personality context.`,
-			messageCreatedAt: new Date(input.start.getTime() + index * 1000),
-		});
-	}
+	await seedArchivedMessages(
+		Array.from({ length: input.count }, (_, index) => {
+			const paddedIndex = String(index).padStart(3, "0");
+			return {
+				guildId: GUILD_ID,
+				channelId: input.channelId ?? CHANNEL_ID,
+				authorUserId: USER_ID,
+				authorUsername: USER_ID,
+				authorDisplayName: USER_ID,
+				messageId: `${input.idPrefix}-${paddedIndex}`,
+				content: `Archived eligible message ${input.idPrefix} ${paddedIndex} with enough personality context.`,
+				messageCreatedAt: new Date(input.start.getTime() + index * 1000),
+			};
+		}),
+	);
 }
 
 async function archiveGuildMessages(input: {
@@ -64,17 +66,18 @@ async function archiveGuildMessages(input: {
 	start: Date;
 	authorCount: number;
 }): Promise<void> {
-	for (let index = 0; index < input.count; index++) {
-		const paddedIndex = String(index).padStart(3, "0");
-		const authorIndex = index % input.authorCount;
-		const authorUserId = `author-${String(authorIndex).padStart(2, "0")}`;
-		await archiveGuildMessage({
-			authorUserId,
-			messageId: `${input.idPrefix}${paddedIndex}`,
-			content: `guild ${input.idPrefix}${paddedIndex} context`,
-			messageCreatedAt: new Date(input.start.getTime() + index * 1000),
-		});
-	}
+	await seedArchivedMessages(
+		Array.from({ length: input.count }, (_, index) => {
+			const paddedIndex = String(index).padStart(3, "0");
+			const authorUserId = `author-${String(index % input.authorCount).padStart(2, "0")}`;
+			return guildMessage({
+				authorUserId,
+				messageId: `${input.idPrefix}${paddedIndex}`,
+				content: `guild ${input.idPrefix}${paddedIndex} context`,
+				messageCreatedAt: new Date(input.start.getTime() + index * 1000),
+			});
+		}),
+	);
 }
 
 async function archiveGuildMessagesForAuthor(input: {
@@ -83,25 +86,27 @@ async function archiveGuildMessagesForAuthor(input: {
 	start: Date;
 	authorUserId: string;
 }): Promise<void> {
-	for (let index = 0; index < input.count; index++) {
-		const paddedIndex = String(index).padStart(3, "0");
-		await archiveGuildMessage({
-			authorUserId: input.authorUserId,
-			messageId: `${input.idPrefix}${paddedIndex}`,
-			content: `guild ${input.idPrefix}${paddedIndex} context`,
-			messageCreatedAt: new Date(input.start.getTime() + index * 1000),
-		});
-	}
+	await seedArchivedMessages(
+		Array.from({ length: input.count }, (_, index) => {
+			const paddedIndex = String(index).padStart(3, "0");
+			return guildMessage({
+				authorUserId: input.authorUserId,
+				messageId: `${input.idPrefix}${paddedIndex}`,
+				content: `guild ${input.idPrefix}${paddedIndex} context`,
+				messageCreatedAt: new Date(input.start.getTime() + index * 1000),
+			});
+		}),
+	);
 }
 
-async function archiveGuildMessage(input: {
+function guildMessage(input: {
 	authorUserId: string;
 	messageId: string;
 	channelId?: string;
 	content: string;
 	messageCreatedAt: Date;
-}): Promise<void> {
-	await upsertArchivedChannelMessage({
+}) {
+	return {
 		guildId: GUILD_ID,
 		channelId: input.channelId ?? CHANNEL_ID,
 		authorUserId: input.authorUserId,
@@ -110,7 +115,11 @@ async function archiveGuildMessage(input: {
 		messageId: input.messageId,
 		content: input.content,
 		messageCreatedAt: input.messageCreatedAt,
-	});
+	};
+}
+
+async function archiveGuildMessage(input: Parameters<typeof guildMessage>[0]): Promise<void> {
+	await seedArchivedMessages([guildMessage(input)]);
 }
 
 async function getBuilderProfile() {

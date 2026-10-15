@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildPublicBotStatsSnapshotInput, getPublicStatsIntervalMs } from "../../../src/lib/publicStats.js";
 
+type SnapshotClient = Parameters<typeof buildPublicBotStatsSnapshotInput>[0];
+const fakeClient = (guilds: number, ping: number) =>
+	({ guilds: { cache: { size: guilds } }, ws: { ping } }) as unknown as SnapshotClient;
+
 describe("public stats helpers", () => {
 	it("builds a snapshot input from the ready client and command counter", () => {
-		const client = {
-			guilds: { cache: { size: 7 } },
-			ws: { ping: 123 },
-		};
+		const client = fakeClient(7, 123);
 
 		const input = buildPublicBotStatsSnapshotInput(client, 99, new Date("2026-05-27T12:00:00.000Z"));
 
@@ -19,7 +20,7 @@ describe("public stats helpers", () => {
 	});
 
 	it("uses null latency when websocket ping is unavailable", () => {
-		const client = { guilds: { cache: { size: 1 } }, ws: { ping: -1 } };
+		const client = fakeClient(1, -1);
 
 		expect(buildPublicBotStatsSnapshotInput(client, 5).latencyMs).toBeNull();
 	});

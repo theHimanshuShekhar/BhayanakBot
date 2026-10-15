@@ -17,6 +17,9 @@ describe("isHomeServer", () => {
 	});
 });
 
+// chatInputRun is declared as possibly async, but this precondition decides synchronously.
+type SyncResult = { isOk(): boolean; isErr(): boolean; unwrapErr(): Error };
+
 describe("HomeServerOnly precondition", () => {
 	setupSapphireContainer();
 	const precondition = new HomeServerOnlyPrecondition(
@@ -25,13 +28,14 @@ describe("HomeServerOnly precondition", () => {
 	);
 
 	it("allows the Home Server and refuses every other guild and DMs", () => {
-		expect(precondition.chatInputRun({ guildId: TARGET_GUILD_ID } as never).isOk()).toBe(true);
+		const run = (guildId: string | null) => precondition.chatInputRun({ guildId } as never) as unknown as SyncResult;
+		expect(run(TARGET_GUILD_ID).isOk()).toBe(true);
 
-		const other = precondition.chatInputRun({ guildId: "some-other-guild" } as never);
+		const other = run("some-other-guild");
 		expect(other.isErr()).toBe(true);
 		expect(other.isErr() && other.unwrapErr().message).toBe("This command is only available in the Bhayanak server.");
 
-		expect(precondition.chatInputRun({ guildId: null } as never).isErr()).toBe(true);
+		expect(run(null).isErr()).toBe(true);
 	});
 });
 
@@ -39,12 +43,15 @@ describe("removeGlobalHomeServerCommands", () => {
 	const logger = () => ({ info: vi.fn(), warn: vi.fn() });
 
 	it("deletes only the stale global Home-Server commands", async () => {
-		const existing = [
-			...HOME_SERVER_COMMAND_NAMES.map((name, i) => [`id-${i}`, { id: `id-${i}`, name }] as const),
-			["keep-1", { id: "keep-1", name: "ping" }] as const,
-			["keep-2", { id: "keep-2", name: "play" }] as const,
+		const existing: [string, { id: string; name: string }][] = [
+			...HOME_SERVER_COMMAND_NAMES.map((name, i): [string, { id: string; name: string }] => [
+				`id-${i}`,
+				{ id: `id-${i}`, name },
+			]),
+			["keep-1", { id: "keep-1", name: "ping" }],
+			["keep-2", { id: "keep-2", name: "play" }],
 		];
-		const commands = { fetch: vi.fn(async () => new Map(existing)), delete: vi.fn(async () => undefined) };
+		const commands = { fetch: vi.fn(async () => new Map(existing)), delete: vi.fn(async (_id: string) => undefined) };
 
 		await removeGlobalHomeServerCommands(commands as never, logger());
 

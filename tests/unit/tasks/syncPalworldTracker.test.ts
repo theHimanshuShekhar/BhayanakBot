@@ -29,9 +29,8 @@ describe("fetchPalworldPlayers", () => {
 				PALWORLD_ADMIN_KEY: "secret",
 			}),
 		).resolves.toBeNull();
-
-		vi.unstubAllGlobals();
 	});
+
 	it("returns unavailable for unsuccessful and malformed responses", async () => {
 		for (const response of [
 			{ ok: false, status: 503 },
@@ -45,8 +44,6 @@ describe("fetchPalworldPlayers", () => {
 					PALWORLD_ADMIN_KEY: "secret",
 				}),
 			).resolves.toBeNull();
-
-			vi.unstubAllGlobals();
 		}
 	});
 });

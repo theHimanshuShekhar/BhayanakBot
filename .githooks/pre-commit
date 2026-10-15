@@ -1,0 +1,5 @@
+#!/bin/sh
+# Lightweight pre-commit gate: Biome (lint + format) on staged files only, no auto-fix, so the
+# commit contents are never changed behind your back. Fix with `pnpm check`, re-stage, commit again.
+# Typecheck and tests are left to CI (the `verify` job) to keep commits fast.
+exec pnpm exec biome check --staged --no-errors-on-unmatched
