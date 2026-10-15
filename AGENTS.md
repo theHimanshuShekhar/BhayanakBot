@@ -57,7 +57,7 @@ Key query helpers:
 - `personalityTraining.ts` — archive-backed personality training eligibility and cursor-window queries.
 - `personality.ts` and `guildPersonality.ts` — generated user/guild personality profile storage and lookup helpers.
 - `modCases.ts` — auto-incrementing per-guild case numbers, mutes/tempbans with `expiresAt` and `active` flags.
-- `autoResponses.ts` — static and LLM auto-responses with matching, regex, channel filters, mention requirements, chance, and trigger deletion.
+- `autoResponses.ts` — static and LLM auto-responses with matching, regex, channel filters, mention requirements, chance, and trigger deletion. Regex triggers run on RE2 via `re2js` (`src/lib/autoresponder/regexTrigger.ts`): no lookarounds/backreferences, 100-char patterns, first 2000 chars of input, compiled patterns cached per response id; stored patterns that fail validation never run and show as disabled in `/autorespond list`.
 - `users.ts`, `polls.ts`, `giveaways.ts`, `reminders.ts`, `afk.ts` — feature-specific persistence helpers.
 
 ## Commands And Web Docs

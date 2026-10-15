@@ -374,7 +374,8 @@ export const RAW_COMMANDS: Command[] = [
 		category: "autorespond",
 		subcommands: {
 			add: {
-				summary: "Add a static or LLM-backed auto-response trigger. LLM replies use recent channel context.",
+				summary:
+					"Add a static or LLM-backed auto-response trigger. LLM replies use recent channel context. Regex triggers use RE2 syntax (no lookarounds or backreferences, 100 characters max).",
 				examples: [
 					'/autorespond add trigger:"hello" response:"Hi there!"',
 					'/autorespond add trigger:"bug" response:"Please file a bug report!" require-mention:true',

@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { matchRegexTrigger } from "../../lib/autoresponder/regexTrigger.js";
 import { db } from "../../lib/database.js";
 import { autoResponses } from "../schema.js";
 
@@ -70,19 +71,10 @@ export async function findMatchingResponse(
 		let captured: Record<string, string> | undefined;
 
 		if (r.useRegex) {
-			try {
-				const regex = new RegExp(r.trigger, "i");
-				const match = regex.exec(content);
-				if (match) {
-					matched = true;
-					// Extract named capture groups
-					if (match.groups) {
-						captured = match.groups;
-					}
-				}
-			} catch {
-				// Invalid regex, skip
-				continue;
+			const groups = matchRegexTrigger(r, content);
+			if (groups) {
+				matched = true;
+				captured = groups;
 			}
 		} else {
 			const trigger = r.trigger.toLowerCase();

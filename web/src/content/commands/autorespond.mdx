@@ -11,6 +11,7 @@ syntax:
     - { n: "response", d: "Static response text", req: false, t: "string" }
     - { n: "match-type", d: "exact, contains, or startsWith", req: false, t: "choice" }
     - { n: "use-llm", d: "Generate responses with the AI provider", req: false, t: "boolean" }
+    - { n: "use-regex", d: "Treat trigger as an RE2 regex (max 100 chars, no lookarounds or backreferences)", req: false, t: "boolean" }
 examples:
   - label: "regex"
     tag: "AUTO"
@@ -32,3 +33,12 @@ related:
 ---
 
 Requires admin access. `add` supports `match-type`, `use-llm`, `use-regex`, channel filters, mention requirements, chance, and trigger deletion. LLM auto-responses use the recent channel conversation cache for context before replying. `remove` deletes by trigger and `list` shows configured responses.
+
+## Regex triggers
+
+With `use-regex:true` the trigger is matched case-insensitively anywhere in the message, using the RE2 engine, so a pattern can never hang the bot.
+
+- Supported: character classes, groups, alternation, repetition (`*`, `+`, `?`, `{n,m}`), anchors, and named capture groups written `(?<name>...)`. Each capture is substituted into the response wherever `{name}` appears.
+- Not supported: lookarounds (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`) and backreferences (`\1`). `add` rejects them with an explanation.
+- Patterns are limited to 100 characters, and only the first 2000 characters of a message are checked.
+- A stored pattern that is no longer valid under these rules never runs. `list` shows it with a `DISABLED: unsupported regex` marker; remove it and add a corrected one.

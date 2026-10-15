@@ -1,6 +1,11 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import { addAutoResponse, getGuildAutoResponses, removeAutoResponse } from "../../db/queries/autoResponses.js";
+import {
+	isRegexTriggerUsable,
+	MAX_REGEX_PATTERN_LENGTH,
+	validateRegexTrigger,
+} from "../../lib/autoresponder/regexTrigger.js";
 
 export class AutoRespondCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -75,7 +80,9 @@ export class AutoRespondCommand extends Subcommand {
 						.addBooleanOption((opt) =>
 							opt
 								.setName("use-regex")
-								.setDescription("Treat trigger as a regex pattern (supports named capture groups like (?<name>...))")
+								.setDescription(
+									"Treat trigger as an RE2 regex (named groups like (?<name>...); no lookarounds or backreferences)",
+								)
 								.setRequired(false),
 						)
 						.addStringOption((opt) =>
@@ -131,11 +138,10 @@ export class AutoRespondCommand extends Subcommand {
 
 		// Validate regex if enabled
 		if (useRegex) {
-			try {
-				new RegExp(trigger);
-			} catch {
+			const validation = validateRegexTrigger(trigger);
+			if (!validation.ok) {
 				return interaction.reply({
-					content: "❌ Invalid regex pattern. Please check your syntax.",
+					content: `❌ Unsupported regex pattern: ${validation.reason}\nPatterns use RE2 syntax (no lookarounds or backreferences) and are at most ${MAX_REGEX_PATTERN_LENGTH} characters.`,
 					flags: MessageFlags.Ephemeral,
 				});
 			}
@@ -194,6 +200,7 @@ export class AutoRespondCommand extends Subcommand {
 			const tags = [
 				r.responseType === "llm" ? "LLM" : "Static",
 				r.useRegex ? "Regex" : r.matchType,
+				r.useRegex && !isRegexTriggerUsable(r) ? "DISABLED: unsupported regex" : null,
 				r.requireMention ? "Mention" : null,
 				r.deleteTrigger ? "Delete" : null,
 				r.chancePercent < 100 ? `${r.chancePercent}%` : null,
