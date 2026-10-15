@@ -30,7 +30,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Framework:** Sapphire Framework on Discord.js v14. Sapphire auto-discovers and loads stores from their directories; manual registration is not needed for standard stores.
 
-**Feature switches:** `src/lib/features.ts` holds compile-time switches — `LOCAL_LLM_ENABLED`, `PERSONALITY_GENERATION_ENABLED`. Both are currently `false`: Ollama startup + fallback and personality generation are inactive, though their code remains. The custom loader strategy skips pieces for disabled subsystems, and help omits categories with no loaded commands. Flip a flag and its wiring comes back.
+**Feature switches:** `src/lib/features.ts` holds the compile-time switch `PERSONALITY_GENERATION_ENABLED`. It is currently `false`: personality generation is inactive, though its code remains. The custom loader strategy skips pieces for disabled subsystems, and help omits categories with no loaded commands. Flip a flag and its wiring comes back.
 
 **Stores:**
 
@@ -46,7 +46,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Mention Policy:** the client sets `allowedMentions` to `DEFAULT_ALLOWED_MENTIONS` (`src/lib/allowedMentions.ts`): no user/role/everyone parsing and no reply pings, so every bot message notifies nobody. A per-send `allowedMentions` replaces the default entirely, so features that must reach specific members (reminder owner, levelled-up member, giveaway winners) pass `notifyOnly([...userIds])`. Do not sanitise text instead.
 
-**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, ensures/pulls and warms the Ollama model only when `LOCAL_LLM_ENABLED`, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts scheduled tasks, and installs shutdown/process error handlers.
+**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts scheduled tasks, and installs shutdown/process error handlers.
 
 **Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool. Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.
 
@@ -100,12 +100,6 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `VALKEY_URL` | `redis://localhost:6379` | Valkey/Redis for Sapphire scheduled-task BullMQ backing |
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password |
-| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama instance; unused while local LLM infra is disabled |
-| `OLLAMA_MODEL` | `phi3:mini` | Model used by local Ollama features and fallback paths; unused while local LLM infra is disabled |
-| `OLLAMA_DEBUG_CONTENT_LOGS` | `false` | Set `true` only for local debugging to log raw Ollama prompts/responses |
-| `OLLAMA_MAX_QUEUE_LENGTH` | `25` | Maximum queued Ollama requests before new requests are dropped |
-| `OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH` | `10` | Maximum queued low-priority/background Ollama requests |
-| `OLLAMA_QUEUE_WAIT_TIMEOUT_MS` | `60000` | Maximum time an Ollama request may wait in queue before being dropped |
 | `ZEN_API_KEY` | unset | opencode Zen API key; responder and summary replies require it (plus `ZEN_ALLOW_DISCORD_CONTENT=true`). Personality generation is disabled independently |
 | `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; with local LLM disabled there is no other provider |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
@@ -137,7 +131,7 @@ Personality profile builders read eligible archived messages in bounded cursor w
 
 `personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. With `PERSONALITY_GENERATION_ENABLED=false`, both profile builders return `skipped_generation_disabled` as their first step, so no caller (the `messageCreate` threshold trigger, startup backfill, the refresh task, `/personality refresh`) builds a profile or sends archived content to the LLM. Archiving and evidence counting keep running so re-enabling needs no backfill.
 
-Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. The local Ollama fallback is inactive while `LOCAL_LLM_ENABLED=false`.
+Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. There is no fallback provider; the Zen LLM Provider is the only one (ADR 0006).
 
 ## Scheduled Tasks
 
@@ -173,11 +167,11 @@ New `pgEnum` values in Drizzle schema require a migration (`pnpm db:generate` + 
 
 Use `pnpm test` for the full suite. DB-backed tests need a reachable test Postgres database.
 
-Real-Ollama personality e2e coverage is opt-in with `RUN_OLLAMA_E2E=1 pnpm vitest run tests/e2e/personality/ollama-profile-generation.test.ts`; default runs skip it when not opted in.
+Real-Zen personality e2e coverage is opt-in with `RUN_ZEN_E2E=1 ZEN_API_KEY=<key> ZEN_ALLOW_DISCORD_CONTENT=true pnpm vitest run tests/e2e/personality/zen-profile-generation.test.ts`; default runs and CI skip it. It makes real network calls to Zen and is required when prompts, the Zen integration, or profile generation change. It asserts profile structure, not prose.
 
 ## Deployment
 
-`docker-compose.yml` runs Postgres, Valkey, Ollama, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `node dist/index.js`.
+`docker-compose.yml` runs Postgres, Valkey, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `node dist/index.js`.
 
 The `Dockerfile` has these stages:
 
@@ -185,7 +179,7 @@ The `Dockerfile` has these stages:
 - `migration` is a small image target that can run `drizzle-kit migrate` if used separately.
 - `production` is Debian-based, installs runtime dependencies, copies source, and runs the bot through `tsx`.
 
-Compose injects service hostnames for `DATABASE_URL`, `VALKEY_URL`, and `OLLAMA_URL`, so local `.env` values are mainly for non-Docker development.
+Compose injects service hostnames for `DATABASE_URL` and `VALKEY_URL`, so local `.env` values are mainly for non-Docker development.
 
 ## Agent skills
 

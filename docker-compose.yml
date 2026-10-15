@@ -36,27 +36,6 @@ services:
     networks:
       - botnet
 
-  # Ollama disabled — local LLM infra is switched off in src/lib/features.ts.
-  # Uncomment to revive it (also uncomment the bot dependency below).
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: bhayanak_bot_ollama
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ollamadata:/root/.ollama
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 4G
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 10
-  #     start_period: 10s
-  #   networks:
-  #     - botnet
-
   # ── Layer 4: Application (depends on everything above) ────────
   bot:
     build:
@@ -73,8 +52,6 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      # ollama:
-      #   condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'node.*dist/index' || exit 1"]
       interval: 30s
@@ -84,12 +61,6 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL}
-      OLLAMA_DEBUG_CONTENT_LOGS: ${OLLAMA_DEBUG_CONTENT_LOGS:-false}
-      OLLAMA_MAX_QUEUE_LENGTH: ${OLLAMA_MAX_QUEUE_LENGTH:-25}
-      OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH: ${OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH:-10}
-      OLLAMA_QUEUE_WAIT_TIMEOUT_MS: ${OLLAMA_QUEUE_WAIT_TIMEOUT_MS:-60000}
       ZEN_API_KEY: ${ZEN_API_KEY}
       ZEN_ALLOW_DISCORD_CONTENT: ${ZEN_ALLOW_DISCORD_CONTENT:-false}
       ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/zen/go/v1}
@@ -142,4 +113,3 @@ volumes:
       o: "username=${CIFS_USERNAME},password=${CIFS_PASSWORD},uid=70,gid=70,file_mode=0700,dir_mode=0700,iocharset=utf8"
       device: "//10.1.1.195/weyland/Services/bhayanakbot/postgres"
   valkeydata:
-  ollamadata:

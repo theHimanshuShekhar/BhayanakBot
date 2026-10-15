@@ -45,7 +45,7 @@ The bot can build personality profiles from archived server conversation to gene
 - **Database**: PostgreSQL via Drizzle ORM
 - **Cache/Queue**: Valkey (Redis-compatible) via BullMQ
 - **Music**: discord-player v7
-- **AI**: opencode Zen for responders and summaries only when configured and explicitly allowed for Discord content; local Ollama infra is switched off (`LOCAL_LLM_ENABLED = false` in `src/lib/features.ts`)
+- **AI**: opencode Zen is the only LLM provider, used for responders and summaries only when configured and explicitly allowed for Discord content; otherwise AI features stay silent
 
 ## Setup
 
@@ -75,12 +75,6 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 VALKEY_URL=redis://localhost:6379
 POSTGRES_PASSWORD=postgres
-OLLAMA_URL=http://localhost:11434   # currently unused — local LLM infra disabled in src/lib/features.ts
-OLLAMA_MODEL=phi3:mini              # currently unused — local LLM infra disabled in src/lib/features.ts
-OLLAMA_DEBUG_CONTENT_LOGS=false     # only true for local debugging; logs raw prompts/responses
-OLLAMA_MAX_QUEUE_LENGTH=25
-OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH=10
-OLLAMA_QUEUE_WAIT_TIMEOUT_MS=60000
 ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
 ZEN_ALLOW_DISCORD_CONTENT=false      # must be true for responder/summary AI replies (no local fallback)
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
@@ -121,7 +115,7 @@ pnpm build && pnpm start  # production
 
 ## Docker
 
-The included `docker-compose.yml` runs everything (Postgres, Valkey, Ollama, bot, and web). The bot container runs migrations before startup:
+The included `docker-compose.yml` runs everything (Postgres, Valkey, bot, and web). The bot container runs migrations before startup:
 
 ```bash
 cp .env.example .env
@@ -129,7 +123,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Service hostnames (`postgres`, `valkey`, `ollama`) are injected automatically — `.env` values are only used for local development.
+Service hostnames (`postgres`, `valkey`) are injected automatically — `.env` values are only used for local development.
 
 ## Development
 

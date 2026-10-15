@@ -438,7 +438,7 @@ export class MessageCreateListener extends Listener {
 		}
 
 		const guildId = message.guild.id;
-		// Per-user cooldown to prevent Ollama spam
+		// Per-user cooldown to prevent LLM spam
 		const cooldownKey = `${guildId}:${message.author.id}`;
 		const lastFired = smartMentionCooldown.get(cooldownKey) ?? 0;
 		if (Date.now() - lastFired < SMART_MENTION_COOLDOWN_MS) {

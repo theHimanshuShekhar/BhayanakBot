@@ -19,7 +19,7 @@ export class RefreshPersonalityProfilesTask extends ScheduledTask {
 
 		this.container.logger.info(`[personality] Refreshing profiles for ${users.length} user(s)`);
 
-		// Run sequentially — Ollama is a local instance, parallel calls would overwhelm it
+		// Run sequentially — one profile build (one LLM call) at a time
 		let built = 0;
 		let skipped = 0;
 		let failed = 0;

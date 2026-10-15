@@ -1,23 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { callOllama, callOllamaLowPriority } from "../../../src/lib/ollama.js";
-
-vi.mock("../../../src/lib/ollama.js", () => ({
-	callOllama: vi.fn(async () => "ollama interactive fallback"),
-	callOllamaLowPriority: vi.fn(async () => "ollama background fallback"),
-}));
 
 const originalEnv = { ...process.env };
 const mockedFetch = vi.fn();
-const mockedCallOllama = vi.mocked(callOllama);
-const mockedCallOllamaLowPriority = vi.mocked(callOllamaLowPriority);
 
 async function importProvider() {
 	vi.resetModules();
 	return import("../../../src/lib/llmProvider.js");
 }
 
-// LOCAL_LLM_ENABLED is currently false (src/lib/features.ts): the provider is
-// remote-API only and must never reach Ollama, whatever happens with Zen.
+// Zen is the only provider (ADR 0006): whatever happens with it, the answer is null, never a fallback.
 describe("LLM provider", () => {
 	beforeEach(() => {
 		process.env = { ...originalEnv };
@@ -26,8 +17,6 @@ describe("LLM provider", () => {
 		delete process.env.ZEN_BASE_URL;
 		delete process.env.ZEN_MODEL;
 		mockedFetch.mockReset();
-		mockedCallOllama.mockClear();
-		mockedCallOllamaLowPriority.mockClear();
 		vi.stubGlobal("fetch", mockedFetch);
 	});
 
@@ -45,7 +34,7 @@ describe("LLM provider", () => {
 		});
 		const { callInteractiveLlm } = await importProvider();
 
-		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123, "summarize");
+		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, "summarize");
 
 		expect(result).toBe("zen generated reply");
 		expect(mockedFetch).toHaveBeenCalledWith(
@@ -62,7 +51,6 @@ describe("LLM provider", () => {
 				}),
 			}),
 		);
-		expect(mockedCallOllama).not.toHaveBeenCalled();
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[llm] request="));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("mode=interactive"));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("label=summarize"));
@@ -70,21 +58,20 @@ describe("LLM provider", () => {
 		logSpy.mockRestore();
 	});
 
-	it("returns null without contacting any provider when Discord content is not allowed", async () => {
+	it("returns null without contacting Zen when Discord content is not allowed", async () => {
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 		delete process.env.ZEN_ALLOW_DISCORD_CONTENT;
 		const { callInteractiveLlm } = await importProvider();
 
-		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, 123, "summarize");
+		const result = await callInteractiveLlm("System prompt", "User prompt", 12_000, "summarize");
 
 		expect(result).toBeNull();
 		expect(mockedFetch).not.toHaveBeenCalled();
-		expect(mockedCallOllama).not.toHaveBeenCalled();
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("reason=local-llm-disabled"));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("reason=privacy_disabled"));
 		logSpy.mockRestore();
 	});
 
-	it("returns null without contacting any provider when Zen is not configured", async () => {
+	it("returns null without contacting Zen when Zen is not configured", async () => {
 		delete process.env.ZEN_API_KEY;
 		const { callInteractiveLlm } = await importProvider();
 
@@ -92,20 +79,28 @@ describe("LLM provider", () => {
 
 		expect(result).toBeNull();
 		expect(mockedFetch).not.toHaveBeenCalled();
-		expect(mockedCallOllama).not.toHaveBeenCalled();
 	});
 
-	it("returns null without an Ollama fallback when Zen returns an HTTP error", async () => {
+	it("returns null when Zen returns an HTTP error", async () => {
 		mockedFetch.mockResolvedValueOnce({ ok: false, status: 503, text: async () => "temporarily unavailable" });
 		const { callBackgroundLlm } = await importProvider();
 
-		const result = await callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
+		const result = await callBackgroundLlm("System prompt", "User prompt", 90_000, "personality:user");
 
 		expect(result).toBeNull();
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 	});
 
-	it("resolves null when Zen times out instead of falling back to Ollama", async () => {
+	it("returns null when the Zen request fails with a network error", async () => {
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		mockedFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
+		const { callInteractiveLlm } = await importProvider();
+
+		await expect(callInteractiveLlm("System prompt", "User prompt")).resolves.toBeNull();
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("reason=fetch_error"));
+		logSpy.mockRestore();
+	});
+
+	it("resolves null when Zen times out", async () => {
 		vi.useFakeTimers();
 		process.env.ZEN_TIMEOUT_MS = "2000";
 		const { promise, reject } = Promise.withResolvers<Response>();
@@ -116,11 +111,10 @@ describe("LLM provider", () => {
 		});
 		const { callBackgroundLlm } = await importProvider();
 
-		const resultPromise = callBackgroundLlm("System prompt", "User prompt", 90_000, undefined, "personality:user");
+		const resultPromise = callBackgroundLlm("System prompt", "User prompt", 90_000, "personality:user");
 
 		await vi.advanceTimersByTimeAsync(2000);
 		await expect(resultPromise).resolves.toBeNull();
-		expect(mockedCallOllamaLowPriority).not.toHaveBeenCalled();
 	});
 
 	it("returns null when Zen returns empty or refusal-only content", async () => {
@@ -134,7 +128,6 @@ describe("LLM provider", () => {
 
 		expect(await callInteractiveLlm("System", "Prompt")).toBeNull();
 		expect(await callInteractiveLlm("System", "Prompt")).toBeNull();
-		expect(mockedCallOllama).not.toHaveBeenCalled();
 	});
 
 	it("returns null for cannot-assist refusal wording", async () => {
@@ -145,6 +138,5 @@ describe("LLM provider", () => {
 		const { callInteractiveLlm } = await importProvider();
 
 		expect(await callInteractiveLlm("System", "Prompt")).toBeNull();
-		expect(mockedCallOllama).toHaveBeenCalledTimes(0);
 	});
 });

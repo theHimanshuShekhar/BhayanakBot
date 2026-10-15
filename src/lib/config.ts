@@ -21,9 +21,6 @@ const envSchema = z.object({
 	MINECRAFT_RCON_HOST: z.string().trim().optional().or(z.literal("")),
 	MINECRAFT_RCON_PORT: z.coerce.number().int().min(1).max(65_535).optional().or(z.literal("")),
 	MINECRAFT_RCON_PASSWORD: z.string().trim().optional(),
-	OLLAMA_MAX_QUEUE_LENGTH: z.coerce.number().int().positive().optional(),
-	OLLAMA_MAX_LOW_PRIORITY_QUEUE_LENGTH: z.coerce.number().int().positive().optional(),
-	OLLAMA_QUEUE_WAIT_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
 });
 
 export type RuntimeConfig = z.infer<typeof envSchema>;

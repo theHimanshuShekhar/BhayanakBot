@@ -7,7 +7,7 @@ import { db } from "../database.js";
 import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
 
-const OLLAMA_TIMEOUT_MS = 90_000;
+const LLM_TIMEOUT_MS = 90_000;
 const MAX_MESSAGES_PER_BUILD = 200;
 const MAX_CHARS_PER_BUILD = 8_000;
 export const INITIAL_GUILD_PROFILE_THRESHOLD = 200;
@@ -98,7 +98,7 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 		return { status: "skipped_insufficient_evidence" };
 	}
 
-	// Cooldown: don't hammer Ollama if builds fail or server is extremely active
+	// Cooldown: don't hammer the LLM provider if builds fail or server is extremely active
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
 		container.logger.debug(
 			`[guild-personality] build skip guildId=${guildId} reason=cooldown remainingMs=${MIN_BUILD_INTERVAL_MS - (Date.now() - row.lastRefreshedAt.getTime())}`,
@@ -146,15 +146,15 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 	const client = container.client as BhayanakClient;
 
 	container.logger.debug(
-		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${OLLAMA_TIMEOUT_MS}`,
+		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${LLM_TIMEOUT_MS}`,
 	);
 	const llmStartedAt = Date.now();
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, "personality:guild");
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, LLM_TIMEOUT_MS, "personality:guild");
 	container.logger.debug(
 		`[guild-personality] llm-result guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
 	);
 	if (!result) {
-		container.logger.warn(`[guild-personality] Ollama returned null for guildId=${guildId}, skipping profile update`);
+		container.logger.warn(`[guild-personality] LLM returned null for guildId=${guildId}, skipping profile update`);
 		container.logger.debug(`[guild-personality] storage-empty-result guildId=${guildId} action=touch-lastRefreshedAt`);
 		await db
 			.insert(guildPersonalityProfiles)

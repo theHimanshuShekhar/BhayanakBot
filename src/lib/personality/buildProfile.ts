@@ -8,7 +8,7 @@ import { db } from "../database.js";
 import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
 
-const OLLAMA_TIMEOUT_MS = 90_000;
+const LLM_TIMEOUT_MS = 90_000;
 // Prevent runaway prompts: absorb at most 100 messages or 8 000 chars per build pass.
 // phi3:mini on CPU can't handle 40K chars in a reasonable time; smaller chunks finish reliably.
 const MAX_MESSAGES_PER_BUILD = 100;
@@ -112,7 +112,7 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		return { status: "skipped_insufficient_evidence" };
 	}
 
-	// Cooldown: don't hammer Ollama if builds fail or user spams messages
+	// Cooldown: don't hammer the LLM provider if builds fail or user spams messages
 	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
 		container.logger.debug(
 			`[personality] build skip userId=${userId} guildId=${guildId} reason=cooldown remainingMs=${MIN_BUILD_INTERVAL_MS - (Date.now() - row.lastRefreshedAt.getTime())}`,
@@ -158,16 +158,16 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	const client = container.client as BhayanakClient;
 
 	container.logger.debug(
-		`[personality] llm-call userId=${userId} guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${OLLAMA_TIMEOUT_MS}`,
+		`[personality] llm-call userId=${userId} guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${LLM_TIMEOUT_MS}`,
 	);
 	const llmStartedAt = Date.now();
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, OLLAMA_TIMEOUT_MS, undefined, "personality:user");
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, LLM_TIMEOUT_MS, "personality:user");
 	container.logger.debug(
 		`[personality] llm-result userId=${userId} guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
 	);
 	if (!result) {
 		container.logger.warn(
-			`[personality] Ollama returned null for userId=${userId} guildId=${guildId}, skipping profile update`,
+			`[personality] LLM returned null for userId=${userId} guildId=${guildId}, skipping profile update`,
 		);
 		container.logger.debug(
 			`[personality] storage-empty-result userId=${userId} guildId=${guildId} action=touch-lastRefreshedAt`,
@@ -196,7 +196,7 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 
 	// Atomic: upsert profile and advance the archive cursor in one transaction.
 	// Decrement counter by absorbed count instead of resetting to 0 — this preserves
-	// increments from messages that arrived during the (potentially long) Ollama call.
+	// increments from messages that arrived during the (potentially long) LLM call.
 	await db.transaction(async (tx) => {
 		await tx
 			.insert(userPersonalityProfiles)

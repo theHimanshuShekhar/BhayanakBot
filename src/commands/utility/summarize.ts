@@ -4,7 +4,7 @@ import { callInteractiveLlm } from "../../lib/llmProvider.js";
 
 const COOLDOWN_MS = 10 * 60 * 1000;
 const MAX_MESSAGES = 200;
-const OLLAMA_TIMEOUT_MS = 300_000;
+const LLM_TIMEOUT_MS = 300_000;
 
 const SYSTEM_PROMPT = [
 	"You are a helpful assistant. Summarize the following Discord chat conversation concisely in bullet points.",
@@ -159,7 +159,7 @@ export class SummarizeCommand extends Command {
 		}
 
 		const prompt = messages.join("\n");
-		const summary = await callInteractiveLlm(SYSTEM_PROMPT, prompt, OLLAMA_TIMEOUT_MS, undefined, "summarize");
+		const summary = await callInteractiveLlm(SYSTEM_PROMPT, prompt, LLM_TIMEOUT_MS, "summarize");
 
 		if (!summary) {
 			return interaction.editReply({

@@ -5,12 +5,11 @@ export async function generateAutoResponse(
 	triggerMessage: string,
 	authorName: string,
 	conversationContext?: string,
-	numPredict = 160,
 ): Promise<string | null> {
 	const prompt = conversationContext
 		? `Recent conversation in this channel:\n${conversationContext}\n\n${authorName} just said: "${triggerMessage}"`
 		: `${authorName} said: "${triggerMessage}"`;
-	return callInteractiveLlm(systemPrompt, prompt, 120_000, numPredict, "autoresponder:auto-response");
+	return callInteractiveLlm(systemPrompt, prompt, 120_000, "autoresponder:auto-response");
 }
 
 export async function generateMentionReply(
@@ -18,7 +17,6 @@ export async function generateMentionReply(
 	conversationContext: string,
 	authorName: string,
 	messageContent: string,
-	numPredict = 200,
 ): Promise<string | null> {
 	const prompt = [
 		`You are ${systemPrompt || "a savage Discord bot who roasts everyone"}.`,
@@ -27,7 +25,7 @@ export async function generateMentionReply(
 		`${authorName} just mentioned you: "${messageContent}"`,
 		`Reply as part of the conversation with a joke or playful roast. Keep it concise (1-3 sentences). Avoid genuine hostility.`,
 	].join("\n\n");
-	return callInteractiveLlm("", prompt, 120_000, numPredict, "autoresponder:mention-reply");
+	return callInteractiveLlm("", prompt, 120_000, "autoresponder:mention-reply");
 }
 
 export async function generateChatResponse(
@@ -35,7 +33,6 @@ export async function generateChatResponse(
 	conversationContext: string,
 	authorName: string,
 	messageContent: string,
-	numPredict = 300,
 ): Promise<string | null> {
 	const prompt = [
 		`You are ${systemPrompt || "a savage Discord bot who roasts everyone"}.`,
@@ -44,5 +41,5 @@ export async function generateChatResponse(
 		`${authorName} says: "${messageContent}"`,
 		`Reply naturally with a joke or playful roast. Keep it funny, not hostile.`,
 	].join("\n\n");
-	return callInteractiveLlm("", prompt, 120_000, numPredict, "autoresponder:chat-response");
+	return callInteractiveLlm("", prompt, 120_000, "autoresponder:chat-response");
 }

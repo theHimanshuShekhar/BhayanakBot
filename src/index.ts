@@ -13,10 +13,9 @@ import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
 import { getDashboardPresenceIntervalMs, writeDashboardPresenceSnapshotForClient } from "./lib/dashboardPresence.js";
-import { LOCAL_LLM_ENABLED, PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
+import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
-import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
 import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
 import { getPublicStatsIntervalMs, writePublicBotStatsSnapshotForClient } from "./lib/publicStats.js";
 
@@ -88,14 +87,6 @@ async function buildEligibleBackfilledPersonalityProfiles(): Promise<void> {
 
 async function main() {
 	try {
-		if (LOCAL_LLM_ENABLED) {
-			await ensureOllamaModel();
-			// Warm up Ollama model so first real request doesn't timeout during lazy load
-			const warmup = await callOllama("", "hi", 10_000, 1);
-			if (warmup !== null) {
-				client.logger.info("[ollama] Model warmed up");
-			}
-		}
 		await client.player.extractors.loadMulti(DefaultExtractors);
 		await client.player.extractors.register(YoutubeExtractor, {
 			cookie: process.env.YOUTUBE_COOKIE,

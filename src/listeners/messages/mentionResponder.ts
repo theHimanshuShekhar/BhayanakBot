@@ -6,7 +6,7 @@ import { callInteractiveLlm } from "../../lib/llmProvider.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 
 const HISTORY_LIMIT = 20;
-const OLLAMA_TIMEOUT_MS = 60_000;
+const LLM_TIMEOUT_MS = 60_000;
 const MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds per user
 const mentionCooldown = new Map<string, number>();
 
@@ -33,7 +33,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		const settings = await getOrCreateSettings(message.guildId!);
 		if (settings.personalityEnabled) return;
 
-		// Per-user cooldown to prevent Ollama spam
+		// Per-user cooldown to prevent LLM spam
 		const cooldownKey = `${message.guildId!}:${message.author.id}`;
 		const lastFired = mentionCooldown.get(cooldownKey) ?? 0;
 		if (Date.now() - lastFired < MENTION_COOLDOWN_MS) return;
@@ -69,13 +69,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guildId!);
 		const systemWithPersonality = personalityCtx + SYSTEM_PROMPT;
 
-		const response = await callInteractiveLlm(
-			systemWithPersonality,
-			prompt,
-			OLLAMA_TIMEOUT_MS,
-			160,
-			"mention-responder",
-		);
+		const response = await callInteractiveLlm(systemWithPersonality, prompt, LLM_TIMEOUT_MS, "mention-responder");
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;

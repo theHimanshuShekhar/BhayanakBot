@@ -12,9 +12,6 @@ describe(".env.example", () => {
 			"TEST_DATABASE_URL",
 			"VALKEY_URL",
 			"POSTGRES_PASSWORD",
-			"OLLAMA_URL",
-			"OLLAMA_MODEL",
-			"OLLAMA_DEBUG_CONTENT_LOGS",
 			"ZEN_API_KEY",
 			"ZEN_ALLOW_DISCORD_CONTENT",
 			"ZEN_BASE_URL",
@@ -39,6 +36,10 @@ describe(".env.example", () => {
 		]) {
 			expect(envExample).toContain(`${variable}=`);
 		}
+	});
+
+	it("does not document removed Ollama variables", () => {
+		expect(envExample).not.toMatch(/OLLAMA_/);
 	});
 
 	it("does not document removed legacy voice or YouTube OAuth variables", () => {

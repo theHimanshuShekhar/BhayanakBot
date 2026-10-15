@@ -26,9 +26,9 @@ Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall
 ## Operating Context
 
 - The product lives inside Discord; the website is secondary surface (Astro static site in `web/`, built with `pnpm web:build`).
-- Self-hosted deployment via Docker Compose (Postgres, Valkey, Ollama, bot, web); data volumes live on NAS storage per recent compose changes.
+- Self-hosted deployment via Docker Compose (Postgres, Valkey, bot, web); data volumes live on NAS storage per recent compose changes.
 - Ecosystem ties: `mc.bhayanak.net` Minecraft server (Homestead) and a Palworld tracker surface through `/minecraft` and status features.
-- Subsystems are compile-time feature-switched (`src/lib/features.ts`): local LLM and personality generation are currently off; the site/docs must reflect what is actually enabled.
+- Subsystems are compile-time feature-switched (`src/lib/features.ts`): personality generation is currently off; the site/docs must reflect what is actually enabled.
 - Live stats on the site come from a bot-published snapshot (`PUBLIC_STATS_INTERVAL_MS`).
 
 ## Capabilities and Constraints

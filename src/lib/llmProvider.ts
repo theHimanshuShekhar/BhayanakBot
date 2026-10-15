@@ -1,6 +1,3 @@
-import { LOCAL_LLM_ENABLED } from "./features.js";
-import { callOllama, callOllamaLowPriority } from "./ollama.js";
-
 const DEFAULT_ZEN_BASE_URL = "https://opencode.ai/zen/go/v1";
 const DEFAULT_ZEN_MODEL = "deepseek-v4-flash";
 const DEFAULT_ZEN_TIMEOUT_MS = 15_000;
@@ -138,60 +135,26 @@ function isRefusalOnly(content: string): boolean {
 	);
 }
 
-function fallbackTimeout(timeoutMs: number, elapsedMs: number): number {
-	return Math.max(1000, timeoutMs - elapsedMs);
-}
-
 export async function callInteractiveLlm(
 	system: string,
 	prompt: string,
 	timeoutMs = 3000,
-	numPredict?: number,
 	label?: string,
 ): Promise<string | null> {
 	const requestId = createRequestId();
 	logLlm(`request=${requestId} mode=interactive label=${label ?? "none"} event=start timeoutMs=${timeoutMs}`);
 	const zenResult = await callZenChat(requestId, "interactive", label, system, prompt, timeoutMs);
-	if (zenResult.content) return zenResult.content;
-	if (!LOCAL_LLM_ENABLED) {
-		// Local Ollama fallback is switched off (src/lib/features.ts); remote API only.
-		logLlm(`request=${requestId} mode=interactive label=${label ?? "none"} event=skipped reason=local-llm-disabled`);
-		return null;
-	}
-	const remainingTimeoutMs = fallbackTimeout(timeoutMs, zenResult.elapsedMs);
-	logLlm(
-		`request=${requestId} mode=interactive label=${label ?? "none"} provider=ollama event=fallback reason=${zenResult.reason ?? "unknown"} timeoutMs=${remainingTimeoutMs}`,
-	);
-	const result = await callOllama(system, prompt, remainingTimeoutMs, numPredict);
-	logLlm(
-		`request=${requestId} mode=interactive label=${label ?? "none"} provider=ollama result=${result ? "success" : "failure"} outputLength=${result?.length ?? 0}`,
-	);
-	return result;
+	return zenResult.content;
 }
 
 export async function callBackgroundLlm(
 	system: string,
 	prompt: string,
 	timeoutMs = 3000,
-	numPredict?: number,
 	label?: string,
 ): Promise<string | null> {
 	const requestId = createRequestId();
 	logLlm(`request=${requestId} mode=background label=${label ?? "none"} event=start timeoutMs=${timeoutMs}`);
 	const zenResult = await callZenChat(requestId, "background", label, system, prompt, timeoutMs);
-	if (zenResult.content) return zenResult.content;
-	if (!LOCAL_LLM_ENABLED) {
-		// Local Ollama fallback is switched off (src/lib/features.ts); remote API only.
-		logLlm(`request=${requestId} mode=background label=${label ?? "none"} event=skipped reason=local-llm-disabled`);
-		return null;
-	}
-	const remainingTimeoutMs = fallbackTimeout(timeoutMs, zenResult.elapsedMs);
-	logLlm(
-		`request=${requestId} mode=background label=${label ?? "none"} provider=ollama event=fallback reason=${zenResult.reason ?? "unknown"} timeoutMs=${remainingTimeoutMs}`,
-	);
-	const result = await callOllamaLowPriority(system, prompt, remainingTimeoutMs, numPredict, label);
-	logLlm(
-		`request=${requestId} mode=background label=${label ?? "none"} provider=ollama result=${result ? "success" : "failure"} outputLength=${result?.length ?? 0}`,
-	);
-	return result;
+	return zenResult.content;
 }
