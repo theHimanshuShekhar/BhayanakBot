@@ -25,7 +25,7 @@ vi.mock("../../../src/db/queries/guildPersonality.js", () => ({ getGuildPersonal
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({ getOrCreateSettings: vi.fn() }));
 vi.mock("../../../src/db/queries/modCases.js", () => ({ createCase: vi.fn() }));
 vi.mock("../../../src/db/queries/users.js", () => ({
-	addXp: vi.fn(async () => ({ user: { lastMessageAt: new Date() }, leveledUp: false, newLevel: 1 })),
+	addXp: vi.fn(async () => ({ user: {}, leveledUp: false, newLevel: 1, awarded: true })),
 	getLevelRewards: vi.fn(async () => []),
 }));
 vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({

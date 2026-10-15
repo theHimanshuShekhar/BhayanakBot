@@ -24,7 +24,7 @@ vi.mock("../../../src/db/queries/guildPersonality.js", () => ({ getGuildPersonal
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({ getOrCreateSettings: vi.fn() }));
 vi.mock("../../../src/db/queries/modCases.js", () => ({ createCase: vi.fn() }));
 vi.mock("../../../src/db/queries/users.js", () => ({
-	addXp: vi.fn(async () => ({ user: { lastMessageAt: new Date() }, leveledUp: false, newLevel: 1 })),
+	addXp: vi.fn(async () => ({ user: {}, leveledUp: false, newLevel: 1, awarded: true })),
 	getLevelRewards: vi.fn(async () => []),
 }));
 vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({
@@ -237,8 +237,7 @@ describe("messageCreate Mention Policy", () => {
 	});
 
 	it("notifies only the levelled-up member on level-up", async () => {
-		mockedAddXp.mockResolvedValueOnce({ user: { lastMessageAt: new Date(0) } } as never);
-		mockedAddXp.mockResolvedValueOnce({ user: {}, leveledUp: true, newLevel: 5 } as never);
+		mockedAddXp.mockResolvedValueOnce({ user: {}, leveledUp: true, newLevel: 5, awarded: true } as never);
 		mockedGetOrCreateSettings.mockResolvedValue(createSettings({ levelUpMessage: "{user} hit {level} @everyone" }));
 		const message = createMessage({ id: "level-1" });
 

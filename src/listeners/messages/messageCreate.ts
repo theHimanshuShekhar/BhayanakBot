@@ -20,10 +20,12 @@ import { generateAutoResponse, generateMentionReply } from "../../lib/autorespon
 import {
 	beginRandomReply,
 	claimAiReply,
+	markModerated,
 	markStaticReply,
 	randomReplySkipReason,
 } from "../../lib/autoresponder/replyGuard.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { ExpiringBoundedMap } from "../../lib/boundedMap.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import { db } from "../../lib/database.js";
 import { isHomeServer } from "../../lib/homeServer.js";
@@ -35,21 +37,44 @@ import { trackInlineBuild } from "../../lib/personality/inlineBuilds.js";
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
 
+// Cooldown maps evict entries once their cooldown has passed, and are capped for a flood of distinct keys.
+const COOLDOWN_MAP_MAX_ENTRIES = 5_000;
+
 // Auto-responder cooldown: Map<guildId:trigger, lastFiredAt>
-const autoResponderCooldown = new Map<string, number>();
 const AUTO_RESPONDER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+const autoResponderCooldown = new ExpiringBoundedMap<string, number>(
+	COOLDOWN_MAP_MAX_ENTRIES,
+	AUTO_RESPONDER_COOLDOWN_MS,
+	(firedAt) => new Date(firedAt),
+);
 
 // Per-user auto-responder cooldown: Map<guildId:userId, lastFiredAt>
-const userAutoResponderCooldown = new Map<string, number>();
 const USER_AUTO_RESPONDER_COOLDOWN_MS = 30 * 1000; // 30 seconds
+const userAutoResponderCooldown = new ExpiringBoundedMap<string, number>(
+	COOLDOWN_MAP_MAX_ENTRIES,
+	USER_AUTO_RESPONDER_COOLDOWN_MS,
+	(firedAt) => new Date(firedAt),
+);
 
 // Smart mention cooldown: Map<guildId:userId, lastFiredAt>
-const smartMentionCooldown = new Map<string, number>();
 const SMART_MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds
+const smartMentionCooldown = new ExpiringBoundedMap<string, number>(
+	COOLDOWN_MAP_MAX_ENTRIES,
+	SMART_MENTION_COOLDOWN_MS,
+	(firedAt) => new Date(firedAt),
+);
 
 // Auto-responder keys (trigger and user) with an LLM reply being generated. Cooldowns only start once a reply
 // is sent, so these keep a burst of messages from starting several LLM calls meanwhile.
 const autoResponderInFlight = new Set<string>();
+
+export const messageCreateTestHooks = {
+	cooldownSizes: () => ({
+		trigger: autoResponderCooldown.size,
+		user: userAutoResponderCooldown.size,
+		smartMention: smartMentionCooldown.size,
+	}),
+};
 
 const PERSONALITY_MAX_USER_MENTIONS = 5;
 const USER_MENTION_PATTERN = /<@!?\d+>/g;
@@ -105,7 +130,96 @@ export class MessageCreateListener extends Listener {
 
 	public async run(message: Message) {
 		if (message.author.bot || !message.guild) return;
+		const guildMessage = message as Message<true>;
 
+		const settings = await getOrCreateSettings(message.guild.id);
+
+		// --- Auto-mod first: a removed message gets nothing else (no archive, XP, AFK, reply) ---
+		if (await this.runAutoMod(guildMessage, settings)) return;
+
+		// Each remaining stage is isolated: one failing stage never skips the others.
+		await this.runStage("archive", () => this.ingestArchive(guildMessage, settings));
+		await this.runStage("afk", () => this.handleAfk(guildMessage));
+		await this.runStage("xp", () => this.awardXp(guildMessage, settings));
+
+		// Smart mentions and random replies send chat to Zen: Home Server only (ADR 0007).
+		const isTargetTextChannel = isHomeServer(message.guild.id) && message.channelId === TARGET_TEXT_CHANNEL_ID;
+		await this.runStage("autoresponder", () => this.handleAutoResponder(guildMessage, settings, isTargetTextChannel));
+
+		// --- Random contextual chat responder ---
+		if (isTargetTextChannel) {
+			await this.runStage("random-reply", () => this.handleRandomResponse(guildMessage, settings));
+		}
+	}
+
+	/** Runs one stage of message handling, logging (without message content) instead of throwing when it fails. */
+	private async runStage(name: string, stage: () => Promise<void>): Promise<void> {
+		try {
+			await stage();
+		} catch (err) {
+			this.container.logger.error(`[messageCreate] stage=${name} failed`, err);
+		}
+	}
+
+	/** Returns true when auto-mod removed the message. The first matching rule wins and creates the only case. */
+	private async runAutoMod(
+		message: Message<true>,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+	): Promise<boolean> {
+		if (!settings.autoModEnabled || message.member?.permissions.has(PermissionFlagsBits.Administrator)) return false;
+
+		const reason = this.findAutoModViolation(message, settings);
+		if (!reason) return false;
+
+		markModerated(message.id);
+		await this.runStage("auto-mod", async () => {
+			await message.delete().catch(() => null);
+			await this.takeAutoModAction(message, settings, reason);
+		});
+		return true;
+	}
+
+	private findAutoModViolation(
+		message: Message<true>,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+	): string | null {
+		const now = Date.now();
+		const key = `${message.guild.id}:${message.author.id}`;
+		let reason: string | null = null;
+
+		// Spam detection
+		if (settings.autoModSpamThreshold) {
+			// Lazy cleanup: sweep expired entries when the map grows large
+			if (spamTracker.size > 5_000) {
+				for (const [k, v] of spamTracker) {
+					if (now > v.resetAt) spamTracker.delete(k);
+				}
+			}
+			const tracker = spamTracker.get(key);
+			if (!tracker || now > tracker.resetAt) {
+				spamTracker.set(key, { count: 1, resetAt: now + 5000 });
+			} else {
+				tracker.count++;
+				if (tracker.count >= settings.autoModSpamThreshold) {
+					spamTracker.delete(key);
+					reason = "Spam detected";
+				}
+			}
+		}
+
+		if (!reason && settings.autoModBadLinks && BAD_LINK_PATTERN.test(message.content)) {
+			reason = "Unauthorized invite/link";
+		}
+		if (!reason && settings.autoModMaxMentions && message.mentions.users.size >= settings.autoModMaxMentions) {
+			reason = "Mass mentions";
+		}
+		return reason;
+	}
+
+	private async ingestArchive(
+		message: Message<true>,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+	): Promise<void> {
 		const isGuessWhoChannel = message.channelId === GUESS_WHO_CHANNEL_ID;
 		let didInsertArchiveMessage = false;
 		let didArchiveDeletedMessage = false;
@@ -126,10 +240,6 @@ export class MessageCreateListener extends Listener {
 			didInsertArchiveMessage = archiveResult?.inserted ?? false;
 			didArchiveDeletedMessage = archiveResult?.deleted ?? false;
 		}
-
-		const settings = await getOrCreateSettings(message.guild.id);
-		// Smart mentions and random replies send chat to Zen: Home Server only (ADR 0007).
-		const isTargetTextChannel = isHomeServer(message.guild.id) && message.channelId === TARGET_TEXT_CHANNEL_ID;
 
 		// --- Store eligible conversation history for LLM context ---
 		addConversationHistoryMessage(message.channel.id, message, this.container.logger);
@@ -214,84 +324,52 @@ export class MessageCreateListener extends Listener {
 				);
 			}
 		}
+	}
 
+	private async handleAfk(message: Message<true>): Promise<void> {
 		// --- AFK clear ---
-		const afk = await getAfk(message.author.id, message.guild.id);
-		if (afk) {
+		await this.runStage("afk-clear", async () => {
+			const afk = await getAfk(message.author.id, message.guild.id);
+			if (!afk) return;
 			await clearAfk(message.author.id, message.guild.id);
-			await message
-				.reply(`Welcome back, <@${message.author.id}>! I removed your AFK status.`)
-				.then((m) => setTimeout(() => m.delete().catch(() => null), 5000));
-		}
+			const notice = await message.reply(`Welcome back, <@${message.author.id}>! I removed your AFK status.`);
+			setTimeout(() => notice.delete().catch(() => null), 5000);
+		});
 
 		// --- Notify AFK users who are mentioned ---
-		for (const [, mentionedUser] of message.mentions.users) {
-			const mentionedAfk = await getAfk(mentionedUser.id, message.guild.id);
-			if (mentionedAfk) {
-				await (message.channel as TextChannel)
-					.send(
-						`**${mentionedUser.username}** is AFK${mentionedAfk.reason ? `: ${mentionedAfk.reason}` : ""} — set <t:${Math.floor(mentionedAfk.setAt.getTime() / 1000)}:R>`,
-					)
-					.catch(() => null);
-			}
-		}
-
-		// --- Auto-mod ---
-		if (settings.autoModEnabled && !message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-			const now = Date.now();
-			const key = `${message.guild.id}:${message.author.id}`;
-
-			// Spam detection
-			if (settings.autoModSpamThreshold) {
-				// Lazy cleanup: sweep expired entries when the map grows large
-				if (spamTracker.size > 5_000) {
-					for (const [k, v] of spamTracker) {
-						if (now > v.resetAt) spamTracker.delete(k);
-					}
-				}
-				const tracker = spamTracker.get(key);
-				if (!tracker || now > tracker.resetAt) {
-					spamTracker.set(key, { count: 1, resetAt: now + 5000 });
-				} else {
-					tracker.count++;
-					if (tracker.count >= settings.autoModSpamThreshold) {
-						await message.delete().catch(() => null);
-						await this.takeAutoModAction(message, settings, "Spam detected");
-						spamTracker.delete(key);
-					}
+		await this.runStage("afk-notify", async () => {
+			for (const [, mentionedUser] of message.mentions.users) {
+				const mentionedAfk = await getAfk(mentionedUser.id, message.guild.id);
+				if (mentionedAfk) {
+					await (message.channel as TextChannel)
+						.send(
+							`**${mentionedUser.username}** is AFK${mentionedAfk.reason ? `: ${mentionedAfk.reason}` : ""} — set <t:${Math.floor(mentionedAfk.setAt.getTime() / 1000)}:R>`,
+						)
+						.catch(() => null);
 				}
 			}
+		});
+	}
 
-			// Bad links
-			if (settings.autoModBadLinks && BAD_LINK_PATTERN.test(message.content)) {
-				await message.delete().catch(() => null);
-				await this.takeAutoModAction(message, settings, "Unauthorized invite/link");
-			}
+	private async awardXp(
+		message: Message<true>,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+	): Promise<void> {
+		const cooldownMs = (settings.xpCooldownSeconds ?? 60) * 1000;
+		const xpAmount = Math.floor(Math.random() * 10) + settings.xpRate - 5; // xpRate ± 5
 
-			// Mass mentions
-			if (settings.autoModMaxMentions && message.mentions.users.size >= settings.autoModMaxMentions) {
-				await message.delete().catch(() => null);
-				await this.takeAutoModAction(message, settings, "Mass mentions");
-			}
+		// The cooldown check and the award are one atomic statement, so a burst awards once.
+		const { leveledUp, newLevel } = await addXp(message.author.id, message.guild.id, Math.max(1, xpAmount), cooldownMs);
+		if (leveledUp) {
+			await this.handleLevelUp(message, newLevel, settings);
 		}
+	}
 
-		// --- XP ---
-		if (!message.author.bot) {
-			const cooldownMs = (settings.xpCooldownSeconds ?? 60) * 1000;
-			const xpAmount = Math.floor(Math.random() * 10) + settings.xpRate - 5; // xpRate ± 5
-
-			const { user: currentUser } = await addXp(message.author.id, message.guild.id, 0); // fetch without adding
-			const lastMessage = currentUser.lastMessageAt;
-
-			if (!lastMessage || Date.now() - lastMessage.getTime() > cooldownMs) {
-				const { leveledUp, newLevel } = await addXp(message.author.id, message.guild.id, Math.max(1, xpAmount));
-
-				if (leveledUp) {
-					await this.handleLevelUp(message, newLevel, settings);
-				}
-			}
-		}
-
+	private async handleAutoResponder(
+		message: Message<true>,
+		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
+		isTargetTextChannel: boolean,
+	): Promise<void> {
 		// --- Auto-responder ---
 		const botMentioned = message.mentions.has(message.client.user);
 		this.container.logger.debug(
@@ -364,11 +442,6 @@ export class MessageCreateListener extends Listener {
 			this.container.logger.debug(
 				`[smart-mention] skip guild=${message.guild.id} channel=${message.channel.id} message=${message.id} targetChannel=${isTargetTextChannel} reason=${isTargetTextChannel ? "mention-only" : "non-target-channel"}`,
 			);
-		}
-
-		// --- Random contextual chat responder ---
-		if (isTargetTextChannel) {
-			await this.handleRandomResponse(message, settings);
 		}
 	}
 

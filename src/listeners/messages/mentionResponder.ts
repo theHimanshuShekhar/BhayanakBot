@@ -3,13 +3,18 @@ import { Events, type Message } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { claimAiReply } from "../../lib/autoresponder/replyGuard.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { ExpiringBoundedMap } from "../../lib/boundedMap.js";
 import { isHomeServer } from "../../lib/homeServer.js";
 import { callInteractiveLlm } from "../../lib/llmProvider.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 
 const HISTORY_LIMIT = 20;
 const MENTION_COOLDOWN_MS = 10 * 1000; // 10 seconds per user
-const mentionCooldown = new Map<string, number>();
+const mentionCooldown = new ExpiringBoundedMap<string, number>(
+	5_000,
+	MENTION_COOLDOWN_MS,
+	(firedAt) => new Date(firedAt),
+);
 
 const SYSTEM_PROMPT = [
 	"You are a witty Discord bot who responds with jokes and playful roasts.",

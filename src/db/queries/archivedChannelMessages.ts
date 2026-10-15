@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
+import { ExpiringBoundedMap } from "../../lib/boundedMap.js";
 import { db } from "../../lib/database.js";
 import { isGameEligibleContent } from "../../lib/guessWho/eligibility.js";
 import { archivedChannelMessages } from "../schema.js";
@@ -18,14 +19,23 @@ export type ArchivedMessageInput = {
 export type GuessWhoArchivedMessage = typeof archivedChannelMessages.$inferSelect;
 export type ArchivedMessageUpsertResult = { inserted: boolean; deleted: boolean };
 
-const pendingDeletedMessages = new Map<string, Date>();
+// A delete event can arrive before its message is archived (or for a message that is never archived, such as one
+// removed by auto-mod). Remember it just long enough to cover that race, and never grow without bound.
+export const PENDING_DELETE_TTL_MS = 10 * 60 * 1000;
+export const PENDING_DELETE_MAX_ENTRIES = 5_000;
+type PendingDelete = { deletedAt: Date; recordedAt: Date };
+export const pendingDeletedMessages = new ExpiringBoundedMap<string, PendingDelete>(
+	PENDING_DELETE_MAX_ENTRIES,
+	PENDING_DELETE_TTL_MS,
+	(entry) => entry.recordedAt,
+);
 
 export const archivedChannelMessageTestHooks: {
 	afterPendingDeleteRead?: () => Promise<void> | void;
 } = {};
 
 export async function upsertArchivedChannelMessage(input: ArchivedMessageInput): Promise<ArchivedMessageUpsertResult> {
-	const pendingDeletedAt = pendingDeletedMessages.get(input.messageId) ?? null;
+	const pendingDeletedAt = pendingDeletedMessages.get(input.messageId)?.deletedAt ?? null;
 	if (process.env.NODE_ENV === "test") await archivedChannelMessageTestHooks.afterPendingDeleteRead?.();
 	const insertedRows = await db
 		.insert(archivedChannelMessages)
@@ -51,7 +61,7 @@ export async function upsertArchivedChannelMessage(input: ArchivedMessageInput):
 			.where(eq(archivedChannelMessages.messageId, input.messageId));
 	}
 
-	const finalPendingDeletedAt = pendingDeletedMessages.get(input.messageId) ?? pendingDeletedAt;
+	const finalPendingDeletedAt = pendingDeletedMessages.get(input.messageId)?.deletedAt ?? pendingDeletedAt;
 	if (finalPendingDeletedAt) {
 		await db
 			.update(archivedChannelMessages)
@@ -79,7 +89,7 @@ export async function markArchivedChannelMessagesDeleted(messageIds: string[], d
 		.returning({ messageId: archivedChannelMessages.messageId });
 	const updatedIds = new Set(updatedRows.map((row) => row.messageId));
 	for (const messageId of messageIds) {
-		if (!updatedIds.has(messageId)) pendingDeletedMessages.set(messageId, deletedAt);
+		if (!updatedIds.has(messageId)) pendingDeletedMessages.set(messageId, { deletedAt, recordedAt: new Date() });
 	}
 }
 

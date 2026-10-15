@@ -1,30 +1,30 @@
 // Keeps every AI reply path honest: one message gets at most one AI reply, and the two random-reply
 // paths (messageCreate and randomResponder) share one per-channel cooldown.
 
+import { ExpiringBoundedMap } from "../boundedMap.js";
+
 /** Minimum gap between two random AI replies in the same channel. */
 export const RANDOM_REPLY_COOLDOWN_MS = 45 * 1000;
 
 const CLAIM_TTL_MS = 5 * 60 * 1000;
-const CLAIM_SWEEP_SIZE = 1_000;
+const CLAIM_MAX_ENTRIES = 5_000;
+const CHANNEL_MAX_ENTRIES = 1_000;
 
 interface Claim {
-	kind: "ai" | "static" | "random";
+	kind: "ai" | "static" | "random" | "moderated";
 	at: number;
 }
 
 // Message id -> who answers it. A claim is held for CLAIM_TTL_MS, far longer than any reply takes.
-const claims = new Map<string, Claim>();
+const claims = new ExpiringBoundedMap<string, Claim>(CLAIM_MAX_ENTRIES, CLAIM_TTL_MS, (claim) => new Date(claim.at));
 // Channel id -> when its last random reply was actually sent.
-const randomLastSent = new Map<string, number>();
+const randomLastSent = new ExpiringBoundedMap<string, number>(
+	CHANNEL_MAX_ENTRIES,
+	RANDOM_REPLY_COOLDOWN_MS,
+	(sentAt) => new Date(sentAt),
+);
 // Channels with a random reply being generated right now, so a burst cannot start several calls.
 const randomInFlight = new Set<string>();
-
-function sweepClaims(now: number) {
-	if (claims.size <= CLAIM_SWEEP_SIZE) return;
-	for (const [id, claim] of claims) {
-		if (now - claim.at > CLAIM_TTL_MS) claims.delete(id);
-	}
-}
 
 /**
  * Claim a message for a direct AI reply (LLM autoresponse or bot mention). Returns false when another direct
@@ -33,8 +33,8 @@ function sweepClaims(now: number) {
  */
 export function claimAiReply(messageId: string): boolean {
 	const now = Date.now();
-	sweepClaims(now);
-	if (claims.get(messageId)?.kind === "ai") return false;
+	const owner = claims.get(messageId)?.kind;
+	if (owner === "ai" || owner === "moderated") return false;
 	claims.set(messageId, { kind: "ai", at: now });
 	return true;
 }
@@ -42,9 +42,17 @@ export function claimAiReply(messageId: string): boolean {
 /** Note that a static autoresponse answers the message, so no random AI reply is added to it. */
 export function markStaticReply(messageId: string): void {
 	const now = Date.now();
-	sweepClaims(now);
-	if (claims.get(messageId)?.kind === "ai") return;
+	const owner = claims.get(messageId)?.kind;
+	if (owner === "ai" || owner === "moderated") return;
 	claims.set(messageId, { kind: "static", at: now });
+}
+
+/**
+ * Note that auto-mod removed the message: no AI reply, direct or random, may answer it. This also cancels a
+ * random reply already being generated (its `stillOwned()` turns false).
+ */
+export function markModerated(messageId: string): void {
+	claims.set(messageId, { kind: "moderated", at: Date.now() });
 }
 
 export interface RandomReplyTicket {
@@ -60,8 +68,7 @@ export interface RandomReplyTicket {
  */
 export function beginRandomReply(messageId: string, channelId: string): RandomReplyTicket | null {
 	const now = Date.now();
-	sweepClaims(now);
-	if (claims.has(messageId) || randomInFlight.has(channelId)) return null;
+	if (claims.get(messageId) !== undefined || randomInFlight.has(channelId)) return null;
 	const lastSent = randomLastSent.get(channelId);
 	if (lastSent !== undefined && now - lastSent < RANDOM_REPLY_COOLDOWN_MS) return null;
 
@@ -105,4 +112,5 @@ export const replyGuardTestHooks = {
 		randomLastSent.clear();
 		randomInFlight.clear();
 	},
+	sizes: () => ({ claims: claims.size, randomLastSent: randomLastSent.size }),
 };

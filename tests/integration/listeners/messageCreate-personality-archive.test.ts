@@ -61,7 +61,7 @@ vi.mock("../../../src/db/queries/modCases.js", () => ({
 }));
 
 vi.mock("../../../src/db/queries/users.js", () => ({
-	addXp: vi.fn(async () => ({ user: { lastMessageAt: new Date() }, leveledUp: false, newLevel: 1 })),
+	addXp: vi.fn(async () => ({ user: {}, leveledUp: false, newLevel: 1, awarded: true })),
 }));
 
 vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({
