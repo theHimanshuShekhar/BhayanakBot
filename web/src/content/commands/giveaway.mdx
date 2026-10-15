@@ -30,6 +30,8 @@ related:
   - { n: "/config", d: "Server settings" }
 ---
 
-Giveaways are ended by scheduled tasks or manually with `/giveaway end message-id:<id>`. Use reroll to pick new winners from an ended giveaway.
+Giveaways are ended by scheduled tasks or manually with `/giveaway end message-id:<id>`. A giveaway is only ever ended and announced once, even if the timer and a moderator race. Use reroll to pick new winners from an ended giveaway.
+
+Giveaways belong to the server they were started in: `end` and `reroll` treat a message ID from another server as not found. Winners are drawn only from entrants who are still members of the server, and a reroll never picks someone who already won that giveaway. If nobody is eligible the bot says "No eligible entrants".
 
 Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and nothing is changed when the value is invalid. Giveaways last at most 30 days.

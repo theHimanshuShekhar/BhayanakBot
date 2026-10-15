@@ -1,16 +1,7 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type TextChannel } from "discord.js";
+import { DiscordAPIError, type Guild } from "discord.js";
 import { endGiveaway, getActiveExpiredGiveaways } from "../db/queries/giveaways.js";
-import { notifyOnly } from "../lib/allowedMentions.js";
-
-function shuffled<T>(arr: T[]): T[] {
-	const a = [...arr];
-	for (let i = a.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[a[i], a[j]] = [a[j], a[i]];
-	}
-	return a;
-}
+import { endAndAnnounceGiveaway } from "../lib/giveaways.js";
 
 export class EndGiveawaysTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
@@ -22,39 +13,26 @@ export class EndGiveawaysTask extends ScheduledTask {
 
 		for (const giveaway of expired) {
 			try {
-				const entries = giveaway.entries as string[];
-				const winnerCount = Math.min(giveaway.winnerCount, entries.length);
-				const winners = shuffled(entries).slice(0, winnerCount);
-
-				await endGiveaway(giveaway.messageId, winners);
-
-				const channel = await this.container.client.channels.fetch(giveaway.channelId).catch(() => null);
-				if (channel && "send" in channel) {
-					const winnerText = winners.length > 0 ? winners.map((w) => `<@${w}>`).join(", ") : "No valid entries";
-
-					await (channel as TextChannel)
-						.send({
-							content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,
-							allowedMentions: notifyOnly(winners),
-						})
-						.catch(() => null);
-
-					const msg = await (channel as TextChannel).messages.fetch(giveaway.messageId).catch(() => null);
-					if (msg) {
-						const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-							new ButtonBuilder()
-								.setCustomId("giveaway:enter")
-								.setLabel("Giveaway Ended")
-								.setStyle(ButtonStyle.Secondary)
-								.setEmoji("🎉")
-								.setDisabled(true),
-						);
-						await msg.edit({ components: [row] }).catch(() => null);
-					}
+				const guild = await this.fetchGuild(giveaway.guildId);
+				if (!guild) {
+					// The bot is no longer in the guild: nobody to draw from or announce to, so just close it.
+					await endGiveaway(giveaway.guildId, giveaway.messageId, []);
+					continue;
 				}
+				await endAndAnnounceGiveaway(guild, giveaway);
 			} catch (error) {
 				this.container.logger.error(`[EndGiveaways] Failed to end giveaway ${giveaway.id}:`, error);
 			}
+		}
+	}
+
+	// Only an unknown/inaccessible guild counts as gone; any other failure throws so the giveaway is retried.
+	private async fetchGuild(guildId: string): Promise<Guild | null> {
+		try {
+			return await this.container.client.guilds.fetch(guildId);
+		} catch (error) {
+			if (error instanceof DiscordAPIError && (error.code === 10004 || error.code === 50001)) return null;
+			throw error;
 		}
 	}
 }

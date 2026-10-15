@@ -1,8 +1,9 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
-import { createGiveaway, endGiveaway, getGiveawayByMessage } from "../../db/queries/giveaways.js";
+import { createGiveaway, getGiveawayByMessage, rerollGiveaway } from "../../db/queries/giveaways.js";
 import { notifyOnly } from "../../lib/allowedMentions.js";
 import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
+import { drawEligibleWinners, endAndAnnounceGiveaway, formatWinners } from "../../lib/giveaways.js";
 
 export class GiveawayCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -122,7 +123,7 @@ export class GiveawayCommand extends Subcommand {
 
 	public async runEnd(interaction: Subcommand.ChatInputCommandInteraction) {
 		const messageId = interaction.options.getString("message-id", true);
-		const giveaway = await getGiveawayByMessage(messageId);
+		const giveaway = await getGiveawayByMessage(interaction.guildId!, messageId);
 
 		if (!giveaway) {
 			return interaction.reply({ content: "Giveaway not found.", flags: MessageFlags.Ephemeral });
@@ -131,75 +132,46 @@ export class GiveawayCommand extends Subcommand {
 			return interaction.reply({ content: "This giveaway has already ended.", flags: MessageFlags.Ephemeral });
 		}
 
-		await this.resolveGiveaway(interaction, giveaway);
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		const winners = await endAndAnnounceGiveaway(interaction.guild!, giveaway);
+		if (!winners) return interaction.editReply({ content: "This giveaway has already ended." });
+
+		return interaction.editReply({
+			content: `Giveaway ended! ${winners.length > 0 ? `Winner${winners.length > 1 ? "s" : ""}: ${formatWinners(winners)}` : "No eligible entrants."}`,
+		});
 	}
 
 	public async runReroll(interaction: Subcommand.ChatInputCommandInteraction) {
 		const messageId = interaction.options.getString("message-id", true);
-		const giveaway = await getGiveawayByMessage(messageId);
+		const giveaway = await getGiveawayByMessage(interaction.guildId!, messageId);
 
 		if (!giveaway?.ended) {
 			return interaction.reply({ content: "Giveaway not found or hasn't ended yet.", flags: MessageFlags.Ephemeral });
 		}
 
-		const entries = giveaway.entries as string[];
-		if (entries.length === 0) {
-			return interaction.reply({ content: "No entries to reroll.", flags: MessageFlags.Ephemeral });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		// Everyone who already won (the original draw and earlier rerolls) is excluded.
+		const winners = await drawEligibleWinners(
+			interaction.guild!,
+			giveaway.entries,
+			giveaway.winnerCount,
+			giveaway.winners,
+		);
+		if (winners.length === 0) return interaction.editReply({ content: "No eligible entrants." });
+
+		const rerolled = await rerollGiveaway(interaction.guildId!, messageId, giveaway.winners, winners);
+		if (!rerolled) return interaction.editReply({ content: "This giveaway was just rerolled. Try again." });
+
+		// A new message, not an edit of the deferred reply: Discord does not reliably notify mentions added by edits.
+		const announcement = `🎉 Reroll! New winner${winners.length > 1 ? "s" : ""}: ${formatWinners(winners)}`;
+		const channel = await interaction.guild!.channels.fetch(giveaway.channelId).catch((): null => null);
+		const sent = channel?.isTextBased()
+			? await channel.send({ content: announcement, allowedMentions: notifyOnly(winners) }).catch((): null => null)
+			: null;
+		if (!sent) {
+			return interaction.editReply({ content: `Rerolled, but the announcement could not be posted. ${announcement}` });
 		}
 
-		const winners = this.pickWinners(entries, giveaway.winnerCount);
-		await endGiveaway(messageId, winners);
-
-		return interaction.reply({
-			content: `🎉 Reroll! New winner${winners.length > 1 ? "s" : ""}: ${winners.map((w) => `<@${w}>`).join(", ")}`,
-			allowedMentions: notifyOnly(winners),
-		});
-	}
-
-	private async resolveGiveaway(
-		interaction: Subcommand.ChatInputCommandInteraction,
-		giveaway: Awaited<ReturnType<typeof getGiveawayByMessage>>,
-	) {
-		if (!giveaway) return;
-		const entries = giveaway.entries as string[];
-
-		const winners = this.pickWinners(entries, giveaway.winnerCount);
-		await endGiveaway(giveaway.messageId, winners);
-
-		const channel = interaction.guild!.channels.cache.get(giveaway.channelId);
-		if (channel && "send" in channel) {
-			const winnerText = winners.length > 0 ? winners.map((w) => `<@${w}>`).join(", ") : "No valid entries";
-
-			await (channel as TextChannel).send({
-				content: `🎉 **Giveaway Ended!** Congratulations to ${winnerText}!\nPrize: **${giveaway.prize}**`,
-				allowedMentions: notifyOnly(winners),
-			});
-
-			// Disable entry button on original message
-			const msg = await (channel as TextChannel).messages.fetch(giveaway.messageId).catch(() => null);
-			if (msg) {
-				const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-					new ButtonBuilder()
-						.setCustomId("giveaway:enter")
-						.setLabel("Giveaway Ended")
-						.setStyle(ButtonStyle.Secondary)
-						.setEmoji("🎉")
-						.setDisabled(true),
-				);
-				await msg.edit({ components: [row] }).catch(() => null);
-			}
-		}
-
-		if (interaction) {
-			return interaction.reply({
-				content: `Giveaway ended! Winner${winners.length > 1 ? "s" : ""}: ${winners.map((w) => `<@${w}>`).join(", ") || "None"}`,
-				flags: MessageFlags.Ephemeral,
-			});
-		}
-	}
-
-	private pickWinners(entries: string[], count: number): string[] {
-		const shuffled = [...entries].sort(() => Math.random() - 0.5);
-		return shuffled.slice(0, Math.min(count, shuffled.length));
+		return interaction.editReply({ content: `Rerolled! New winner${winners.length > 1 ? "s" : ""} announced.` });
 	}
 }

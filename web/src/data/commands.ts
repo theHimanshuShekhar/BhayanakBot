@@ -349,8 +349,14 @@ export const RAW_COMMANDS: Command[] = [
 					"Start a timed giveaway in the current channel. Duration is a number plus a unit, e.g. 1h or 1d (s, m, h, d, w), up to 30 days.",
 				examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
 			},
-			end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
-			reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
+			end: {
+				summary: "End a giveaway of this server early and draw winners from entrants who are still members.",
+				examples: ["/giveaway end message-id:123456"],
+			},
+			reroll: {
+				summary: "Reroll winners for an ended giveaway of this server, excluding everyone who already won.",
+				examples: ["/giveaway reroll message-id:123456"],
+			},
 		},
 	},
 	{

@@ -5,6 +5,7 @@ import { getPendingReminders, markReminderSent } from "../../../src/db/queries/r
 import { EndGiveawaysTask } from "../../../src/scheduled-tasks/endGiveaways.js";
 import { SendRemindersTask } from "../../../src/scheduled-tasks/sendReminders.js";
 import { NOTIFIES_NOBODY, resolveAllowedMentions } from "../../helpers/allowedMentions.js";
+import { createGuild } from "../../helpers/giveawayMocks.js";
 
 vi.mock("../../../src/db/queries/giveaways.js", () => ({
 	endGiveaway: vi.fn(),
@@ -25,12 +26,17 @@ function createTask<T>(TaskClass: new (...args: any[]) => T, name: string): T {
 
 describe("scheduled task Mention Policy", () => {
 	const channel = createChannel();
+	const guild = createGuild(["w1", "w2", "w3"]);
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		channel.send.mockClear();
+		guild.channel.send.mockClear();
 		container.logger = { debug: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as typeof container.logger;
-		container.client = { channels: { fetch: vi.fn(async () => channel) } } as unknown as typeof container.client;
+		container.client = {
+			channels: { fetch: vi.fn(async () => channel) },
+			guilds: { fetch: vi.fn(async () => guild) },
+		} as unknown as typeof container.client;
 	});
 
 	it("reminder delivery notifies only the reminder owner", async () => {
@@ -52,11 +58,15 @@ describe("scheduled task Mention Policy", () => {
 				id: 1,
 				messageId: "m1",
 				channelId: "c1",
+				guildId: "g1",
 				winnerCount: 2,
 				prize: "@everyone Nitro",
 				entries: ["w1", "w2", "w3"],
 			},
 		] as never);
+		vi.mocked(endGiveaway).mockImplementation((async (_guildId: string, _messageId: string, winners: string[]) => ({
+			winners,
+		})) as never);
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.999);
 
 		try {
@@ -65,8 +75,8 @@ describe("scheduled task Mention Policy", () => {
 			randomSpy.mockRestore();
 		}
 
-		const [sent] = channel.send.mock.calls[0] as unknown as [{ content: string; allowedMentions: unknown }];
-		const winners = vi.mocked(endGiveaway).mock.calls[0]?.[1] as string[];
+		const [sent] = guild.channel.send.mock.calls[0] as unknown as [{ content: string; allowedMentions: unknown }];
+		const winners = vi.mocked(endGiveaway).mock.calls[0]?.[2] as string[];
 		expect(winners).toHaveLength(2);
 		for (const winner of winners) expect(sent.content).toContain(`<@${winner}>`);
 		expect(sent.content).toContain("@everyone Nitro");

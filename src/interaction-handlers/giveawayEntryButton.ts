@@ -14,12 +14,14 @@ export class GiveawayEntryButtonHandler extends InteractionHandler {
 	}
 
 	public override async run(interaction: ButtonInteraction) {
-		const giveaway = await getGiveawayByMessage(interaction.message.id);
+		const giveaway = interaction.guildId
+			? await getGiveawayByMessage(interaction.guildId, interaction.message.id)
+			: undefined;
 		if (!giveaway || giveaway.ended) {
 			return interaction.reply({ content: "This giveaway has already ended.", flags: MessageFlags.Ephemeral });
 		}
 
-		const updated = await addEntry(interaction.message.id, interaction.user.id);
+		const updated = await addEntry(giveaway.guildId, interaction.message.id, interaction.user.id);
 		if (!updated) {
 			return interaction.reply({ content: "Could not enter the giveaway.", flags: MessageFlags.Ephemeral });
 		}

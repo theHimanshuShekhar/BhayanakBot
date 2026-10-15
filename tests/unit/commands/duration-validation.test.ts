@@ -16,6 +16,7 @@ vi.mock("../../../src/db/queries/giveaways.js", () => ({
 	createGiveaway: vi.fn(),
 	endGiveaway: vi.fn(),
 	getGiveawayByMessage: vi.fn(),
+	rerollGiveaway: vi.fn(),
 }));
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({ getOrCreateSettings: vi.fn() }));
 vi.mock("../../../src/db/queries/reminders.js", () => ({ markReminderSent: vi.fn() }));
