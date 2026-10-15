@@ -1,3 +1,5 @@
+import { envOr } from "./env.js";
+
 const DEFAULT_ZEN_BASE_URL = "https://opencode.ai/zen/go/v1";
 const DEFAULT_ZEN_MODEL = "deepseek-v4-flash";
 const DEFAULT_ZEN_TIMEOUT_MS = 15_000;
@@ -71,8 +73,8 @@ async function callZenChat(
 		return { content: null, elapsedMs: 0, reason: "privacy_disabled" };
 	}
 
-	const baseUrl = (process.env.ZEN_BASE_URL ?? DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");
-	const model = process.env.ZEN_MODEL ?? DEFAULT_ZEN_MODEL;
+	const baseUrl = envOr("ZEN_BASE_URL", DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");
+	const model = envOr("ZEN_MODEL", DEFAULT_ZEN_MODEL);
 	const controller = new AbortController();
 	const zenTimeoutMs = resolveZenTimeoutMs(timeoutMs);
 	const timeout = setTimeout(() => controller.abort(), zenTimeoutMs);

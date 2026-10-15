@@ -72,7 +72,6 @@ Copy `.env.example` to `.env` and fill in:
 
 ```env
 DISCORD_TOKEN=your_bot_token
-DISCORD_CLIENT_ID=your_client_id
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 VALKEY_URL=redis://localhost:6379

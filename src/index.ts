@@ -13,6 +13,7 @@ import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
 import { getDashboardPresenceIntervalMs, writeDashboardPresenceSnapshotForClient } from "./lib/dashboardPresence.js";
+import { optionalEnv } from "./lib/env.js";
 import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { removeGlobalHomeServerCommands } from "./lib/homeServer.js";
@@ -90,7 +91,7 @@ async function main() {
 	try {
 		await client.player.extractors.loadMulti(DefaultExtractors);
 		await client.player.extractors.register(YoutubeExtractor, {
-			cookie: process.env.YOUTUBE_COOKIE,
+			cookie: optionalEnv("YOUTUBE_COOKIE"),
 		});
 		YTLog.setLevel(YTLog.Level.NONE);
 		registerPlayerEvents(client.player);

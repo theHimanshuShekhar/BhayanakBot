@@ -7,7 +7,6 @@ describe(".env.example", () => {
 	it("documents active runtime and compose environment variables", () => {
 		for (const variable of [
 			"DISCORD_TOKEN",
-			"DISCORD_CLIENT_ID",
 			"DATABASE_URL",
 			"TEST_DATABASE_URL",
 			"VALKEY_URL",

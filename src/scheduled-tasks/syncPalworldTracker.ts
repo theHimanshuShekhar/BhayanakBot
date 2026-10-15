@@ -1,5 +1,6 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { type CategoryChannel, ChannelType, type Guild, type GuildBasedChannel, PermissionFlagsBits } from "discord.js";
+import { getTargetGuildId } from "../lib/constants.js";
 import { fetchPalworldPlayers, isPalworldConfigured, type PalworldPlayer } from "../lib/palworld.js";
 
 const CATEGORY_PREFIX = "Palworld";
@@ -56,11 +57,7 @@ export class SyncPalworldTrackerTask extends ScheduledTask {
 	public async run(): Promise<void> {
 		if (!isPalworldConfigured()) return;
 
-		const guildId = process.env.TARGET_GUILD_ID?.trim();
-		if (!guildId) {
-			this.container.logger.warn("[palworld-tracker] TARGET_GUILD_ID is not set — skipping");
-			return;
-		}
+		const guildId = getTargetGuildId();
 
 		const players = await fetchPalworldPlayers();
 		const unavailable = players === null || players.length === 0;

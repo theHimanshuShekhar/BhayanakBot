@@ -1,5 +1,6 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
 import { type CategoryChannel, ChannelType, type Guild, type GuildBasedChannel, PermissionFlagsBits } from "discord.js";
+import { getTargetGuildId } from "../lib/constants.js";
 import { fetchMinecraftPlayers, isMinecraftRconConfigured, type MinecraftPlayer } from "../lib/minecraftRcon.js";
 
 const CATEGORY_PREFIX = "Minecraft";
@@ -40,11 +41,7 @@ export class SyncMinecraftTrackerTask extends ScheduledTask {
 	public async run(): Promise<void> {
 		if (!isMinecraftRconConfigured()) return;
 
-		const guildId = process.env.TARGET_GUILD_ID?.trim();
-		if (!guildId) {
-			this.container.logger.warn("[minecraft-tracker] TARGET_GUILD_ID is not set — skipping");
-			return;
-		}
+		const guildId = getTargetGuildId();
 
 		const players = await fetchMinecraftPlayers();
 		const unavailable = players === null || players.length === 0;

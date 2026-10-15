@@ -59,7 +59,7 @@ services:
       retries: 3
       start_period: 30s
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot}
       VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
       ZEN_API_KEY: ${ZEN_API_KEY}
       ZEN_ALLOW_DISCORD_CONTENT: ${ZEN_ALLOW_DISCORD_CONTENT:-false}
@@ -67,9 +67,14 @@ services:
       ZEN_MODEL: ${ZEN_MODEL:-deepseek-v4-flash}
       ZEN_TIMEOUT_MS: ${ZEN_TIMEOUT_MS:-15000}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       BOT_OWNER_ID: ${BOT_OWNER_ID:-}
       TARGET_GUILD_ID: ${TARGET_GUILD_ID:-}
+      TARGET_TEXT_CHANNEL_ID: ${TARGET_TEXT_CHANNEL_ID:-}
+      GUESS_WHO_CHANNEL_ID: ${GUESS_WHO_CHANNEL_ID:-}
+      GUESS_WHO_BACKFILL_LIMIT: ${GUESS_WHO_BACKFILL_LIMIT:-}
+      PUBLIC_STATS_INTERVAL_MS: ${PUBLIC_STATS_INTERVAL_MS:-}
+      DASHBOARD_PRESENCE_INTERVAL_MS: ${DASHBOARD_PRESENCE_INTERVAL_MS:-}
+      YOUTUBE_COOKIE: ${YOUTUBE_COOKIE:-}
       PALWORLD_API_URL: ${PALWORLD_API_URL:-}
       PALWORLD_ADMIN_KEY: ${PALWORLD_ADMIN_KEY:-}
       MINECRAFT_RCON_HOST: ${MINECRAFT_RCON_HOST:-mc}
@@ -91,7 +96,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/bhayanakbot}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot}
       PUBLIC_BOT_INVITE_URL: ${PUBLIC_BOT_INVITE_URL:-https://discord.com/oauth2/authorize}
     ports:
       - "${WEB_PORT:-4321}:4321"

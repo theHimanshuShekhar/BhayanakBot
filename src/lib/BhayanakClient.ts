@@ -4,6 +4,7 @@ import { type FilterResult, LoaderStrategy, Store } from "@sapphire/pieces";
 import { GatewayIntentBits, Partials } from "discord.js";
 import { Player } from "discord-player";
 import { DEFAULT_ALLOWED_MENTIONS } from "./allowedMentions.js";
+import { envOr } from "./env.js";
 import { isPieceDisabled } from "./features.js";
 
 class TypeScriptLoaderStrategy extends LoaderStrategy<any> {
@@ -110,7 +111,7 @@ export class BhayanakClient extends SapphireClient {
 	public readonly guildPersonalityCache = new BoundedMap<string, string>(100);
 
 	public constructor() {
-		const valkeyUrl = new URL(process.env.VALKEY_URL ?? "redis://localhost:6379");
+		const valkeyUrl = new URL(envOr("VALKEY_URL", "redis://localhost:6379"));
 		const entrypoint = process.argv[1] ?? "";
 		const baseUserDirectory = join(process.cwd(), entrypoint.includes("/dist/") ? "dist" : "src");
 		super({

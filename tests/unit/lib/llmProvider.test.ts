@@ -58,6 +58,25 @@ describe("LLM provider", () => {
 		logSpy.mockRestore();
 	});
 
+	it("uses the default Zen base URL and model when they are blank", async () => {
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		process.env.ZEN_BASE_URL = "";
+		process.env.ZEN_MODEL = "  ";
+		mockedFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ choices: [{ message: { content: "zen generated reply" } }] }),
+		});
+		const { callInteractiveLlm } = await importProvider();
+
+		await callInteractiveLlm("System prompt", "User prompt", 12_000, "summarize");
+
+		expect(mockedFetch).toHaveBeenCalledWith(
+			"https://opencode.ai/zen/go/v1/chat/completions",
+			expect.objectContaining({ body: expect.stringContaining('"model":"deepseek-v4-flash"') }),
+		);
+		logSpy.mockRestore();
+	});
+
 	it("returns null without contacting Zen when Discord content is not allowed", async () => {
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 		delete process.env.ZEN_ALLOW_DISCORD_CONTENT;

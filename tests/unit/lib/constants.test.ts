@@ -52,4 +52,37 @@ describe("runtime constants", () => {
 
 		expect(TARGET_GUILD_ID).toBe("123456789012345678");
 	});
+
+	it("falls back to the documented defaults when the variables are blank", async () => {
+		process.env.TARGET_GUILD_ID = "";
+		process.env.TARGET_TEXT_CHANNEL_ID = "  ";
+		process.env.GUESS_WHO_CHANNEL_ID = "";
+		process.env.GUESS_WHO_BACKFILL_LIMIT = "";
+
+		const constants = await importConstants();
+
+		expect(constants.TARGET_GUILD_ID).toBe("199168135935295488");
+		expect(constants.getTargetGuildId()).toBe("199168135935295488");
+		expect(constants.TARGET_TEXT_CHANNEL_ID).toBe("199168135935295488");
+		expect(constants.GUESS_WHO_CHANNEL_ID).toBe("199168135935295488");
+		expect(constants.GUESS_WHO_BACKFILL_LIMIT).toBe(1000);
+	});
+
+	it("falls back to the default backfill limit when it is not a number", async () => {
+		process.env.GUESS_WHO_BACKFILL_LIMIT = "lots";
+
+		const { GUESS_WHO_BACKFILL_LIMIT } = await importConstants();
+
+		expect(GUESS_WHO_BACKFILL_LIMIT).toBe(1000);
+	});
+
+	it("keeps configured values, including a zero backfill limit", async () => {
+		process.env.TARGET_GUILD_ID = " 123456789012345678 ";
+		process.env.GUESS_WHO_BACKFILL_LIMIT = "0";
+
+		const constants = await importConstants();
+
+		expect(constants.TARGET_GUILD_ID).toBe("123456789012345678");
+		expect(constants.GUESS_WHO_BACKFILL_LIMIT).toBe(0);
+	});
 });

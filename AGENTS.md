@@ -92,20 +92,20 @@ The web app is not included in the bot TypeScript build because root `tsconfig.j
 
 ## Environment Variables
 
-Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when environment variables change.
+Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `environment:` list), and this table in sync when environment variables change. `tests/unit/config/envContract.test.ts` fails when a variable the bot reads is missing from any of them, or when this table documents a variable nothing reads. A blank value counts as unset and falls back to the default (`src/lib/env.ts`).
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `DISCORD_TOKEN` | required | Bot token |
-| `DISCORD_CLIENT_ID` | optional | Discord application/client ID |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot` | Postgres connection |
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `VALKEY_URL` | `redis://localhost:6379` | Valkey/Redis for Sapphire scheduled-task BullMQ backing |
-| `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password |
+| `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password; also the password in Compose's default `DATABASE_URL` for the bot and web services |
 | `ZEN_API_KEY` | unset | opencode Zen API key; responder and summary replies require it (plus `ZEN_ALLOW_DISCORD_CONTENT=true`). Personality generation is disabled independently |
 | `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; with local LLM disabled there is no other provider |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
 | `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder, summaries, and user/guild personality generation |
+| `ZEN_TIMEOUT_MS` | `15000` | Per-request Zen timeout; values under 1000 or non-numeric fall back to the default |
 | `WEB_PORT` | `3000` in `.env.example`, `4321` Compose fallback | Host port for the web service |
 | `PUBLIC_BOT_INVITE_URL` | Discord OAuth URL | Public invite link shown by the web app |
 | `PUBLIC_STATS_INTERVAL_MS` | `300000` | Bot stats snapshot refresh interval |
