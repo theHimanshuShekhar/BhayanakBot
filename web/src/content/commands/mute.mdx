@@ -29,4 +29,4 @@ related:
   - { n: "/case", d: "Inspect cases" }
 ---
 
-Requires moderator access and a configured muted role from `/config set setting:muted-role role:@Muted`. The expiration task removes the role after the stored duration.
+Requires moderator access and a configured muted role from `/config set setting:muted-role role:@Muted`. The expiration task removes the role after the stored duration, and keeps retrying if Discord is temporarily unreachable. A new mute replaces the member's earlier active mute, so the earlier expiry cannot unmute them early; `/unmute` closes any active mute too.

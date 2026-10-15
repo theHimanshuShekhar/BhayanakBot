@@ -46,7 +46,9 @@ export class GuildAuditLogsEntryCreateListener extends Listener {
 		// Create mod case for moderation actions (with deduplication)
 		if (caseType && targetId) {
 			const since = new Date(Date.now() - 10_000);
-			const existing = await findRecentCase(guild.id, targetId, caseType as ModCase["type"], since);
+			// A bot-issued tempban appears in the audit log as a plain ban; recording it again would supersede the tempban.
+			const dedupTypes: ModCase["type"][] = caseType === "ban" ? ["ban", "tempban"] : [caseType as ModCase["type"]];
+			const existing = await findRecentCase(guild.id, targetId, dedupTypes, since);
 			if (!existing) {
 				try {
 					await createCase({

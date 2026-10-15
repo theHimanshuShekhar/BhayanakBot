@@ -29,4 +29,4 @@ related:
   - { n: "/history", d: "View user history" }
 ---
 
-Requires moderator access. A duration creates a temporary ban entry for the expiration task to reverse later.
+Requires moderator access. A duration creates a temporary ban entry for the expiration task to reverse later, retrying if Discord is temporarily unreachable. The latest action wins: a new ban or temporary ban replaces the member's earlier active ban, so an old temporary ban's expiry cannot unban them, and `/unban` closes any active ban too.

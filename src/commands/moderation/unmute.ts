@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { createCase, deactivateCase, getUserCases } from "../../db/queries/modCases.js";
+import { createCase } from "../../db/queries/modCases.js";
 import { logToChannel } from "./warn.js";
 
 export class UnmuteCommand extends Command {
@@ -49,12 +49,6 @@ export class UnmuteCommand extends Command {
 			await target.roles.remove(mutedRole, reason);
 		} catch {
 			return interaction.editReply("❌ I don't have permission to unmute this member.");
-		}
-
-		// Deactivate active mute cases
-		const cases = await getUserCases(interaction.guildId!, target.id);
-		for (const c of cases.filter((c) => c.type === "mute" && c.active)) {
-			await deactivateCase(c.id);
 		}
 
 		const modCase = await createCase({

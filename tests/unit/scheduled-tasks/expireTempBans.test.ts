@@ -1,4 +1,5 @@
 import { container } from "@sapphire/framework";
+import { DiscordAPIError, RESTJSONErrorCodes } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCase, deactivateCase, getExpiredActiveCases } from "../../../src/db/queries/modCases.js";
 import { ExpireTempBansTask } from "../../../src/scheduled-tasks/expireTempBans.js";
@@ -12,6 +13,26 @@ vi.mock("../../../src/db/queries/modCases.js", () => ({
 const mockedCreateCase = vi.mocked(createCase);
 const mockedDeactivateCase = vi.mocked(deactivateCase);
 const mockedGetExpiredActiveCases = vi.mocked(getExpiredActiveCases);
+
+function discordError(code: RESTJSONErrorCodes, status = 404): DiscordAPIError {
+	return new DiscordAPIError({ code, message: "error" }, code, status, "GET", "/test", {});
+}
+
+function expiredTempBan(id = 1) {
+	return {
+		id,
+		caseNumber: 1,
+		guildId: "guild-1",
+		userId: "user-1",
+		moderatorId: "mod-1",
+		type: "tempban" as const,
+		reason: null,
+		duration: null,
+		expiresAt: new Date(),
+		active: true,
+		createdAt: new Date(),
+	};
+}
 
 function createTask(): ExpireTempBansTask {
 	return new ExpireTempBansTask(
@@ -85,5 +106,67 @@ describe("ExpireTempBansTask", () => {
 		expect(mockedCreateCase).toHaveBeenCalledWith(
 			expect.objectContaining({ guildId: "guild-1", userId: "user-2", moderatorId: "bot-user", type: "unban" }),
 		);
+	});
+
+	it.each([
+		["a rate limit", discordError(RESTJSONErrorCodes.MissingPermissions, 429)],
+		["a server error", discordError(RESTJSONErrorCodes.MissingPermissions, 503)],
+		["a network error", new Error("read ECONNRESET")],
+	])("leaves the case active when unban fails with %s", async (_label, error) => {
+		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredTempBan()]);
+		(container.client.guilds.fetch as any).mockResolvedValueOnce({
+			members: { unban: vi.fn().mockRejectedValueOnce(error) },
+		});
+
+		await createTask().run();
+
+		expect(mockedDeactivateCase).not.toHaveBeenCalled();
+		expect(mockedCreateCase).not.toHaveBeenCalled();
+	});
+
+	it("leaves the case active when fetching the guild fails transiently", async () => {
+		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredTempBan()]);
+		(container.client.guilds.fetch as any).mockRejectedValueOnce(
+			discordError(RESTJSONErrorCodes.MissingPermissions, 503),
+		);
+
+		await createTask().run();
+
+		expect(mockedDeactivateCase).not.toHaveBeenCalled();
+		expect(mockedCreateCase).not.toHaveBeenCalled();
+	});
+
+	it("closes the case without an unban case when the bot was removed from the guild", async () => {
+		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredTempBan(7)]);
+		(container.client.guilds.fetch as any).mockRejectedValueOnce(discordError(RESTJSONErrorCodes.UnknownGuild));
+
+		await createTask().run();
+
+		expect(mockedDeactivateCase).toHaveBeenCalledWith(7);
+		expect(mockedCreateCase).not.toHaveBeenCalled();
+	});
+
+	it("treats Unknown Ban as a successful unban and closes the case", async () => {
+		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredTempBan(8)]);
+		(container.client.guilds.fetch as any).mockResolvedValueOnce({
+			members: { unban: vi.fn().mockRejectedValueOnce(discordError(RESTJSONErrorCodes.UnknownBan)) },
+		});
+
+		await createTask().run();
+
+		expect(mockedDeactivateCase).toHaveBeenCalledWith(8);
+		expect(mockedCreateCase).toHaveBeenCalledWith(expect.objectContaining({ type: "unban", userId: "user-1" }));
+	});
+
+	it("keeps processing remaining cases after one fails", async () => {
+		mockedGetExpiredActiveCases.mockResolvedValueOnce([expiredTempBan(1), expiredTempBan(2)]);
+		(container.client.guilds.fetch as any)
+			.mockResolvedValueOnce({ members: { unban: vi.fn().mockRejectedValueOnce(new Error("boom")) } })
+			.mockResolvedValueOnce({ members: { unban: vi.fn().mockResolvedValueOnce(undefined) } });
+
+		await createTask().run();
+
+		expect(mockedDeactivateCase).toHaveBeenCalledTimes(1);
+		expect(mockedDeactivateCase).toHaveBeenCalledWith(2);
 	});
 });

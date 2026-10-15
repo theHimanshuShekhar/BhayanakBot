@@ -1,5 +1,7 @@
 import { ScheduledTask } from "@sapphire/plugin-scheduled-tasks";
+import { type Guild, RESTJSONErrorCodes } from "discord.js";
 import { createCase, deactivateCase, getExpiredActiveCases } from "../db/queries/modCases.js";
+import { isDiscordApiError } from "../lib/discordErrors.js";
 
 export class ExpireTempBansTask extends ScheduledTask {
 	public constructor(context: ScheduledTask.LoaderContext, options: ScheduledTask.Options) {
@@ -11,21 +13,31 @@ export class ExpireTempBansTask extends ScheduledTask {
 
 		for (const modCase of expired) {
 			try {
-				const guild = await this.container.client.guilds.fetch(modCase.guildId).catch(() => null);
-				if (!guild) {
-					await deactivateCase(modCase.id);
+				let guild: Guild;
+				try {
+					guild = await this.container.client.guilds.fetch(modCase.guildId);
+				} catch (error) {
+					if (isDiscordApiError(error, RESTJSONErrorCodes.UnknownGuild)) {
+						// The bot was removed from the guild and can no longer lift the ban.
+						await deactivateCase(modCase.id);
+					} else {
+						this.container.logger.warn(
+							`[ExpireTempBans] Failed to fetch guild ${modCase.guildId} for case #${modCase.id} (${String(error)}) — will retry`,
+						);
+					}
 					continue;
 				}
 
-				const unbanned = await guild.members
-					.unban(modCase.userId, "Temporary ban expired")
-					.then(() => true)
-					.catch(() => false);
-				if (!unbanned) {
-					this.container.logger.warn(
-						`[ExpireTempBans] Failed to unban ${modCase.userId} in ${modCase.guildId} — will retry`,
-					);
-					continue;
+				try {
+					await guild.members.unban(modCase.userId, "Temporary ban expired");
+				} catch (error) {
+					// Unknown Ban means the user is already unbanned, which is the outcome we wanted.
+					if (!isDiscordApiError(error, RESTJSONErrorCodes.UnknownBan)) {
+						this.container.logger.warn(
+							`[ExpireTempBans] Failed to unban ${modCase.userId} in ${modCase.guildId} (${String(error)}) — will retry`,
+						);
+						continue;
+					}
 				}
 
 				await deactivateCase(modCase.id);

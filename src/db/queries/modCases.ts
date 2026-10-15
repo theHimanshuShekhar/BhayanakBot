@@ -1,13 +1,37 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { modCases } from "../schema.js";
 
 export type ModCase = typeof modCases.$inferSelect;
 export type ModCaseInsert = typeof modCases.$inferInsert;
 
+// Current Punishment: the latest action wins, so a new case closes the member's other active cases of its kind.
+const SUPERSEDED_TYPES: Partial<Record<ModCase["type"], ModCase["type"][]>> = {
+	ban: ["ban", "tempban"],
+	tempban: ["ban", "tempban"],
+	unban: ["ban", "tempban"],
+	mute: ["mute"],
+	unmute: ["mute"],
+};
+
 export async function createCase(data: Omit<ModCaseInsert, "caseNumber" | "id">): Promise<ModCase> {
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${data.guildId}, 0))`);
+
+		const superseded = SUPERSEDED_TYPES[data.type];
+		if (superseded) {
+			await tx
+				.update(modCases)
+				.set({ active: false })
+				.where(
+					and(
+						eq(modCases.guildId, data.guildId),
+						eq(modCases.userId, data.userId),
+						inArray(modCases.type, superseded),
+						eq(modCases.active, true),
+					),
+				);
+		}
 
 		const [created] = await tx
 			.insert(modCases)
@@ -50,14 +74,14 @@ export async function getExpiredActiveCases(type: "mute" | "tempban"): Promise<M
 export async function findRecentCase(
 	guildId: string,
 	userId: string,
-	type: ModCase["type"],
+	type: ModCase["type"] | ModCase["type"][],
 	since: Date,
 ): Promise<ModCase | undefined> {
 	return db.query.modCases.findFirst({
 		where: and(
 			eq(modCases.guildId, guildId),
 			eq(modCases.userId, userId),
-			eq(modCases.type, type),
+			inArray(modCases.type, Array.isArray(type) ? type : [type]),
 			gte(modCases.createdAt, since),
 		),
 		orderBy: [desc(modCases.createdAt)],
