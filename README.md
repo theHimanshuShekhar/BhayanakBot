@@ -151,6 +151,6 @@ pnpm db:push    # push schema changes without a migration (dev only)
 
 Biome enforces: tabs, double quotes, trailing commas, 120-char line width.
 
-`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. The hook does not run the type check or the tests, so run `pnpm typecheck`, `pnpm test`, and (after changing `web/`) `pnpm web:build` before pushing. Dockhand builds the Docker images from the repository.
+`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. The hook does not run the type check or the tests, so run `pnpm typecheck`, `pnpm test`, and (after changing `web/`) `pnpm web:build` before pushing. CI (`.github/workflows/ci.yml`) runs the dependency audit, Biome, the type check, the full test suite against a Postgres service, and the web build on every pull request and push to `main`; it publishes no image. Dockhand builds the Docker images from the repository.
 
 When adding new Drizzle `pgEnum` values, always generate and run a migration — `db:push` skips enum changes.

@@ -204,6 +204,10 @@ Test hygiene rules (the suite runs files in parallel against one database):
 
 Tests are type-checked by `tsconfig.test.json` (Vitest-style ESM/bundler resolution, covers `src` and `tests`); `pnpm typecheck` runs it after the root `tsc --noEmit`.
 
+## CI
+
+`.github/workflows/ci.yml` runs a `verify` job on pull requests and pushes to `main`, with a Postgres service: `pnpm audit:prod`, `pnpm check:ci`, `pnpm typecheck`, `pnpm test`, `pnpm web:build`. CI publishes no image; deployment is Dockhand building the stack from this repository.
+
 ## Pre-commit hook
 
 `.githooks/pre-commit` runs `biome check --staged` (no auto-fix). `pnpm install` enables it through the `prepare` script, which sets `core.hooksPath` to `.githooks` and is a no-op where there is no repository (e.g. Docker). The hook does not run the type check or the tests; run `pnpm typecheck` and `pnpm test` yourself.
