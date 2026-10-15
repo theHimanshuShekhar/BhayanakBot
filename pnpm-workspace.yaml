@@ -3,4 +3,10 @@ onlyBuiltDependencies:
   - esbuild
   - msgpackr-extract
   - sharp
-  - youtube-dl-exec
+overrides:
+  # Transitive packages whose parents have not shipped a patched range. Same-major bumps only
+  # (tar 6 -> 7 is safe: @discordjs/node-pre-gyp only calls tar.extract/tar.create at install time).
+  tar@<7.5.22: ^7.5.22
+  brace-expansion@<1.1.21: ^1.1.21
+  source-map-js@<1.2.2: ^1.2.2
+  ws@<8.22.0: ^8.22.0

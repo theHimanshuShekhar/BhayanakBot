@@ -6,7 +6,7 @@ RUN npm install -g pnpm@10.30.1
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY src/ ./src/
@@ -26,7 +26,7 @@ RUN npm install -g pnpm@10.30.1
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild esbuild
 
 COPY drizzle.config.ts ./
@@ -44,7 +44,7 @@ RUN npm install -g pnpm@10.30.1
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Keep dev tools available for the Compose web service and in-container migrations,
 # but run the bot from compiled JavaScript instead of tsx source.
 RUN pnpm install --frozen-lockfile

@@ -169,6 +169,12 @@ Available preconditions in command constructors: `GuildOnly`, `HomeServerOnly`, 
 
 Staff commands set `setDefaultMemberPermissions` so regular members do not see them (moderation: its action permission, or ModerateMembers for warn/case/history; `/config`, `/autorespond`, `/giveaway`, `/level-reset`: ManageGuild). Server admins can widen visibility in Server Settings > Integrations. `/snipe` and `/editsnipe` are open to everyone; their caches drop entries older than 10 minutes.
 
+## Dependencies
+
+`pnpm audit:prod` (`pnpm audit --prod --audit-level=high`) must stay clean; CI calls it. Advisories left below that gate, and the `overrides` in `pnpm-workspace.yaml`, are explained in `docs/dependency-advisories.md`. Renovate (`renovate.json`) opens a weekly grouped minor/patch PR and one PR per major. `pnpm-workspace.yaml` must be copied into the Docker build stages: it holds the overrides that `--frozen-lockfile` checks.
+
+`undici`, `bgutils-js`, `googlevideo`, and `simple-ytdl-core` are direct dependencies only because `discord-player` / `discord-player-youtubei` need them as peers or import them undeclared (`simple-ytdl-core` in 3.1.0). Nothing in `src/` imports them; do not remove them as unused.
+
 ## Code Style
 
 Biome enforces tabs, double quotes, trailing commas, semicolons, and 120-character line width. Run `pnpm check` before committing when code or formatted docs change.

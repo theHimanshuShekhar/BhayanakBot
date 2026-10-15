@@ -1,0 +1,26 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended"],
+	"schedule": ["before 6am on monday"],
+	"timezone": "UTC",
+	"prConcurrentLimit": 5,
+	"lockFileMaintenance": { "enabled": true },
+	"packageRules": [
+		{
+			"description": "One weekly PR for all minor and patch updates",
+			"matchUpdateTypes": ["minor", "patch", "digest"],
+			"groupName": "all non-major dependencies",
+			"groupSlug": "all-minor-patch"
+		},
+		{
+			"description": "Each major update gets its own PR",
+			"matchUpdateTypes": ["major"],
+			"separateMajorMinor": true,
+			"dependencyDashboardApproval": false
+		}
+	],
+	"vulnerabilityAlerts": {
+		"enabled": true,
+		"schedule": ["at any time"]
+	}
+}
