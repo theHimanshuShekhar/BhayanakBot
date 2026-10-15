@@ -153,6 +153,8 @@ Music uses `discord-player` v7 with `DefaultExtractors` and `discord-player-yout
 
 Current handlers include music buttons, poll votes, giveaway entry, and help menu/buttons.
 
+Failed and denied interactions are answered centrally by the listeners in `src/listeners/commands/` (chat input command and subcommand error/denied, interaction handler error/parse error) through `src/lib/interactionErrors.ts`. Unexpected errors reply ephemerally with "Something went wrong. Reference: `abc123`" and log the same reference; commands and handlers should throw rather than reply with raw error text.
+
 ## Preconditions
 
 Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags.
