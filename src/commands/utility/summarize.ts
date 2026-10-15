@@ -1,10 +1,16 @@
-import { BucketScope, Command } from "@sapphire/framework";
-import { EmbedBuilder, SnowflakeUtil, type TextBasedChannel } from "discord.js";
+import { Command } from "@sapphire/framework";
+import { EmbedBuilder } from "discord.js";
 import { HOME_SERVER_REGISTRATION } from "../../lib/homeServer.js";
 import { callInteractiveLlm } from "../../lib/llmProvider.js";
+import {
+	fetchRecentMessages,
+	formatCoverage,
+	MAX_SUMMARY_MESSAGES,
+	trimToBudget,
+	truncateForEmbed,
+} from "../../lib/summarize.js";
 
 const COOLDOWN_MS = 10 * 60 * 1000;
-const MAX_MESSAGES = 200;
 
 const SYSTEM_PROMPT = [
 	"You are a helpful assistant. Summarize the following Discord chat conversation concisely in bullet points.",
@@ -22,64 +28,26 @@ const TIME_MAP: Record<string, number> = {
 	"24h": 24 * 60 * 60 * 1000,
 };
 
-// Per-channel cooldown: channelId -> expiry timestamp
-const channelCooldowns = new Map<string, number>();
-
-async function fetchMessagesByCount(channel: TextBasedChannel, count: number): Promise<string[]> {
-	const messages: string[] = [];
-	let before: string | undefined;
-	let remaining = Math.min(count, MAX_MESSAGES);
-
-	while (remaining > 0) {
-		const limit = Math.min(remaining, 100);
-		const fetched = await channel.messages.fetch({ limit, ...(before ? { before } : {}) }).catch(() => null);
-		if (!fetched || fetched.size === 0) break;
-
-		const batch = [...fetched.values()]
-			.filter((m) => !m.author.bot && m.content.trim().length > 0)
-			.map((m) => `${m.author.displayName}: ${m.content.trim()}`);
-		messages.push(...batch);
-
-		before = fetched.last()?.id;
-		remaining -= fetched.size;
-		if (fetched.size < limit) break;
-	}
-
-	return messages.reverse();
-}
-
-async function fetchMessagesByTime(channel: TextBasedChannel, windowMs: number): Promise<string[]> {
-	const since = Date.now() - windowMs;
-	const afterSnowflake = SnowflakeUtil.generate({ timestamp: since }).toString();
-	const messages: string[] = [];
-	let after: string = afterSnowflake;
-
-	while (messages.length < MAX_MESSAGES) {
-		const fetched = await channel.messages.fetch({ limit: 100, after }).catch(() => null);
-		if (!fetched || fetched.size === 0) break;
-
-		// Messages fetched with `after` come back newest-first; filter to window
-		const batch = [...fetched.values()]
-			.filter((m) => m.createdTimestamp >= since && !m.author.bot && m.content.trim().length > 0)
-			.map((m) => `${m.author.displayName}: ${m.content.trim()}`);
-		messages.push(...batch);
-
-		// If we got a full page and haven't hit the cap, paginate forward
-		if (fetched.size < 100) break;
-		after = fetched.first()!.id;
-	}
-
-	return messages.reverse();
+function formatRemaining(expiry: number): string {
+	const remainingSecs = Math.ceil((expiry - Date.now()) / 1000);
+	const mins = Math.floor(remainingSecs / 60);
+	const secs = remainingSecs % 60;
+	return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
 export class SummarizeCommand extends Command {
+	// Cooldowns are manual (not Sapphire's) because they must only be consumed when a summary is produced.
+	// key -> expiry timestamp
+	private readonly userCooldowns = new Map<string, number>();
+	private readonly channelCooldowns = new Map<string, number>();
+	// Users and channels with a summary being generated, so concurrent runs cannot both call the LLM.
+	private readonly busyUsers = new Set<string>();
+	private readonly busyChannels = new Set<string>();
+
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
 			preconditions: ["GuildOnly", "HomeServerOnly"],
-			cooldownDelay: COOLDOWN_MS,
-			cooldownScope: BucketScope.User,
-			cooldownLimit: 1,
 			help: {
 				summary: "Summarize recent messages in this channel using AI.",
 				examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
@@ -120,20 +88,52 @@ export class SummarizeCommand extends Command {
 		);
 	}
 
+	private activeCooldown(cooldowns: Map<string, number>, key: string): number | null {
+		const expiry = cooldowns.get(key);
+		if (expiry === undefined) return null;
+		if (Date.now() >= expiry) {
+			cooldowns.delete(key);
+			return null;
+		}
+		return expiry;
+	}
+
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		// Per-channel cooldown check
-		const channelExpiry = channelCooldowns.get(interaction.channelId);
-		if (channelExpiry && Date.now() < channelExpiry) {
-			const remainingSecs = Math.ceil((channelExpiry - Date.now()) / 1000);
-			const mins = Math.floor(remainingSecs / 60);
-			const secs = remainingSecs % 60;
-			const remaining = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+		const userId = interaction.user.id;
+		const channelId = interaction.channelId;
+
+		const userExpiry = this.activeCooldown(this.userCooldowns, userId);
+		if (userExpiry) {
 			return interaction.reply({
-				content: `⏳ This channel's summary is on cooldown. Try again in **${remaining}**.`,
+				content: `⏳ You can summarize again in **${formatRemaining(userExpiry)}**.`,
+				ephemeral: true,
+			});
+		}
+		const channelExpiry = this.activeCooldown(this.channelCooldowns, channelId);
+		if (channelExpiry) {
+			return interaction.reply({
+				content: `⏳ This channel's summary is on cooldown. Try again in **${formatRemaining(channelExpiry)}**.`,
+				ephemeral: true,
+			});
+		}
+		if (this.busyChannels.has(channelId) || this.busyUsers.has(userId)) {
+			return interaction.reply({
+				content: "⏳ A summary is already being generated. Try again in a moment.",
 				ephemeral: true,
 			});
 		}
 
+		this.busyChannels.add(channelId);
+		this.busyUsers.add(userId);
+		try {
+			return await this.summarize(interaction);
+		} finally {
+			this.busyChannels.delete(channelId);
+			this.busyUsers.delete(userId);
+		}
+	}
+
+	private async summarize(interaction: Command.ChatInputCommandInteraction) {
 		await interaction.deferReply();
 
 		const channel = interaction.channel;
@@ -144,24 +144,20 @@ export class SummarizeCommand extends Command {
 		const timeChoice = interaction.options.getString("time");
 		const count = interaction.options.getInteger("count") ?? 50;
 
-		let messages: string[];
-		let footerLabel: string;
+		const fetched =
+			timeChoice && TIME_MAP[timeChoice]
+				? await fetchRecentMessages(channel, {
+						limit: MAX_SUMMARY_MESSAGES,
+						since: Date.now() - TIME_MAP[timeChoice],
+					})
+				: await fetchRecentMessages(channel, { limit: Math.min(count, MAX_SUMMARY_MESSAGES) });
 
-		if (timeChoice && TIME_MAP[timeChoice]) {
-			const windowMs = TIME_MAP[timeChoice];
-			messages = await fetchMessagesByTime(channel, windowMs);
-			footerLabel = `past ${timeChoice}`;
-		} else {
-			messages = await fetchMessagesByCount(channel, count);
-			footerLabel = `last ${count} messages`;
-		}
-
-		if (messages.length === 0) {
+		if (fetched.length === 0) {
 			return interaction.editReply({ content: "📭 No messages found to summarize." });
 		}
 
-		const prompt = messages.join("\n");
-		const summary = await callInteractiveLlm(SYSTEM_PROMPT, prompt, "summary", "summarize");
+		const { messages, prompt } = trimToBudget(fetched);
+		const summary = (await callInteractiveLlm(SYSTEM_PROMPT, prompt, "summary", "summarize"))?.trim();
 
 		if (!summary) {
 			return interaction.editReply({
@@ -173,16 +169,19 @@ export class SummarizeCommand extends Command {
 			});
 		}
 
-		// Set per-channel cooldown
-		channelCooldowns.set(interaction.channelId, Date.now() + COOLDOWN_MS);
-		setTimeout(() => channelCooldowns.delete(interaction.channelId), COOLDOWN_MS);
+		// Only a produced summary consumes the cooldowns.
+		const expiry = Date.now() + COOLDOWN_MS;
+		this.userCooldowns.set(interaction.user.id, expiry);
+		this.channelCooldowns.set(interaction.channelId, expiry);
 
 		const embed = new EmbedBuilder()
 			.setTitle("📝 Channel Summary")
-			.setDescription(summary)
-			.setColor(0x5865f2)
-			.setFooter({ text: `Summarized ${messages.length} messages • ${footerLabel}` });
+			.setDescription(truncateForEmbed(summary))
+			.setColor(0x5865f2);
 
-		return interaction.editReply({ embeds: [embed] });
+		return interaction.editReply({
+			content: formatCoverage(messages.length, messages[0].createdTimestamp),
+			embeds: [embed],
+		});
 	}
 }

@@ -30,4 +30,8 @@ related:
 
 This command is only available in the Bhayanak server.
 
-`time` overrides `count` when both are provided. Successful summaries apply a 10-minute cooldown for the channel.
+`time` overrides `count` when both are provided. When a window holds more than 200 messages, the newest 200 are summarized. Messages reach the model oldest first, and the oldest are dropped if the conversation is too long for the model prompt (about 24,000 characters).
+
+The reply states what was covered, for example "Summarized the last 143 messages (since 14:32)", shown in your local time. Long summaries are shortened to fit Discord's embed limit.
+
+A summary applies a 10-minute cooldown to the member and to the channel, but only when one is actually produced; a failed or empty summary does not use it up. Only one summary runs at a time per channel.
