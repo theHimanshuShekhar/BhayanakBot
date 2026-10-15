@@ -65,7 +65,7 @@ services:
       ZEN_ALLOW_DISCORD_CONTENT: ${ZEN_ALLOW_DISCORD_CONTENT:-false}
       ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/zen/go/v1}
       ZEN_MODEL: ${ZEN_MODEL:-deepseek-v4-flash}
-      ZEN_TIMEOUT_MS: ${ZEN_TIMEOUT_MS:-15000}
+      ZEN_TIMEOUT_MS: ${ZEN_TIMEOUT_MS:-30000}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       BOT_OWNER_ID: ${BOT_OWNER_ID:-}
       TARGET_GUILD_ID: ${TARGET_GUILD_ID:-}

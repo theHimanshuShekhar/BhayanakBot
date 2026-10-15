@@ -9,7 +9,7 @@ export async function generateAutoResponse(
 	const prompt = conversationContext
 		? `Recent conversation in this channel:\n${conversationContext}\n\n${authorName} just said: "${triggerMessage}"`
 		: `${authorName} said: "${triggerMessage}"`;
-	return callInteractiveLlm(systemPrompt, prompt, 120_000, "autoresponder:auto-response");
+	return callInteractiveLlm(systemPrompt, prompt, "chat", "autoresponder:auto-response");
 }
 
 export async function generateMentionReply(
@@ -25,7 +25,7 @@ export async function generateMentionReply(
 		`${authorName} just mentioned you: "${messageContent}"`,
 		`Reply as part of the conversation with a joke or playful roast. Keep it concise (1-3 sentences). Avoid genuine hostility.`,
 	].join("\n\n");
-	return callInteractiveLlm("", prompt, 120_000, "autoresponder:mention-reply");
+	return callInteractiveLlm("", prompt, "chat", "autoresponder:mention-reply");
 }
 
 export async function generateChatResponse(
@@ -41,5 +41,5 @@ export async function generateChatResponse(
 		`${authorName} says: "${messageContent}"`,
 		`Reply naturally with a joke or playful roast. Keep it funny, not hostile.`,
 	].join("\n\n");
-	return callInteractiveLlm("", prompt, 120_000, "autoresponder:chat-response");
+	return callInteractiveLlm("", prompt, "chat", "autoresponder:chat-response");
 }

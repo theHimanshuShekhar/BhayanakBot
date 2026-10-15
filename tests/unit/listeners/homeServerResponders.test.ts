@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
-import { callInteractiveLlm } from "../../../src/lib/llmProvider.js";
+import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
 import { MentionResponderListener } from "../../../src/listeners/messages/mentionResponder.js";
 import { RandomResponderListener } from "../../../src/listeners/messages/randomResponder.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
@@ -15,12 +15,16 @@ vi.mock("../../../src/lib/constants.js", () => ({
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({
 	getOrCreateSettings: vi.fn(async () => ({ personalityEnabled: false })),
 }));
-vi.mock("../../../src/lib/llmProvider.js", () => ({ callInteractiveLlm: vi.fn(async () => "a witty reply") }));
+vi.mock("../../../src/lib/llmProvider.js", () => ({
+	callInteractiveLlm: vi.fn(async () => "a witty reply"),
+	callBackgroundLlm: vi.fn(async () => "a witty reply"),
+}));
 vi.mock("../../../src/lib/personality/getPersonalityContext.js", () => ({
 	getPersonalityContext: vi.fn(async () => ""),
 }));
 
 const mockedCallInteractiveLlm = vi.mocked(callInteractiveLlm);
+const mockedCallBackgroundLlm = vi.mocked(callBackgroundLlm);
 const mockedGetOrCreateSettings = vi.mocked(getOrCreateSettings);
 
 let authorCounter = 0;
@@ -100,7 +104,12 @@ describe("passive responders outside the Home Server", () => {
 
 		await runRandomResponder(message);
 
-		expect(mockedCallInteractiveLlm).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.any(String),
+			"chat",
+			"random-responder",
+		);
 		expect(message.channel.send).toHaveBeenCalledWith("a witty reply");
 	});
 
@@ -110,7 +119,7 @@ describe("passive responders outside the Home Server", () => {
 		await runRandomResponder(message);
 
 		expect(message.channel.messages.fetch).not.toHaveBeenCalled();
-		expect(mockedCallInteractiveLlm).not.toHaveBeenCalled();
+		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
 		expect(message.channel.send).not.toHaveBeenCalled();
 	});
 });

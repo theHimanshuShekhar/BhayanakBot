@@ -2,10 +2,9 @@ import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import { isHomeServer } from "../../lib/homeServer.js";
-import { callInteractiveLlm } from "../../lib/llmProvider.js";
+import { callBackgroundLlm } from "../../lib/llmProvider.js";
 
 const HISTORY_LIMIT = 20;
-const LLM_TIMEOUT_MS = 60_000;
 
 const PERSONALITIES = [
 	"a passive-aggressive Reddit commenter with downvote energy and 'this is fine' irony",
@@ -79,7 +78,7 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 		await channel.sendTyping().catch(() => null);
 
-		const response = await callInteractiveLlm(system, prompt, LLM_TIMEOUT_MS, "random-responder");
+		const response = await callBackgroundLlm(system, prompt, "chat", "random-responder");
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;

@@ -7,7 +7,6 @@ import { db } from "../database.js";
 import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
 
-const LLM_TIMEOUT_MS = 90_000;
 // Prevent runaway prompts: absorb at most 100 messages or 8 000 chars per build pass.
 // phi3:mini on CPU can't handle 40K chars in a reasonable time; smaller chunks finish reliably.
 const MAX_MESSAGES_PER_BUILD = 100;
@@ -152,10 +151,10 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 	const client = container.client as BhayanakClient;
 
 	container.logger.debug(
-		`[personality] llm-call userId=${userId} guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${LLM_TIMEOUT_MS}`,
+		`[personality] llm-call userId=${userId} guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length}`,
 	);
 	const llmStartedAt = Date.now();
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, LLM_TIMEOUT_MS, "personality:user");
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", "personality:user");
 	container.logger.debug(
 		`[personality] llm-result userId=${userId} guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
 	);

@@ -107,7 +107,7 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 | `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; with local LLM disabled there is no other provider |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
 | `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder, summaries, and user/guild personality generation |
-| `ZEN_TIMEOUT_MS` | `15000` | Per-request Zen timeout; values under 1000 or non-numeric fall back to the default |
+| `ZEN_TIMEOUT_MS` | `30000` | Timeout for Zen chat replies only (minimum 1000); summaries (120s) and personality builds (180s) keep their own timeouts |
 | `WEB_PORT` | `3000` in `.env.example`, `4321` Compose fallback | Host port for the web service |
 | `PUBLIC_BOT_INVITE_URL` | Discord OAuth URL | Public invite link shown by the web app |
 | `PUBLIC_STATS_INTERVAL_MS` | `300000` | Bot stats snapshot refresh interval |
@@ -136,6 +136,8 @@ Personality profile builders read eligible archived messages in bounded cursor w
 `personalityEnabled` is a guild admin operational toggle, not consent or opt-in/opt-out language. Normal AI replies may use personality context silently; `/personality view user` and `/personality view guild` are the explicit inspection surfaces. With `PERSONALITY_GENERATION_ENABLED=false`, both profile builders return `skipped_generation_disabled` as their first step, so no caller (the `messageCreate` threshold trigger, startup backfill, the refresh task, `/personality refresh`) builds a profile or sends archived content to the LLM. Archiving and evidence counting keep running so re-enabling needs no backfill.
 
 Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. There is no fallback provider; the Zen LLM Provider is the only one (ADR 0006).
+
+Every Zen call picks a budget mode (`LLM_BUDGETS`): `chat` (1500 output tokens, 30s), `summary` (4000, 120s), `personality` (4000, 180s); the token limit is sent as `max_tokens`. The limits are generous because `ZEN_MODEL` may be a reasoning model (production uses `minimax-m2.5`) whose reasoning tokens count toward `max_tokens`; a tight cap would truncate most replies. At most 3 Zen requests run at once with a 6-entry queue; when it is full, background calls (`callBackgroundLlm`: random replies, personality builds) are dropped first and return `null`. A response cut off by the token limit (`finish_reason: "length"`) is treated as no reply.
 
 ## Scheduled Tasks
 

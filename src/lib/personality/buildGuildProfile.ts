@@ -7,7 +7,6 @@ import { db } from "../database.js";
 import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
 
-const LLM_TIMEOUT_MS = 90_000;
 const MAX_MESSAGES_PER_BUILD = 200;
 const MAX_CHARS_PER_BUILD = 8_000;
 export const INITIAL_GUILD_PROFILE_THRESHOLD = 200;
@@ -146,10 +145,10 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 	const client = container.client as BhayanakClient;
 
 	container.logger.debug(
-		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length} timeoutMs=${LLM_TIMEOUT_MS}`,
+		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length}`,
 	);
 	const llmStartedAt = Date.now();
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, LLM_TIMEOUT_MS, "personality:guild");
+	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", "personality:guild");
 	container.logger.debug(
 		`[guild-personality] llm-result guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
 	);
