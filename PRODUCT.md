@@ -25,7 +25,7 @@ Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall
 
 ## Operating Context
 
-- The product lives inside Discord; the website is secondary surface (Astro static site in `web/`, built with `pnpm web:build`).
+- The product lives inside Discord; the website is secondary surface (Astro server-rendered site in `web/`, built with `pnpm web:build`).
 - Self-hosted deployment via Docker Compose (Postgres, bot, web); data volumes live on NAS storage per recent compose changes.
 - Ecosystem ties: `mc.bhayanak.net` Minecraft server (Homestead) and a Palworld tracker surface through `/minecraft` and status features.
 - Subsystems are compile-time feature-switched (`src/lib/features.ts`): personality generation is currently off; the site/docs must reflect what is actually enabled.
@@ -33,7 +33,7 @@ Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall
 
 ## Capabilities and Constraints
 
-- Command surface (~13 categories) is defined in the bot source; the web command catalog (`web/src/data/commands.ts`) and rich docs (`web/src/content/commands/`) MUST be updated in the same change whenever any Discord command is added, removed, renamed, or behaviorally modified.
+- Command surface (10 categories) is defined in the bot source; the web command catalog (`web/src/data/commands.ts`) and rich docs (`web/src/content/commands/`) MUST be updated in the same change whenever any Discord command is added, removed, renamed, or behaviorally modified.
 - Invite URL is environment-provided (`PUBLIC_BOT_INVITE_URL`).
 - AI responder/summaries require `ZEN_API_KEY` + `ZEN_ALLOW_DISCORD_CONTENT=true`; they degrade gracefully when unconfigured. Personality generation independently disabled.
 - Terminology: "BhayanakBot", "Guess Who" (archive-backed quote-guessing game), "Homestead" (Minecraft server).

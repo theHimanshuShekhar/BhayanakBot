@@ -252,7 +252,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/personality view user user:@someone", "/personality view guild"],
 		category: "utility",
 		usageNotes:
-			"Only available in the Bhayanak server. Profile generation is currently disabled, so profiles only reflect previously generated data. Server administrators can disable personality features entirely with /config.",
+			"Only available in the Bhayanak server. Profile generation is currently disabled, so profiles only reflect previously generated data. Server administrators can disable personality features entirely with /config. The refresh subcommands are registered but only answer that generation is disabled.",
 		subcommands: {
 			"view user": {
 				summary: "View your own user personality profile or another member's profile.",

@@ -32,7 +32,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Framework:** Sapphire Framework on Discord.js v14. Sapphire auto-discovers and loads stores from their directories; manual registration is not needed for standard stores. Background tasks are not a Sapphire store; see Scheduled Tasks.
 
-**Feature switches:** `src/lib/features.ts` holds the compile-time switch `PERSONALITY_GENERATION_ENABLED`. It is currently `false`: personality generation is inactive, though its code remains, and `refreshPersonalityProfiles` is left out of the task list in `src/tasks/index.ts`. Flip a flag and its wiring comes back.
+**Feature switches:** `src/lib/features.ts` holds the compile-time switch `PERSONALITY_GENERATION_ENABLED`. It is currently `false`: personality generation is inactive, though its code remains. Both profile builders refuse to run, `refreshPersonalityProfiles` is left out of the task list in `src/tasks/index.ts`, and `src/index.ts` skips the post-backfill initial builds. Set it to `true` and the wiring comes back.
 
 **Stores:**
 
@@ -47,11 +47,13 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Mention Policy:** the client sets `allowedMentions` to `DEFAULT_ALLOWED_MENTIONS` (`src/lib/allowedMentions.ts`): no user/role/everyone parsing and no reply pings, so every bot message notifies nobody. A per-send `allowedMentions` replaces the default entirely, so features that must reach specific members (reminder owner, levelled-up member, giveaway winners) pass `notifyOnly([...userIds])`. Do not sanitise text instead.
 
-**Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts the in-process task scheduler, and installs shutdown/process error handlers.
+**Entry point:** `src/index.ts` loads dotenv and the Sapphire logger and subcommands plugins, runs `validateRuntimeConfig()`, loads the discord-player extractors plus `discord-player-youtubei`, registers music player events, and logs in. On the first `clientReady` it removes stale global copies of the Home-Server commands, preloads the AI conversation history for the responder channels, and runs the Guess Who archive backfill (followed by the initial personality builds when `PERSONALITY_GENERATION_ENABLED`). After login it starts the in-process task scheduler and installs the shutdown and process error handlers.
 
 **Shutdown:** `src/lib/shutdown.ts` builds the one idempotent `shutdown(reason, exitCode)` used by `src/index.ts`. SIGINT/SIGTERM exit 0, an uncaught exception or startup failure exits 1 (a later non-zero code overrides an earlier zero), and an unhandled rejection is only logged. It runs these steps in order, each isolated so one failure does not block the rest: stop the task scheduler, destroy the music player, destroy the Discord client, end the database pool (`closeDatabase()`). A 10-second unref'd timer forces exit if a step hangs.
 
 **Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool (`buildPoolConfig`): `application_name` `bhayanakbot`, 10s connection timeout, 30s idle timeout, and a 60s `statement_timeout` (generous because personality and archive queries scan large message windows). Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.
+
+Migrations: `drizzle/0016_safe_mod_case_numbers.sql` and `drizzle/0017_audit_concurrency_constraints.sql` were written by hand, so `drizzle/meta` has no snapshots for them (it resumes at `0018`); both are in `_journal.json` and run normally. Never edit an applied migration: change the schema and generate a new one. Production applies pending migrations whenever the bot container starts, so a migration reaches the live database on the next deploy.
 
 Key query helpers:
 
@@ -62,6 +64,7 @@ Key query helpers:
 - `modCases.ts` — auto-incrementing per-guild case numbers, mutes/tempbans with `expiresAt` and `active` flags.
 - `autoResponses.ts` — static and LLM auto-responses with matching, regex, channel filters, mention requirements, chance, and trigger deletion. Regex triggers run on RE2 via `re2js` (`src/lib/autoresponder/regexTrigger.ts`): no lookarounds/backreferences, 100-char patterns, first 2000 chars of input, compiled patterns cached per response id; stored patterns that fail validation never run and show as disabled in `/autorespond list`.
 - `users.ts`, `polls.ts`, `giveaways.ts`, `reminders.ts`, `afk.ts` — feature-specific persistence helpers.
+- `publicStats.ts` and `dashboardPresence.ts` — the command counter and the latest public-stats and dashboard-presence snapshots the bot writes and the web service reads.
 
 ## Commands And Web Docs
 
@@ -85,7 +88,7 @@ When any Discord command is added, deleted, renamed, or behaviorally modified, u
 
 ## Web Frontend
 
-The `web/` directory is an Astro site built with MDX content collections and Tailwind CSS v4.
+The `web/` directory is an Astro site built with MDX content collections and Tailwind CSS v4. It runs in server mode (`output: "server"`, `@astrojs/node` standalone adapter) because it has API routes and reads the bot's stats and presence snapshots from Postgres.
 
 - Source lives in `web/src/`.
 - Pages live in `web/src/pages/`.
@@ -93,7 +96,7 @@ The `web/` directory is an Astro site built with MDX content collections and Tai
 - Rich command detail docs live in `web/src/content/commands/`.
 - Components live in `web/src/components/`.
 - `pnpm web:dev` runs Astro with `web/astro.config.mjs`.
-- `pnpm web:build` outputs to `web/dist/`.
+- `pnpm web:build` outputs to `web/dist/` (the server entry is `web/dist/server/entry.mjs`).
 
 The web app is not included in the bot TypeScript build because root `tsconfig.json` only includes `src/**/*`.
 
@@ -108,8 +111,8 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 | `WEB_DATABASE_URL` | the bot's default `DATABASE_URL` | Compose only: the web service's Postgres URL. Set it to `postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot` to use the SELECT-only role on the two snapshot tables. Migration 0024 creates that role without a password; set one with `ALTER ROLE bhayanak_web PASSWORD '...'` first (README, Docker). The web service ignores `DATABASE_URL` |
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password; also the password in Compose's default `DATABASE_URL` for the bot and web services |
-| `ZEN_API_KEY` | unset | opencode Zen API key; responder and summary replies require it (plus `ZEN_ALLOW_DISCORD_CONTENT=true`). Personality generation is disabled independently |
-| `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; with local LLM disabled there is no other provider |
+| `ZEN_API_KEY` | unset | opencode Zen API key; every AI call (responders, summaries, personality builds) requires it plus `ZEN_ALLOW_DISCORD_CONTENT=true`, and none are made without both. Personality builds are also off while `PERSONALITY_GENERATION_ENABLED` is `false` |
+| `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; Zen is the only provider, so otherwise AI features stay silent |
 | `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
 | `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder, summaries, and user/guild personality generation |
 | `ZEN_TIMEOUT_MS` | `30000` | Timeout for Zen chat replies only (minimum 1000); summaries (120s) and personality builds (180s) keep their own timeouts |
@@ -127,7 +130,7 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 | `BOT_OWNER_ID` | unset | Optional privileged Discord user ID; blank/unset disables owner bypasses |
 | `PALWORLD_API_URL` | `http://127.0.0.1:8212` | Palworld REST API base URL; the default assumes the server shares a host with the bot, which is false under Docker |
 | `PALWORLD_ADMIN_KEY` | unset | Palworld `AdminPassword`, sent as HTTP Basic auth with username `admin`; setting it enables the live player tracker |
-| `MINECRAFT_RCON_HOST` | `127.0.0.1` | Minecraft Java RCON host; set an address reachable from the bot container when Minecraft runs outside it |
+| `MINECRAFT_RCON_HOST` | `127.0.0.1` | Minecraft Java RCON host; set an address reachable from the bot container when Minecraft runs outside it (Compose defaults it to `mc`) |
 | `MINECRAFT_RCON_PORT` | `25575` | Minecraft Java RCON port |
 | `MINECRAFT_RCON_PASSWORD` | unset | Minecraft Java RCON password; setting it enables the live player tracker |
 
@@ -171,7 +174,7 @@ Staff commands set `setDefaultMemberPermissions` so regular members do not see t
 
 ## Dependencies
 
-`pnpm audit:prod` (`pnpm audit --prod --audit-level=high`) must stay clean; CI calls it. Advisories left below that gate, and the `overrides` in `pnpm-workspace.yaml`, are explained in `docs/dependency-advisories.md`. Renovate (`renovate.json`) opens a weekly grouped minor/patch PR and one PR per major. `pnpm-workspace.yaml` must be copied into the Docker build stages: it holds the overrides that `--frozen-lockfile` checks.
+`pnpm audit:prod` (`pnpm audit --prod --audit-level=high`) must stay clean. Advisories left below that gate, and the `overrides` in `pnpm-workspace.yaml`, are explained in `docs/dependency-advisories.md`. Renovate (`renovate.json`) opens a weekly grouped minor/patch PR and one PR per major. `pnpm-workspace.yaml` must be copied into the Docker build stages: it holds the overrides that `--frozen-lockfile` checks.
 
 `undici`, `bgutils-js`, `googlevideo`, and `simple-ytdl-core` are direct dependencies only because `discord-player` / `discord-player-youtubei` need them as peers or import them undeclared (`simple-ytdl-core` in 3.1.0). Nothing in `src/` imports them; do not remove them as unused.
 
@@ -189,7 +192,7 @@ New `pgEnum` values in Drizzle schema require a migration (`pnpm db:generate` + 
 
 Use `pnpm test` for the full suite. DB-backed tests need a reachable test Postgres database.
 
-Real-Zen personality e2e coverage is opt-in with `RUN_ZEN_E2E=1 ZEN_API_KEY=<key> ZEN_ALLOW_DISCORD_CONTENT=true pnpm vitest run tests/e2e/personality/zen-profile-generation.test.ts`; default runs and CI skip it. It makes real network calls to Zen and is required when prompts, the Zen integration, or profile generation change. It asserts profile structure, not prose.
+Real-Zen personality e2e coverage is opt-in with `RUN_ZEN_E2E=1 ZEN_API_KEY=<key> ZEN_ALLOW_DISCORD_CONTENT=true pnpm vitest run tests/e2e/personality/zen-profile-generation.test.ts`; default runs skip it. It makes real network calls to Zen and is required when prompts, the Zen integration, or profile generation change. It asserts profile structure, not prose.
 
 Test hygiene rules (the suite runs files in parallel against one database):
 
@@ -203,9 +206,7 @@ Tests are type-checked by `tsconfig.test.json` (Vitest-style ESM/bundler resolut
 
 ## Pre-commit hook
 
-`.githooks/pre-commit` runs `biome check --staged` (no auto-fix). `pnpm install` enables it through the `prepare` script, which sets `core.hooksPath` to `.githooks` and is a no-op where there is no repository (e.g. Docker). Typecheck and tests are left to CI.
-
-Real-Ollama personality e2e coverage is opt-in with `RUN_OLLAMA_E2E=1 pnpm vitest run tests/e2e/personality/ollama-profile-generation.test.ts`; default runs skip it when not opted in.
+`.githooks/pre-commit` runs `biome check --staged` (no auto-fix). `pnpm install` enables it through the `prepare` script, which sets `core.hooksPath` to `.githooks` and is a no-op where there is no repository (e.g. Docker). The hook does not run the type check or the tests; run `pnpm typecheck` and `pnpm test` yourself.
 
 ## Deployment
 

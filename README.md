@@ -7,7 +7,7 @@ A fully custom Discord bot built for the Bhayanak server. Features a moderation 
 | Category | Commands |
 |---|---|
 | **Moderation** | `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history` |
-| **Music** | `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop` |
+| **Music** | `/play`, `/music`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop` |
 | **Leveling** | `/rank`, `/leaderboard`, `/rewards`, `/level-reset` |
 | **Utility** | `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality` |
 | **Fun** | `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll` |
@@ -54,14 +54,14 @@ The bot can build personality profiles from archived server conversation to gene
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - pnpm
 - PostgreSQL
 
 ### Install
 
 ```bash
-git clone https://github.com/yourusername/BhayanakBot
+git clone https://github.com/theHimanshuShekhar/BhayanakBot
 cd BhayanakBot
 pnpm install
 ```
@@ -76,8 +76,8 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 POSTGRES_PASSWORD=postgres
 # WEB_DATABASE_URL=postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot   # optional read-only web login; see Docker below
-ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
-ZEN_ALLOW_DISCORD_CONTENT=false      # must be true for responder/summary AI replies (no local fallback)
+ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries (and personality builds, currently switched off)
+ZEN_ALLOW_DISCORD_CONTENT=false      # must be true before Discord content is sent to Zen, the only provider
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
 ZEN_MODEL=deepseek-v4-flash
 ZEN_TIMEOUT_MS=30000
@@ -100,6 +100,8 @@ MINECRAFT_RCON_PASSWORD=              # optional; enables the local Minecraft RC
 YOUTUBE_COOKIE=
 ```
 Minecraft tracking uses Java RCON. Enable `enable-rcon=true` and set `rcon.port=25575` and `rcon.password=...` in `server.properties`; set the same password in the bot's `MINECRAFT_RCON_PASSWORD` environment variable. If the bot runs in Docker while Minecraft runs on the LXC host, set `MINECRAFT_RCON_HOST` to an address reachable from the bot container.
+
+Both game-server trackers (Palworld through its REST API once `PALWORLD_ADMIN_KEY` is set, Minecraft through RCON) sweep every 10 minutes in the Home Server. Each keeps a `Palworld — N online` or `Minecraft — N online` category whose text channels list the connected players, and removes the category when nobody is online or the server is unreachable.
 
 ### Database
 
@@ -149,6 +151,6 @@ pnpm db:push    # push schema changes without a migration (dev only)
 
 Biome enforces: tabs, double quotes, trailing commas, 120-char line width.
 
-`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. CI (the `verify` job) additionally runs the type check, the full test suite against a Postgres service, and the web build; the Docker image is only built and pushed after `verify` passes.
+`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. The hook does not run the type check or the tests, so run `pnpm typecheck`, `pnpm test`, and (after changing `web/`) `pnpm web:build` before pushing.
 
 When adding new Drizzle `pgEnum` values, always generate and run a migration — `db:push` skips enum changes.

@@ -52,7 +52,7 @@ A Discord jump link to the original message represented by an archived channel m
 
 ## Palworld Tracker Category
 
-The Discord category whose name carries the live online count (e.g. "Bhayanak Palworld — 4 online") and which holds the live Palworld player roster. The category's channel list *is* the roster: one text channel exists for exactly as long as its player is connected to the Palworld server. The category is owned by the bot — its contents are derived state, rewritten on every tracker sweep, not a place for durable conversation.
+The Discord category whose name carries the live online count (e.g. "Palworld — 4 online") and which holds the live Palworld player roster. The category's channel list *is* the roster: one text channel exists for exactly as long as its player is connected to the Palworld server. The category is owned by the bot — its contents are derived state, rewritten on every tracker sweep, not a place for durable conversation.
 
 The category is identified by its exact tracker name pattern, not by a stored ID or a loose prefix, and is created on demand when missing. Its *existence* means "someone is playing": the bot hides the entire category when the server is Unreachable or when nobody is online, and recreates it when a sweep sees at least one player. Members cannot tell "server down" from "nobody online" by looking at the channel list; both are equally uninteresting, and an empty category would only be clutter.
 
