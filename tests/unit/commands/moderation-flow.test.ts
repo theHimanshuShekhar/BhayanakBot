@@ -1,5 +1,5 @@
 import { container } from "@sapphire/framework";
-import { SlashCommandBuilder } from "discord.js";
+import { ChannelType, SlashCommandBuilder } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BanCommand } from "../../../src/commands/moderation/ban.js";
 import { buildHistoryLines, HistoryCommand } from "../../../src/commands/moderation/history.js";
@@ -53,7 +53,7 @@ function makeInteraction(
 		member: { roles: { highest: { position: 10 } } },
 		guild: {
 			name: "Guild",
-			channels: { cache: new Map([["log", { send: world.logSend }]]) },
+			channels: { cache: new Map([["log", { type: ChannelType.GuildText, send: world.logSend }]]) },
 			...guild,
 			members: { me: { roles: { highest: { position: 20 } } }, ...(guild.members as object) },
 		},

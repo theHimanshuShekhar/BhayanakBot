@@ -6,7 +6,7 @@ summary: "Configure server channels, roles, XP, auto-mod, anti-raid, personality
 syntax:
   cmd: "/config"
   args:
-    - { n: "view|set|automod|antiraid", d: "Configuration action", req: true, t: "subcommand" }
+    - { n: "view|set|reset|automod|antiraid", d: "Configuration action", req: true, t: "subcommand" }
     - { n: "setting", d: "Setting to update", req: false, t: "choice" }
     - { n: "channel|role|number|text|toggle|value", d: "Value field matching the setting", req: false, t: "mixed" }
 examples:
@@ -28,4 +28,4 @@ related:
   - { n: "/autorespond", d: "Admin auto-responses" }
 ---
 
-Requires Administrator. The command is hidden from members without Manage Server; to show it to a moderator-role holder who lacks that permission, grant access in Server Settings > Integrations > BhayanakBot. Staff commands (moderation, `/config`, `/autorespond`, `/giveaway`, `/level-reset`) are hidden from regular members the same way. `set` covers channels, roles, XP settings, messages, personality features, and random response settings. `automod` updates spam, bad-link, mention, action, and mute-duration settings. `antiraid` updates join threshold/window settings.
+Requires Administrator. The command is hidden from members without Manage Server; to show it to a moderator-role holder who lacks that permission, grant access in Server Settings > Integrations > BhayanakBot. Staff commands (moderation, `/config`, `/autorespond`, `/giveaway`, `/level-reset`) are hidden from regular members the same way. `set` covers channels, roles, XP settings, messages, personality features, and random response settings. Channel settings (log, welcome, goodbye, level-up, music, starboard, random-response) accept text and announcement channels only; categories, voice, stage, forum, and thread channels are rejected. `random-response-chance` accepts 0 to 100, where 0 disables random replies; the other numeric settings accept 1 to 1000. `reset` clears a channel, role, or message setting, and puts a numeric or personality setting back to its default (star-threshold 3, xp-rate 15, xp-cooldown 60, random-response-chance 0, personality-features on). `automod` updates spam, bad-link, mention, action, and mute-duration settings. `antiraid` updates join threshold/window settings. `automod` and `antiraid` name exactly what they changed, and answer "Nothing changed" when the value they need is missing or invalid.

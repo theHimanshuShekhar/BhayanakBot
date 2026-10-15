@@ -19,6 +19,8 @@ export async function getAllActiveGuildIds(): Promise<string[]> {
 }
 
 export async function updateSettings(guildId: string, values: Partial<GuildSettingsInsert>): Promise<GuildSettings> {
+	// An empty SET clause is invalid SQL; with nothing to change the row is just ensured to exist.
+	if (Object.keys(values).length === 0) return getOrCreateSettings(guildId);
 	const [updated] = await db
 		.insert(guildSettings)
 		.values({ guildId, ...values })

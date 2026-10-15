@@ -374,8 +374,13 @@ export const RAW_COMMANDS: Command[] = [
 		subcommands: {
 			view: { summary: "View current server configuration.", examples: ["/config view"] },
 			set: {
-				summary: "Set a channel, role, XP, message, personality, or random response setting.",
+				summary:
+					"Set a channel, role, XP, message, personality, or random response setting. Channel settings accept text and announcement channels only; random-response-chance accepts 0 to 100 (0 disables).",
 				examples: ["/config set setting:log-channel channel:#mod-log"],
+			},
+			reset: {
+				summary: "Clear a channel, role, or message setting, or put a number or toggle back to its default.",
+				examples: ["/config reset setting:log-channel"],
 			},
 			automod: {
 				summary: "Configure auto-moderation thresholds and actions.",

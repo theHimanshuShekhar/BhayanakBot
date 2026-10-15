@@ -1,7 +1,8 @@
 import { container } from "@sapphire/framework";
-import type { ChatInputCommandInteraction, EmbedBuilder, GuildMember, TextChannel } from "discord.js";
+import type { ChatInputCommandInteraction, EmbedBuilder, GuildMember } from "discord.js";
 import { getOrCreateSettings } from "../db/queries/guildSettings.js";
 import { createCase } from "../db/queries/modCases.js";
+import { isPostableTextChannel } from "./textChannels.js";
 
 /** Discord's audit-log reason limit; reasons are stored, logged, and shown as given. */
 export const REASON_MAX_LENGTH = 512;
@@ -25,13 +26,16 @@ export function targetBlocker(
 	return null;
 }
 
-/** Posts the embed to the log channel. Never throws; false means a configured log could not be posted. */
+/**
+ * Posts the embed to the log channel. Never throws; false means a configured log could not be posted, including
+ * when the channel was deleted or replaced by one that is no longer text-capable (e.g. a category).
+ */
 export async function logToChannel(interaction: ChatInputCommandInteraction, embed: EmbedBuilder): Promise<boolean> {
 	try {
 		const settings = await getOrCreateSettings(interaction.guildId!);
 		if (!settings.logChannelId) return true;
-		const logChannel = interaction.guild?.channels.cache.get(settings.logChannelId) as TextChannel | undefined;
-		if (!logChannel) return false;
+		const logChannel = interaction.guild?.channels.cache.get(settings.logChannelId);
+		if (!isPostableTextChannel(logChannel)) return false;
 		await logChannel.send({ embeds: [embed] });
 		return true;
 	} catch (error) {
