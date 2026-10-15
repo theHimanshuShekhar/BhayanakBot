@@ -29,6 +29,6 @@ related:
   - { n: "/case", d: "Inspect cases" }
 ---
 
-Requires moderator access and a configured muted role the bot can assign (below its highest role) from `/config set setting:muted-role role:@Muted`. The expiration task removes the role after the stored duration, and keeps retrying if Discord is temporarily unreachable. A new mute replaces the member's earlier active mute, so the earlier expiry cannot unmute them early; `/unmute` closes any active mute too.
+Requires the moderator role or the Moderate Members permission, plus a configured muted role the bot can assign (below its highest role) from `/config set setting:muted-role role:@Muted`. The expiration task removes the role after the stored duration, and keeps retrying if Discord is temporarily unreachable. A new mute replaces the member's earlier active mute, so the earlier expiry cannot unmute them early; `/unmute` closes any active mute too.
 
 Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and nothing is changed when the value is invalid. Mutes last at most 1 year. Reasons are limited to 512 characters. If the mute is applied but the case cannot be recorded, the reply says so (the mute then has no stored expiry).

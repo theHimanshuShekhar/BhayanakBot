@@ -1,5 +1,13 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	EmbedBuilder,
+	MessageFlags,
+	PermissionFlagsBits,
+	type TextChannel,
+} from "discord.js";
 import { createGiveaway, getGiveawayByMessage, rerollGiveaway } from "../../db/queries/giveaways.js";
 import { notifyOnly } from "../../lib/allowedMentions.js";
 import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
@@ -14,7 +22,10 @@ export class GiveawayCommand extends Subcommand {
 				{ name: "end", chatInputRun: "runEnd" },
 				{ name: "reroll", chatInputRun: "runReroll" },
 			],
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ManageMessages } },
+			],
 			help: {
 				summary: "Start, end, or reroll a giveaway.",
 				examples: [
@@ -42,6 +53,7 @@ export class GiveawayCommand extends Subcommand {
 			builder
 				.setName("giveaway")
 				.setDescription("Giveaway management")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 				.addSubcommand((sub) =>
 					sub
 						.setName("start")

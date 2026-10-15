@@ -8,7 +8,7 @@ export class KickCommand extends Command {
 			...options,
 			name: "kick",
 			description: "Kick a member",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: ["GuildOnly", { name: "IsModerator", context: { permission: PermissionFlagsBits.KickMembers } }],
 			help: {
 				summary: "Kick a member from the server.",
 				examples: ['/kick user:@someone reason:"inappropriate behavior"'],

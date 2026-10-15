@@ -10,7 +10,10 @@ export class MuteCommand extends Command {
 			...options,
 			name: "mute",
 			description: "Mute a member",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ModerateMembers } },
+			],
 			help: {
 				summary: "Mute a member for a duration.",
 				examples: ['/mute user:@x duration:10m reason:"spam"', "/mute user:@y duration:1h"],

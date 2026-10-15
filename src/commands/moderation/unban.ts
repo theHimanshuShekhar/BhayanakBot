@@ -8,7 +8,7 @@ export class UnbanCommand extends Command {
 			...options,
 			name: "unban",
 			description: "Unban a user",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: ["GuildOnly", { name: "IsModerator", context: { permission: PermissionFlagsBits.BanMembers } }],
 			help: {
 				summary: "Unban a user by their user ID.",
 				examples: ['/unban user-id:123456789012345678 reason:"appeal accepted"'],

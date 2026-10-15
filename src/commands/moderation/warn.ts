@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { REASON_MAX_LENGTH, recordAndReport } from "../../lib/moderation.js";
 
 export class WarnCommand extends Command {
@@ -8,7 +8,10 @@ export class WarnCommand extends Command {
 			...options,
 			name: "warn",
 			description: "Warn a member",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ManageMessages } },
+			],
 			help: {
 				summary: "Warn a member and log the case.",
 				examples: ['/warn user:@x reason:"no caps in #general"'],
@@ -21,6 +24,7 @@ export class WarnCommand extends Command {
 			builder
 				.setName("warn")
 				.setDescription("Warn a member")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
 				.addUserOption((opt) => opt.setName("user").setDescription("Member to warn").setRequired(true))
 				.addStringOption((opt) =>
 					opt

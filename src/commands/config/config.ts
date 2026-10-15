@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits } from "discord.js";
 import { getOrCreateSettings, updateSettings } from "../../db/queries/guildSettings.js";
 
 export class ConfigCommand extends Subcommand {
@@ -11,6 +11,8 @@ export class ConfigCommand extends Subcommand {
 			preconditions: ["GuildOnly", "IsAdmin"],
 			help: {
 				summary: "Configure server channels, roles, auto-moderation, and anti-raid settings.",
+				usageNotes:
+					"Staff commands are hidden from members without the matching permission (Manage Server for admin commands, Moderate Members for moderation). To show one to a moderator-role holder who lacks it, grant access in Server Settings > Integrations > BhayanakBot.",
 				examples: [
 					"/config view",
 					"/config set setting:log-channel channel:#mod-log",
@@ -46,6 +48,7 @@ export class ConfigCommand extends Subcommand {
 			builder
 				.setName("config")
 				.setDescription("Configure BhayanakBot settings for this server")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 				.addSubcommand((sub) => sub.setName("view").setDescription("View current server configuration"))
 				.addSubcommand((sub) =>
 					sub

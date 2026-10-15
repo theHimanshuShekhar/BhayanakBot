@@ -1,5 +1,5 @@
 import { Command } from "@sapphire/framework";
-import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits } from "discord.js";
 import { getUserCases, type ModCase } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
@@ -40,7 +40,10 @@ export class HistoryCommand extends Command {
 			...options,
 			name: "history",
 			description: "View moderation history for a user",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ManageMessages } },
+			],
 			help: {
 				summary: "View moderation history for a user.",
 				examples: ["/history user:@someone"],
@@ -53,6 +56,7 @@ export class HistoryCommand extends Command {
 			builder
 				.setName("history")
 				.setDescription("View moderation history for a user")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
 				.addUserOption((opt) => opt.setName("user").setDescription("User to view history for").setRequired(true)),
 		);
 	}

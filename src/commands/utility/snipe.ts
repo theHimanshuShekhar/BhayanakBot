@@ -5,9 +5,9 @@ export class SnipeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: ["GuildOnly"],
 			help: {
-				summary: "Privately show moderators the last deleted message in this channel.",
+				summary: "Privately show the last message deleted in this channel in the past 10 minutes.",
 				examples: ["/snipe"],
 			},
 		});

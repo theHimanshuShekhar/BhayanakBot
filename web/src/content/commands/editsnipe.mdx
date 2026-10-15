@@ -1,8 +1,8 @@
 ---
 name: "/editsnipe"
 cat: "Utility"
-tags: ["MOD", "MESSAGE", "CACHE"]
-summary: "Privately show moderators the last edited message cached for the current channel."
+tags: ["MESSAGE", "CACHE"]
+summary: "Privately show the last message edited in the current channel, if it was edited in the last 10 minutes."
 syntax:
   cmd: "/editsnipe"
   args: []
@@ -14,7 +14,7 @@ examples:
     userColor: "#f97316"
     input: ""
     time: "09:25"
-    botSays: "ephemeral moderator-only edit cache result."
+    botSays: "ephemeral edit cache result."
     embedAccent: "#f97316"
     embedTitle: "Edited Message"
     embedRows:
@@ -25,3 +25,5 @@ related:
   - { n: "/summarize", d: "Summarize messages" }
   - { n: "/purge", d: "Clean up messages" }
 ---
+
+Available to everyone. Only an edit made within the last 10 minutes is kept; after that it is dropped and `/editsnipe` reports nothing. The reply is ephemeral and only covers the current channel.

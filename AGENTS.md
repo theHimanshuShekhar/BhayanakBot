@@ -151,7 +151,9 @@ Failed and denied interactions are answered centrally by the listeners in `src/l
 
 ## Preconditions
 
-Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`, `InBotVoiceChannel`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags.
+Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`, `InBotVoiceChannel`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags. `IsModerator` takes the permission that fits the action as context, e.g. `{ name: "IsModerator", context: { permission: PermissionFlagsBits.BanMembers } }` (ban/unban: BanMembers; kick: KickMembers; mute/unmute: ModerateMembers; warn/purge/case/history/giveaway: ManageMessages). The moderator role or that permission passes; Administrator passes everything.
+
+Staff commands set `setDefaultMemberPermissions` so regular members do not see them (moderation: its action permission, or ModerateMembers for warn/case/history; `/config`, `/autorespond`, `/giveaway`, `/level-reset`: ManageGuild). Server admins can widen visibility in Server Settings > Integrations. `/snipe` and `/editsnipe` are open to everyone; their caches drop entries older than 10 minutes.
 
 ## Code Style
 

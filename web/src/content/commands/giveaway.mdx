@@ -30,7 +30,7 @@ related:
   - { n: "/config", d: "Server settings" }
 ---
 
-Giveaways are ended by scheduled tasks or manually with `/giveaway end message-id:<id>`. A giveaway is only ever ended and announced once, even if the timer and a moderator race. Use reroll to pick new winners from an ended giveaway.
+Requires the moderator role or the Manage Messages permission, and is hidden from members without Manage Server. Giveaways are ended by scheduled tasks or manually with `/giveaway end message-id:<id>`. A giveaway is only ever ended and announced once, even if the timer and a moderator race. Use reroll to pick new winners from an ended giveaway.
 
 Giveaways belong to the server they were started in: `end` and `reroll` treat a message ID from another server as not found. Winners are drawn only from entrants who are still members of the server, and a reroll never picks someone who already won that giveaway. If nobody is eligible the bot says "No eligible entrants".
 

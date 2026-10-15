@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { EmbedBuilder, MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags, PermissionFlagsBits } from "discord.js";
 import { addAutoResponse, getGuildAutoResponses, removeAutoResponse } from "../../db/queries/autoResponses.js";
 import {
 	isRegexTriggerUsable,
@@ -45,6 +45,7 @@ export class AutoRespondCommand extends Subcommand {
 			builder
 				.setName("autorespond")
 				.setDescription("Manage auto-responses")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 				.addSubcommand((sub) =>
 					sub
 						.setName("add")

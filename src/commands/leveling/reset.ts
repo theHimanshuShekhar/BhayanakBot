@@ -1,4 +1,5 @@
 import { Command } from "@sapphire/framework";
+import { PermissionFlagsBits } from "discord.js";
 import { resetUser } from "../../db/queries/users.js";
 
 export class ResetCommand extends Command {
@@ -18,6 +19,7 @@ export class ResetCommand extends Command {
 			builder
 				.setName("level-reset")
 				.setDescription("Reset a user's XP and level (Admin)")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 				.addUserOption((opt) => opt.setName("user").setDescription("User to reset").setRequired(true)),
 		);
 	}

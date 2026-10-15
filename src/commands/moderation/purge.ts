@@ -7,7 +7,10 @@ export class PurgeCommand extends Command {
 			...options,
 			name: "purge",
 			description: "Delete multiple messages",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ManageMessages } },
+			],
 			help: {
 				summary: "Bulk-delete messages from a channel (optionally filtered by user).",
 				examples: ["/purge amount:50", "/purge amount:20 user:@spammer"],

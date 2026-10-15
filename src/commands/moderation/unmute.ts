@@ -9,7 +9,10 @@ export class UnmuteCommand extends Command {
 			...options,
 			name: "unmute",
 			description: "Unmute a member",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ModerateMembers } },
+			],
 			help: {
 				summary: "Unmute a previously muted member.",
 				examples: ['/unmute user:@x reason:"served time"'],

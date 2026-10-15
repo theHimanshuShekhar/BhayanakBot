@@ -1,8 +1,8 @@
 ---
 name: "/snipe"
 cat: "Utility"
-tags: ["MOD", "MESSAGE", "CACHE"]
-summary: "Privately show moderators the last deleted message cached for the current channel."
+tags: ["MESSAGE", "CACHE"]
+summary: "Privately show the last message deleted in the current channel, if it was deleted in the last 10 minutes."
 syntax:
   cmd: "/snipe"
   args: []
@@ -14,7 +14,7 @@ examples:
     userColor: "#f97316"
     input: ""
     time: "09:20"
-    botSays: "ephemeral moderator-only cache result."
+    botSays: "ephemeral cache result."
     embedAccent: "#f97316"
     embedTitle: "Deleted Message"
     embedRows:
@@ -25,3 +25,5 @@ related:
   - { n: "/purge", d: "Delete messages" }
   - { n: "/summarize", d: "Summarize messages" }
 ---
+
+Available to everyone. Only a message deleted within the last 10 minutes is kept; after that it is dropped and `/snipe` reports nothing. The reply is ephemeral and only covers the current channel.

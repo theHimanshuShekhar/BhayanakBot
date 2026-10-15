@@ -1,5 +1,5 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
-import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from "discord.js";
+import { type ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits } from "discord.js";
 import { getCase, updateCaseReason } from "../../db/queries/modCases.js";
 
 const typeEmoji: Record<string, string> = {
@@ -18,7 +18,10 @@ export class CaseCommand extends Subcommand {
 			...options,
 			name: "case",
 			description: "View or edit a moderation case",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: [
+				"GuildOnly",
+				{ name: "IsModerator", context: { permission: PermissionFlagsBits.ManageMessages } },
+			],
 			subcommands: [
 				{ name: "view", chatInputRun: "chatInputView" },
 				{ name: "edit", chatInputRun: "chatInputEdit" },
@@ -42,6 +45,7 @@ export class CaseCommand extends Subcommand {
 			builder
 				.setName("case")
 				.setDescription("View or edit a moderation case")
+				.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
 				.addSubcommand((sub) =>
 					sub
 						.setName("view")

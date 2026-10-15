@@ -9,7 +9,7 @@ export class BanCommand extends Command {
 			...options,
 			name: "ban",
 			description: "Ban a member",
-			preconditions: ["GuildOnly", "IsModerator"],
+			preconditions: ["GuildOnly", { name: "IsModerator", context: { permission: PermissionFlagsBits.BanMembers } }],
 			help: {
 				summary: "Ban a member from the server, optionally as a temporary ban.",
 				examples: ['/ban user:@spammer reason:"raid"', "/ban user:@x duration:7d"],

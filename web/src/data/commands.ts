@@ -199,18 +199,19 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/snipe",
-		description: "Privately show moderators the last deleted message cached for this channel.",
+		description: "Privately show the last message deleted in this channel within the past 10 minutes.",
 		examples: ["/snipe"],
 		category: "utility",
-		usageNotes: "Moderator-only. The response is ephemeral and only shows cached content for the current channel.",
+		usageNotes:
+			"Available to everyone. Deleted messages are forgotten after 10 minutes. The response is ephemeral and only shows cached content for the current channel.",
 	},
 	{
 		name: "/editsnipe",
-		description: "Privately show moderators the last edited message cached for this channel.",
+		description: "Privately show the last message edited in this channel within the past 10 minutes.",
 		examples: ["/editsnipe"],
 		category: "utility",
 		usageNotes:
-			"Moderator-only. The response is ephemeral and only shows cached before/after content for the current channel.",
+			"Available to everyone. Edits are forgotten after 10 minutes. The response is ephemeral and only shows cached before/after content for the current channel.",
 	},
 	{
 		name: "/afk",
@@ -368,6 +369,8 @@ export const RAW_COMMANDS: Command[] = [
 			"/config automod setting:spam-threshold number:5",
 		],
 		category: "config",
+		usageNotes:
+			"Staff commands are hidden from members without the matching permission (Manage Server for admin commands, Moderate Members for moderation). To show one to a moderator-role holder who lacks it, grant access in Server Settings > Integrations > BhayanakBot.",
 		subcommands: {
 			view: { summary: "View current server configuration.", examples: ["/config view"] },
 			set: {
