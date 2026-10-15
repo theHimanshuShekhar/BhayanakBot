@@ -27,7 +27,7 @@ let cached: HelpSnapshot | null = null;
 
 function resolveCategoryId(cmd: Command): string | null {
 	// Sapphire's Piece.location.directories is the relative path from the base.
-	// For src/commands/rpg/shop.ts, directories = ["rpg"].
+	// For src/commands/fun/poll.ts, directories = ["fun"].
 	const dirs = cmd.location.directories;
 	if (dirs.length === 0) return null;
 	return dirs[0] ?? null;

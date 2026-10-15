@@ -30,7 +30,7 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Framework:** Sapphire Framework on Discord.js v14. Sapphire auto-discovers and loads stores from their directories; manual registration is not needed for standard stores.
 
-**Feature switches:** `src/lib/features.ts` holds compile-time switches — `RPG_ENABLED`, `LOCAL_LLM_ENABLED`, `PERSONALITY_GENERATION_ENABLED`. All are currently `false`: RPG commands/handlers/tasks, Ollama startup + fallback, and personality generation are inactive, though their code remains. The custom loader strategy skips pieces for disabled subsystems, and help omits categories with no loaded commands. Flip a flag and its wiring comes back.
+**Feature switches:** `src/lib/features.ts` holds compile-time switches — `LOCAL_LLM_ENABLED`, `PERSONALITY_GENERATION_ENABLED`. Both are currently `false`: Ollama startup + fallback and personality generation are inactive, though their code remains. The custom loader strategy skips pieces for disabled subsystems, and help omits categories with no loaded commands. Flip a flag and its wiring comes back.
 
 **Stores:**
 
@@ -56,7 +56,6 @@ Key query helpers:
 - `archivedChannelMessages.ts` — durable archive of non-bot messages from the Guess Who channel, with edit/delete tracking and filtered random selection for `/guess_who`.
 - `personalityTraining.ts` — archive-backed personality training eligibility and cursor-window queries.
 - `personality.ts` and `guildPersonality.ts` — generated user/guild personality profile storage and lookup helpers.
-- `rpg.ts` — profiles, stats, XP, coins, jail, cooldowns, inventory, pets, properties, daily rewards, daily quests, and quest progress.
 - `modCases.ts` — auto-incrementing per-guild case numbers, mutes/tempbans with `expiresAt` and `active` flags.
 - `autoResponses.ts` — static and LLM auto-responses with matching, regex, channel filters, mention requirements, chance, and trigger deletion.
 - `users.ts`, `polls.ts`, `giveaways.ts`, `reminders.ts`, `afk.ts` — feature-specific persistence helpers.
@@ -65,7 +64,6 @@ Key query helpers:
 
 Major Discord command areas:
 
-- RPG (currently disabled): `/profile`, `/train`, `/work`, `/crime`, `/shop`, `/inventory`, `/pet`, `/property`, `/daily`, `/quests`.
 - Leveling: `/rank`, `/leaderboard`, `/rewards`, `/level-reset`.
 - Moderation: `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history`.
 - Music: `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop`.
@@ -141,30 +139,9 @@ Personality profile builders read eligible archived messages in bounded cursor w
 
 Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. The local Ollama fallback is inactive while `LOCAL_LLM_ENABLED=false`.
 
-## RPG Module (currently disabled)
-
-`src/lib/rpg/` is split into catalogs and helpers.
-
-Catalogs have static data and no DB access:
-
-- `jobs.ts` — work/crime jobs with `payRange`, `cooldownMs`, `baseSuccessChance`, `dropTable`, and `jailSentenceMs`.
-- `items.ts` — shop items including tools, consumables, and boosts.
-- `pets.ts` — pet catalog with `price`, `rarity`, and bonus stat modifiers.
-- `properties.ts` — property catalog with `price` and `incomePerHour`.
-- `questTemplates.ts` — templates used by daily quest generation.
-
-Helpers contain logic:
-
-- `outcome.ts` — `rollOutcome()`: stat bonus = `(stat - 50) * 0.003` per relevant stat, capped 5%-70%.
-- `cooldown.ts` — `getRemainingCooldown()` and `formatDuration()` wrappers over DB cooldown queries.
-- `rewards.ts` — `applyJobRewards()`: pays coins and resolves drop table rolls.
-- `flavorText.ts` — local-Ollama narrative generation with fallback pools.
-
-XP formula: `level = floor(0.05 * sqrt(xp))` for RPG profiles, implemented in `addXpToProfile()`.
-
 ## Scheduled Tasks
 
-Scheduled tasks are declared as `ScheduledTask` classes but scheduled manually in `src/index.ts`. Startup runs `expireMutes`, `expireTempBans`, `sendReminders`, `endGiveaways`, `endPolls`, `reloadOnRestart`, and `syncPalworldTracker` once in a non-blocking cold-start pass; `generateDailyQuests` and `refreshPersonalityProfiles` join only when their feature flags are on. Runtime intervals run moderation/reminder/poll/giveaway tasks every 30 seconds, Palworld sync every 10 minutes, plus the two flagged tasks at 6-hour/hourly cadence when enabled.
+Scheduled tasks are declared as `ScheduledTask` classes but scheduled manually in `src/index.ts`. Startup runs `expireMutes`, `expireTempBans`, `sendReminders`, `endGiveaways`, `endPolls`, `reloadOnRestart`, and `syncPalworldTracker` once in a non-blocking cold-start pass; `refreshPersonalityProfiles` joins only when its feature flag is on. Runtime intervals run moderation/reminder/poll/giveaway tasks every 30 seconds, Palworld sync every 10 minutes, plus the flagged personality refresh at 6-hour cadence when enabled.
 
 ## Music
 
@@ -174,7 +151,7 @@ Music uses `discord-player` v7 with `DefaultExtractors` and `discord-player-yout
 
 `customId` uses `:` as a delimiter. Convention: `<prefix>:<action>[:<page>]`. The `parse()` method usually uses `startsWith("<prefix>:")` to claim interactions.
 
-Current handlers include music buttons, poll votes, giveaway entry, and help menu/buttons. RPG jail actions and shop pagination stay unloaded while RPG is disabled.
+Current handlers include music buttons, poll votes, giveaway entry, and help menu/buttons.
 
 ## Preconditions
 

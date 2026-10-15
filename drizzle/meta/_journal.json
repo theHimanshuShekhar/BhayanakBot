@@ -141,6 +141,13 @@
       "when": 1792032992957,
       "tag": "0019_remove_tickets_role_menus_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792033490279,
+      "tag": "0020_drop_rpg_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -20,12 +20,6 @@ export const CATEGORIES: readonly CategoryMeta[] = [
 		description: "Configure channels, roles, auto-mod, and anti-raid settings.",
 	},
 	{ id: "leveling", label: "Leveling", emoji: "📈", description: "XP ranks, leaderboards, and role rewards." },
-	{
-		id: "rpg",
-		label: "RPG & Economy",
-		emoji: "⚔️",
-		description: "Profile, jobs, crime, training, shop, pets, properties, quests.",
-	},
 	{ id: "fun", label: "Fun", emoji: "🎲", description: "Memes, polls, 8-ball, coin flips, and avatar effects." },
 	{ id: "games", label: "Games", emoji: "🎮", description: "Interactive channel games backed by server history." },
 	{ id: "music", label: "Music", emoji: "🎵", description: "Play, queue, and control music in voice channels." },

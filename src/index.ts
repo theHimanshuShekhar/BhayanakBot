@@ -13,7 +13,7 @@ import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
 import { getDashboardPresenceIntervalMs, writeDashboardPresenceSnapshotForClient } from "./lib/dashboardPresence.js";
-import { LOCAL_LLM_ENABLED, PERSONALITY_GENERATION_ENABLED, RPG_ENABLED } from "./lib/features.js";
+import { LOCAL_LLM_ENABLED, PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { callOllama, ensureOllamaModel } from "./lib/ollama.js";
@@ -190,7 +190,6 @@ async function main() {
 			"syncPalworldTracker",
 			"syncMinecraftTracker",
 		];
-		if (RPG_ENABLED) startupTasks.push("generateDailyQuests");
 		if (PERSONALITY_GENERATION_ENABLED) startupTasks.push("refreshPersonalityProfiles");
 		for (const taskName of startupTasks) {
 			void runTask(taskName);
@@ -276,28 +275,6 @@ async function main() {
 			},
 			10 * 60 * 1000,
 		);
-
-		if (RPG_ENABLED) {
-			// Check once per hour — task is idempotent, skips if quests already exist for today
-			let questTaskRunning = false;
-			setInterval(
-				async () => {
-					if (questTaskRunning) return;
-					questTaskRunning = true;
-					try {
-						await client.stores
-							.get("scheduled-tasks")
-							.get("generateDailyQuests")
-							?.run(null as never);
-					} catch (err) {
-						client.logger.error("[ScheduledTask:generateDailyQuests] Error:", err);
-					} finally {
-						questTaskRunning = false;
-					}
-				},
-				60 * 60 * 1000,
-			);
-		}
 	} catch (error) {
 		client.logger.fatal(error);
 		client.destroy();

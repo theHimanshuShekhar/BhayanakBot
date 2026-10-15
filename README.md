@@ -1,6 +1,6 @@
 # BhayanakBot
 
-A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, archive-backed games and personality, giveaways, polls, and more.
+A fully custom Discord bot built for the Bhayanak server. Features a moderation suite, music playback, leveling system, archive-backed games and personality, giveaways, polls, and more.
 
 ## Features
 
@@ -16,18 +16,6 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Auto-respond** | `/autorespond` |
 | **Config** | `/config` |
 | **Minecraft** | `/minecraft` |
-
-### RPG System (currently disabled)
-
-The RPG is an economy and progression system. It is switched off in `src/lib/features.ts` (`RPG_ENABLED = false`): the commands are not registered and daily quests are not generated, but all code and data are preserved for a future re-enable.
-
-- **Stats**: Strength, Agility, Intelligence, Charisma — trained with `/train`, influence job success rates
-- **Jobs**: Work (fishing, construction, delivery, mining, programmer, lawyer, doctor) and Crime (pickpocket, rob player, rob bank)
-- **Items**: Tools unlock jobs or improve success rates, consumables (Lucky Charm, Energy Drink, Jail Key) provide temporary boosts. Bought via `/shop` or dropped from jobs
-- **Jail**: Failing a crime sends you to jail. Bail out for coins or attempt escape with an agility roll
-- **Pets**: Adopt companions (common → legendary rarity) via `/pet adopt`, rename with `/pet rename`
-- **Properties**: Buy housing and businesses via `/property buy`, collect passive coin income with `/property collect`
-
 
 ### AI Personality System
 

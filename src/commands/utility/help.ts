@@ -12,7 +12,7 @@ export class HelpCommand extends Command {
 			description: "Browse all bot commands by category.",
 			help: {
 				summary: "Show the interactive command help menu.",
-				examples: ["/help", "/help category:rpg"],
+				examples: ["/help", "/help category:fun"],
 			},
 		});
 	}

@@ -16,7 +16,6 @@ import {
 // --- Enums ---
 
 export const autoModActionEnum = pgEnum("auto_mod_action", ["warn", "mute", "kick"]);
-export const questObjectiveTypeEnum = pgEnum("quest_objective_type", ["work", "crime", "train"]);
 export const modCaseTypeEnum = pgEnum("mod_case_type", ["warn", "mute", "unmute", "kick", "ban", "unban", "tempban"]);
 export const autoResponseMatchTypeEnum = pgEnum("auto_response_match_type", ["exact", "contains", "startsWith"]);
 export const autoResponseTypeEnum = pgEnum("auto_response_type", ["static", "llm"]);
@@ -280,99 +279,3 @@ export const guildPersonalityProfiles = pgTable("guild_personality_profiles", {
 	lastTrainingMessageAt: timestamp("last_training_message_at"),
 	lastTrainingMessageId: varchar("last_training_message_id", { length: 20 }),
 });
-
-// --- RPG Module ---
-
-export const rpgProfiles = pgTable("rpg_profiles", {
-	userId: varchar("user_id", { length: 20 }).primaryKey(),
-	coins: integer("coins").default(0).notNull(),
-	level: integer("level").default(1).notNull(),
-	xp: integer("xp").default(0).notNull(),
-	jailUntil: timestamp("jail_until"),
-	jailBailCost: integer("jail_bail_cost"),
-	dailyStreak: integer("daily_streak").default(0).notNull(),
-	lastDailyAt: timestamp("last_daily_at"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const rpgStats = pgTable("rpg_stats", {
-	userId: varchar("user_id", { length: 20 }).primaryKey(),
-	strength: integer("strength").default(50).notNull(),
-	intelligence: integer("intelligence").default(50).notNull(),
-	agility: integer("agility").default(50).notNull(),
-	charisma: integer("charisma").default(50).notNull(),
-	luck: integer("luck").default(50).notNull(),
-	strTrainedAt: timestamp("str_trained_at"),
-	intTrainedAt: timestamp("int_trained_at"),
-	agiTrainedAt: timestamp("agi_trained_at"),
-	chaTrainedAt: timestamp("cha_trained_at"),
-	lukTrainedAt: timestamp("luk_trained_at"),
-});
-
-export const rpgCooldowns = pgTable(
-	"rpg_cooldowns",
-	{
-		userId: varchar("user_id", { length: 20 }).notNull(),
-		action: varchar("action", { length: 50 }).notNull(),
-		expiresAt: timestamp("expires_at").notNull(),
-	},
-	(t) => [primaryKey({ columns: [t.userId, t.action] })],
-);
-
-export const rpgInventory = pgTable(
-	"rpg_inventory",
-	{
-		id: serial("id").primaryKey(),
-		userId: varchar("user_id", { length: 20 }).notNull(),
-		itemId: varchar("item_id", { length: 50 }).notNull(),
-		quantity: integer("quantity").default(1).notNull(),
-		equippedSlot: varchar("equipped_slot", { length: 30 }),
-	},
-	(t) => [unique("rpg_inventory_user_id_item_id_unique").on(t.userId, t.itemId)],
-);
-
-export const rpgOwnedPets = pgTable("rpg_owned_pets", {
-	id: serial("id").primaryKey(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	petId: varchar("pet_id", { length: 50 }).notNull(),
-	nickname: varchar("nickname", { length: 32 }),
-	acquiredAt: timestamp("acquired_at").defaultNow().notNull(),
-});
-
-export const rpgOwnedProperties = pgTable(
-	"rpg_owned_properties",
-	{
-		id: serial("id").primaryKey(),
-		userId: varchar("user_id", { length: 20 }).notNull(),
-		propertyId: varchar("property_id", { length: 50 }).notNull(),
-		purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
-		lastCollectedAt: timestamp("last_collected_at").defaultNow().notNull(),
-	},
-	(t) => [unique().on(t.userId, t.propertyId)],
-);
-
-export const dailyQuests = pgTable("daily_quests", {
-	id: serial("id").primaryKey(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	title: varchar("title", { length: 100 }).notNull(),
-	description: text("description").notNull(),
-	objectiveType: questObjectiveTypeEnum("objective_type").notNull(),
-	objectiveJob: varchar("objective_job", { length: 50 }),
-	objectiveCount: integer("objective_count").default(1).notNull(),
-	rewardCoins: integer("reward_coins").default(500).notNull(),
-	rewardXp: integer("reward_xp").default(100).notNull(),
-	date: varchar("date", { length: 10 }).notNull(),
-	generatedAt: timestamp("generated_at").defaultNow().notNull(),
-});
-
-export const questProgress = pgTable(
-	"quest_progress",
-	{
-		questId: integer("quest_id").notNull(),
-		userId: varchar("user_id", { length: 20 }).notNull(),
-		guildId: varchar("guild_id", { length: 20 }).notNull(),
-		progress: integer("progress").default(0).notNull(),
-		completedAt: timestamp("completed_at"),
-	},
-	(t) => [primaryKey({ columns: [t.questId, t.userId] })],
-);

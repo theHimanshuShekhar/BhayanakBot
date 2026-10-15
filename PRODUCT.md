@@ -15,7 +15,7 @@ Two equally weighted audiences:
 
 ## Product Purpose
 
-BhayanakBot is a fully custom Discord bot bundling a broad feature set under one bot: moderation suite, music playback, leveling/rewards, RPG economy (currently disabled behind a feature flag), giveaways, polls, archive-backed games (Guess Who), AI summaries/responder/personality profiles (gated), and Minecraft/Palworld server status. The website is its public face: landing page, command catalog and docs, setup guide, live status, and changelog. Success: a visitor can decide to invite the bot quickly, and a current user can find any command's documentation fast.
+BhayanakBot is a fully custom Discord bot bundling a broad feature set under one bot: moderation suite, music playback, leveling/rewards, giveaways, polls, archive-backed games (Guess Who), AI summaries/responder/personality profiles (gated), and Minecraft/Palworld server status. The website is its public face: landing page, command catalog and docs, setup guide, live status, and changelog. Success: a visitor can decide to invite the bot quickly, and a current user can find any command's documentation fast.
 
 ## Positioning
 
@@ -28,7 +28,7 @@ Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall
 - The product lives inside Discord; the website is secondary surface (Astro static site in `web/`, built with `pnpm web:build`).
 - Self-hosted deployment via Docker Compose (Postgres, Valkey, Ollama, bot, web); data volumes live on NAS storage per recent compose changes.
 - Ecosystem ties: `mc.bhayanak.net` Minecraft server (Homestead) and a Palworld tracker surface through `/minecraft` and status features.
-- Subsystems are compile-time feature-switched (`src/lib/features.ts`): RPG, local LLM, and personality generation are currently off; the site/docs must reflect what is actually enabled.
+- Subsystems are compile-time feature-switched (`src/lib/features.ts`): local LLM and personality generation are currently off; the site/docs must reflect what is actually enabled.
 - Live stats on the site come from a bot-published snapshot (`PUBLIC_STATS_INTERVAL_MS`).
 
 ## Capabilities and Constraints
@@ -36,7 +36,6 @@ Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall
 - Command surface (~13 categories) is defined in the bot source; the web command catalog (`web/src/data/commands.ts`) and rich docs (`web/src/content/commands/`) MUST be updated in the same change whenever any Discord command is added, removed, renamed, or behaviorally modified.
 - Invite URL is environment-provided (`PUBLIC_BOT_INVITE_URL`).
 - AI responder/summaries require `ZEN_API_KEY` + `ZEN_ALLOW_DISCORD_CONTENT=true`; they degrade gracefully when unconfigured. Personality generation independently disabled.
-- RPG commands exist in code but are unregistered while `RPG_ENABLED=false`.
 - Terminology: "BhayanakBot", "Guess Who" (archive-backed quote-guessing game), "Homestead" (Minecraft server).
 - Open decisions: whether the "NO ADS · NO PAYWALL"/"free · self-hostable · MIT" stickers stay given the non-binding stance above.
 
