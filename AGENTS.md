@@ -205,3 +205,17 @@ The `Dockerfile` has these stages:
 - `production` is Debian-based, installs runtime dependencies, copies source, and runs the bot through `tsx`.
 
 Compose injects service hostnames for `DATABASE_URL`, `VALKEY_URL`, and `OLLAMA_URL`, so local `.env` values are mainly for non-Docker development.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `theHimanshuShekhar/BhayanakBot`, managed with the `gh` CLI, using native blocked-by dependencies. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
