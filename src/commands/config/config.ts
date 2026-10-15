@@ -63,10 +63,8 @@ export class ConfigCommand extends Subcommand {
 									{ name: "level-up-channel", value: "levelUpChannelId" },
 									{ name: "music-channel", value: "musicChannelId" },
 									{ name: "starboard-channel", value: "starboardChannelId" },
-									{ name: "ticket-category", value: "ticketCategoryId" },
 									{ name: "auto-role", value: "autoRole" },
 									{ name: "muted-role", value: "mutedRoleId" },
-									{ name: "ticket-support-role", value: "ticketSupportRoleId" },
 									{ name: "dj-role", value: "djRoleId" },
 									{ name: "moderator-role", value: "moderatorRoleId" },
 									{ name: "star-threshold", value: "starThreshold" },
@@ -229,10 +227,9 @@ export class ConfigCommand extends Subcommand {
 			"levelUpChannelId",
 			"musicChannelId",
 			"starboardChannelId",
-			"ticketCategoryId",
 			"randomResponseChannelId",
 		];
-		const roleSettings = ["autoRole", "mutedRoleId", "ticketSupportRoleId", "djRoleId", "moderatorRoleId"];
+		const roleSettings = ["autoRole", "mutedRoleId", "djRoleId", "moderatorRoleId"];
 		const numberSettings = ["starThreshold", "xpRate", "xpCooldownSeconds", "randomResponseChance"];
 		const textSettings = ["welcomeMessage", "goodbyeMessage", "levelUpMessage"];
 		const booleanSettings = ["personalityEnabled"];

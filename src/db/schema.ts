@@ -18,9 +18,6 @@ import {
 export const autoModActionEnum = pgEnum("auto_mod_action", ["warn", "mute", "kick"]);
 export const questObjectiveTypeEnum = pgEnum("quest_objective_type", ["work", "crime", "train"]);
 export const modCaseTypeEnum = pgEnum("mod_case_type", ["warn", "mute", "unmute", "kick", "ban", "unban", "tempban"]);
-export const reactionRoleTypeEnum = pgEnum("reaction_role_type", ["normal", "toggle", "unique"]);
-export const ticketStatusEnum = pgEnum("ticket_status", ["open", "closed"]);
-export const suggestionStatusEnum = pgEnum("suggestion_status", ["pending", "approved", "denied"]);
 export const autoResponseMatchTypeEnum = pgEnum("auto_response_match_type", ["exact", "contains", "startsWith"]);
 export const autoResponseTypeEnum = pgEnum("auto_response_type", ["static", "llm"]);
 
@@ -35,11 +32,9 @@ export const guildSettings = pgTable("guild_settings", {
 	levelUpChannelId: varchar("level_up_channel_id", { length: 20 }),
 	musicChannelId: varchar("music_channel_id", { length: 20 }),
 	starboardChannelId: varchar("starboard_channel_id", { length: 20 }),
-	ticketCategoryId: varchar("ticket_category_id", { length: 20 }),
 	// Roles
 	autoRole: varchar("auto_role", { length: 20 }),
 	mutedRoleId: varchar("muted_role_id", { length: 20 }),
-	ticketSupportRoleId: varchar("ticket_support_role_id", { length: 20 }),
 	djRoleId: varchar("dj_role_id", { length: 20 }),
 	moderatorRoleId: varchar("moderator_role_id", { length: 20 }),
 	// Messages
@@ -122,53 +117,6 @@ export const modCases = pgTable(
 	},
 	(t) => [unique("mod_cases_guild_id_case_number_unique").on(t.guildId, t.caseNumber)],
 );
-
-export const tickets = pgTable("tickets", {
-	id: serial("id").primaryKey(),
-	channelId: varchar("channel_id", { length: 20 }).notNull(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	subject: text("subject"),
-	status: ticketStatusEnum("status").default("open").notNull(),
-	claimedBy: varchar("claimed_by", { length: 20 }),
-	claimedAt: timestamp("claimed_at"),
-	transcriptUrl: text("transcript_url"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	closedAt: timestamp("closed_at"),
-	closedBy: varchar("closed_by", { length: 20 }),
-});
-
-export const reactionRoles = pgTable(
-	"reaction_roles",
-	{
-		messageId: varchar("message_id", { length: 20 }).notNull(),
-		emoji: varchar("emoji", { length: 100 }).notNull(),
-		roleId: varchar("role_id", { length: 20 }).notNull(),
-		guildId: varchar("guild_id", { length: 20 }).notNull(),
-		type: reactionRoleTypeEnum("type").default("normal").notNull(),
-		groupId: varchar("group_id", { length: 50 }),
-	},
-	(t) => [primaryKey({ columns: [t.messageId, t.emoji] })],
-);
-
-export const roleMenus = pgTable("role_menus", {
-	id: serial("id").primaryKey(),
-	messageId: varchar("message_id", { length: 20 }).notNull(),
-	channelId: varchar("channel_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	placeholder: varchar("placeholder", { length: 150 }),
-	minValues: integer("min_values").default(0).notNull(),
-	maxValues: integer("max_values").default(1).notNull(),
-});
-
-export const roleMenuOptions = pgTable("role_menu_options", {
-	id: serial("id").primaryKey(),
-	menuId: integer("menu_id").notNull(),
-	roleId: varchar("role_id", { length: 20 }).notNull(),
-	label: varchar("label", { length: 100 }).notNull(),
-	description: varchar("description", { length: 100 }),
-	emoji: varchar("emoji", { length: 100 }),
-});
 
 export const levelRewards = pgTable(
 	"level_rewards",
@@ -269,18 +217,6 @@ export const archivedChannelMessages = pgTable(
 		),
 	],
 );
-
-export const suggestions = pgTable("suggestions", {
-	id: serial("id").primaryKey(),
-	messageId: varchar("message_id", { length: 20 }).notNull(),
-	channelId: varchar("channel_id", { length: 20 }).notNull(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	content: text("content").notNull(),
-	status: suggestionStatusEnum("status").default("pending").notNull(),
-	response: text("response"),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const afkUsers = pgTable(
 	"afk_users",

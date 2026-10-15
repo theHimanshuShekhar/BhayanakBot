@@ -1,7 +1,6 @@
 import { Listener } from "@sapphire/framework";
 import type { MessageReaction, User } from "discord.js";
 import { eq } from "drizzle-orm";
-import { getMessageReactionRoles, getReactionRole } from "../../db/queries/roles.js";
 import { guildSettings, starredMessages } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
 
@@ -21,31 +20,6 @@ export class MessageReactionAddListener extends Listener {
 		if (!guild) return;
 
 		const emojiKey = reaction.emoji.id ?? reaction.emoji.name ?? "";
-
-		// --- Reaction Roles ---
-		const reactionRole = await getReactionRole(reaction.message.id, emojiKey);
-		if (reactionRole) {
-			const member = await guild.members.fetch(user.id).catch(() => null);
-			if (!member) return;
-
-			if (reactionRole.type === "unique" && reactionRole.groupId) {
-				// Remove other roles in the same group
-				const groupRoles = await getMessageReactionRoles(reaction.message.id);
-				const sameGroup = groupRoles.filter(
-					(r) => r.groupId === reactionRole.groupId && r.roleId !== reactionRole.roleId,
-				);
-				for (const r of sameGroup) {
-					await member.roles.remove(r.roleId).catch(() => null);
-				}
-			} else if (reactionRole.type === "toggle" && member.roles.cache.has(reactionRole.roleId)) {
-				await member.roles.remove(reactionRole.roleId).catch(() => null);
-				await reaction.users.remove(user.id).catch(() => null);
-				return;
-			}
-
-			await member.roles.add(reactionRole.roleId).catch(() => null);
-			return;
-		}
 
 		// --- Starboard ---
 		if (emojiKey === "⭐") {

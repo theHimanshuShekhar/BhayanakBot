@@ -57,7 +57,7 @@ Key query helpers:
 - `rpg.ts` — profiles, stats, XP, coins, jail, cooldowns, inventory, pets, properties, daily rewards, daily quests, and quest progress.
 - `modCases.ts` — auto-incrementing per-guild case numbers, mutes/tempbans with `expiresAt` and `active` flags.
 - `autoResponses.ts` — static and LLM auto-responses with matching, regex, channel filters, mention requirements, chance, and trigger deletion.
-- `users.ts`, `roles.ts`, `tickets.ts`, `polls.ts`, `giveaways.ts`, `reminders.ts`, `suggestions.ts`, `afk.ts` — feature-specific persistence helpers.
+- `users.ts`, `polls.ts`, `giveaways.ts`, `reminders.ts`, `afk.ts` — feature-specific persistence helpers.
 
 ## Commands And Web Docs
 
@@ -69,7 +69,7 @@ Major Discord command areas:
 - Music: `/play`, `/controls`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop`.
 - Utility: `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality`.
 - Fun and games: `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll`, `/guess_who`.
-- Server systems: `/config`, `/ticket-panel`, `/ticket`, `/suggest`, `/suggestion`, `/autorespond`, `/reaction-roles`, `/role-menu`, `/giveaway`.
+- Server systems: `/config`, `/autorespond`, `/giveaway`.
 - Minecraft: `/minecraft` shows `mc.bhayanak.net` status, Homestead version, live map link, required mods, and recommended mods.
 
 When any Discord command is added, deleted, renamed, or behaviorally modified, update the web app command catalog and any relevant command documentation in `web/src/data/commands.ts` and `web/src/content/commands/` in the same change.
@@ -172,11 +172,11 @@ Music uses `discord-player` v7 with `DefaultExtractors` and `discord-player-yout
 
 `customId` uses `:` as a delimiter. Convention: `<prefix>:<action>[:<page>]`. The `parse()` method usually uses `startsWith("<prefix>:")` to claim interactions.
 
-Current handlers include ticket buttons, music buttons, role menu select, poll votes, giveaway entry, and help menu/buttons. RPG jail actions and shop pagination stay unloaded while RPG is disabled.
+Current handlers include music buttons, poll votes, giveaway entry, and help menu/buttons. RPG jail actions and shop pagination stay unloaded while RPG is disabled.
 
 ## Preconditions
 
-Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`, `TicketChannel`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags.
+Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags.
 
 ## Code Style
 

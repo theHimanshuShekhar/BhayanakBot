@@ -19,7 +19,6 @@ export const CATEGORIES: readonly CategoryMeta[] = [
 		emoji: "⚙️",
 		description: "Configure channels, roles, auto-mod, and anti-raid settings.",
 	},
-	{ id: "roles", label: "Roles", emoji: "🏷️", description: "Reaction roles and role select menus." },
 	{ id: "leveling", label: "Leveling", emoji: "📈", description: "XP ranks, leaderboards, and role rewards." },
 	{
 		id: "rpg",
@@ -31,8 +30,6 @@ export const CATEGORIES: readonly CategoryMeta[] = [
 	{ id: "games", label: "Games", emoji: "🎮", description: "Interactive channel games backed by server history." },
 	{ id: "music", label: "Music", emoji: "🎵", description: "Play, queue, and control music in voice channels." },
 	{ id: "giveaway", label: "Giveaways", emoji: "🎉", description: "Start, end, and reroll giveaways." },
-	{ id: "suggestions", label: "Suggestions", emoji: "💡", description: "Submit and manage community suggestions." },
-	{ id: "tickets", label: "Tickets", emoji: "🎫", description: "Open, claim, and manage support tickets." },
 	{
 		id: "autorespond",
 		label: "Autoresponders",

@@ -1,6 +1,6 @@
 # BhayanakBot
 
-A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, archive-backed games and personality, giveaways, tickets, polls, and more.
+A fully custom Discord bot built for the Bhayanak server. Features a full RPG economy, moderation suite, music playback, leveling system, archive-backed games and personality, giveaways, polls, and more.
 
 ## Features
 
@@ -12,10 +12,7 @@ A fully custom Discord bot built for the Bhayanak server. Features a full RPG ec
 | **Utility** | `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality` |
 | **Fun** | `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll` |
 | **Games** | `/guess_who` |
-| **Tickets** | `/ticket-panel`, `/ticket` |
-| **Roles** | `/reaction-roles`, `/role-menu` |
 | **Giveaways** | `/giveaway` |
-| **Suggestions** | `/suggest`, `/suggestion` |
 | **Auto-respond** | `/autorespond` |
 | **Config** | `/config` |
 | **Minecraft** | `/minecraft` |

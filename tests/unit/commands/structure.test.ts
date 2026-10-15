@@ -27,7 +27,7 @@ function discoverCommandFiles(): string[] {
 
 const commandFiles = discoverCommandFiles();
 
-const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "TicketChannel", "Cooldown"];
+const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "Cooldown"];
 
 function getPreconditionName(precondition: unknown): unknown {
 	if (typeof precondition === "string") return precondition;
@@ -65,6 +65,14 @@ describe("command structure", () => {
 
 	it("all command files are accounted for", () => {
 		expect(commandFiles.length).toBeGreaterThan(0);
+	});
+
+	it("does not ship the removed ticket, role menu, reaction role, or suggestion commands", () => {
+		const removed = ["ticket", "ticket-panel", "role-menu", "reaction-roles", "suggest", "suggestion"];
+		const names = commandFiles.map((file) => file.split("/").pop()?.replace(".js", ""));
+		for (const name of removed) {
+			expect(names).not.toContain(name);
+		}
 	});
 });
 

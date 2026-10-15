@@ -134,6 +134,13 @@
       "when": 1788997321205,
       "tag": "0018_curved_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792032992957,
+      "tag": "0019_remove_tickets_role_menus_suggestions",
+      "breakpoints": true
     }
   ]
 }

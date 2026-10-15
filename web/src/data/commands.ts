@@ -41,10 +41,7 @@ export const CATEGORIES: Category[] = [
 	{ id: "fun", label: "Fun", icon: "✦", description: "Memes, polls, 8-ball, coin flips, and random choices." },
 	{ id: "games", label: "Games", icon: "▣", description: "Interactive channel games backed by server history." },
 	{ id: "leveling", label: "Leveling", icon: "★", description: "XP ranks, leaderboards, and role rewards." },
-	{ id: "tickets", label: "Tickets", icon: "✉", description: "Open, claim, and manage support tickets." },
-	{ id: "roles", label: "Roles", icon: "◈", description: "Reaction roles and role select menus." },
 	{ id: "giveaway", label: "Giveaways", icon: "☆", description: "Start, end, and reroll giveaways." },
-	{ id: "suggestions", label: "Suggestions", icon: "✎", description: "Submit and manage community suggestions." },
 	{
 		id: "config",
 		label: "Server Config",
@@ -322,72 +319,6 @@ export const RAW_COMMANDS: Command[] = [
 		usageNotes: "Requires admin permissions.",
 	},
 	{
-		name: "/ticket-panel",
-		description: "Post a ticket creation panel button in a channel.",
-		examples: ["/ticket-panel channel:#support title:Open a Ticket"],
-		category: "tickets",
-	},
-	{
-		name: "/ticket",
-		description: "Open, close, claim, add or remove users from, or export support tickets.",
-		examples: [
-			"/ticket open subject:billing issue",
-			"/ticket close",
-			"/ticket claim",
-			"/ticket add user:@helper",
-			"/ticket transcript",
-		],
-		category: "tickets",
-		subcommands: {
-			open: { summary: "Open a support ticket.", examples: ["/ticket open subject:billing issue"] },
-			close: { summary: "Close the current ticket.", examples: ["/ticket close"] },
-			claim: { summary: "Claim the current ticket as staff.", examples: ["/ticket claim"] },
-			add: { summary: "Add a user to the current ticket.", examples: ["/ticket add user:@helper"] },
-			remove: { summary: "Remove a user from the current ticket.", examples: ["/ticket remove user:@helper"] },
-			transcript: { summary: "Export a ticket transcript.", examples: ["/ticket transcript"] },
-		},
-	},
-	{
-		name: "/reactionrole",
-		description: "Add or remove reaction roles on messages.",
-		examples: [
-			"/reactionrole add message-id:123456 emoji:👍 role:@Member",
-			"/reactionrole add message-id:123456 emoji:👍 role:@Member type:toggle",
-			"/reactionrole remove message-id:123456 emoji:👍",
-		],
-		category: "roles",
-		usageNotes: "type can be normal, toggle, or unique.",
-		subcommands: {
-			add: {
-				summary: "Attach a reaction role to a message.",
-				examples: ["/reactionrole add message-id:123456 emoji:👍 role:@Member"],
-			},
-			remove: {
-				summary: "Remove a reaction role from a message.",
-				examples: ["/reactionrole remove message-id:123456 emoji:👍"],
-			},
-		},
-	},
-	{
-		name: "/rolemenu",
-		description: "Create and manage self-assignable role select menus.",
-		examples: [
-			"/rolemenu create channel:#roles",
-			"/rolemenu create channel:#roles placeholder:Pick roles max-values:2",
-			"/rolemenu add-option message-id:123456 role:@Gamer label:Gamer",
-			"/rolemenu delete message-id:123456",
-		],
-		category: "roles",
-		subcommands: {
-			create: { summary: "Create a role selection menu in a channel.", examples: ["/rolemenu create channel:#roles"] },
-			"add-option": {
-				summary: "Add a role option to an existing menu.",
-				examples: ["/rolemenu add-option message-id:123456 role:@Gamer label:Gamer"],
-			},
-			delete: { summary: "Delete an existing role menu.", examples: ["/rolemenu delete message-id:123456"] },
-		},
-	},
-	{
 		name: "/giveaway",
 		description: "Start, end, or reroll a giveaway.",
 		examples: [
@@ -403,28 +334,6 @@ export const RAW_COMMANDS: Command[] = [
 			},
 			end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
 			reroll: { summary: "Reroll winners for an ended giveaway.", examples: ["/giveaway reroll message-id:123456"] },
-		},
-	},
-	{
-		name: "/suggest",
-		description: "Submit a suggestion to the configured suggestions/log channel.",
-		examples: ["/suggest idea:Add a movie night bot"],
-		category: "suggestions",
-	},
-	{
-		name: "/suggestion",
-		description: "Approve or deny a submitted suggestion.",
-		examples: ["/suggestion approve id:5 response:Love this idea!", "/suggestion deny id:3 reason:Out of scope"],
-		category: "suggestions",
-		subcommands: {
-			approve: {
-				summary: "Approve a suggestion with an optional response.",
-				examples: ["/suggestion approve id:5 response:Love this idea!"],
-			},
-			deny: {
-				summary: "Deny a suggestion with an optional reason.",
-				examples: ["/suggestion deny id:3 reason:Out of scope"],
-			},
 		},
 	},
 	{

@@ -15,11 +15,11 @@ Two equally weighted audiences:
 
 ## Product Purpose
 
-BhayanakBot is a fully custom Discord bot bundling a broad feature set under one bot: moderation suite, music playback, leveling/rewards, RPG economy (currently disabled behind a feature flag), tickets, giveaways, polls, suggestions, reaction roles, archive-backed games (Guess Who), AI summaries/responder/personality profiles (gated), and Minecraft/Palworld server status. The website is its public face: landing page, command catalog and docs, setup guide, live status, and changelog. Success: a visitor can decide to invite the bot quickly, and a current user can find any command's documentation fast.
+BhayanakBot is a fully custom Discord bot bundling a broad feature set under one bot: moderation suite, music playback, leveling/rewards, RPG economy (currently disabled behind a feature flag), giveaways, polls, archive-backed games (Guess Who), AI summaries/responder/personality profiles (gated), and Minecraft/Palworld server status. The website is its public face: landing page, command catalog and docs, setup guide, live status, and changelog. Success: a visitor can decide to invite the bot quickly, and a current user can find any command's documentation fast.
 
 ## Positioning
 
-Flagship claim: **breadth under one bot** — moderation, music, levels, tickets, games, AI, and game-server tie-ins in a single self-contained bot, instead of stitching together a stack of single-purpose bots.
+Flagship claim: **breadth under one bot** — moderation, music, levels, giveaways, games, AI, and game-server tie-ins in a single self-contained bot, instead of stitching together a stack of single-purpose bots.
 
 Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall / self-hostable / MIT" is current-site copy describing today's reality, not binding positioning. Monetization/hosting trajectory is undecided; design must not hard-code these claims as permanent promises.
 
@@ -47,7 +47,7 @@ Explicitly NOT a durable commitment (user decision): "free / no ads / no paywall
 
 ## Evidence on Hand
 
-- Real, working feature set across moderation/music/leveling/games/tickets/giveaways — verifiable in `src/commands/` and README.
+- Real, working feature set across moderation/music/leveling/games/giveaways — verifiable in `src/commands/` and README.
 - Live stats pipeline feeding the landing page (servers, latency, commands run).
 - Full command catalog data at `web/src/data/commands.ts` with MDX detail docs under `web/src/content/commands/`.
 - Changelog data at `web/src/data/changelog.ts`.
