@@ -114,6 +114,7 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 | `PUBLIC_BOT_INVITE_URL` | Discord OAuth URL | Public invite link shown by the web app |
 | `PUBLIC_STATS_INTERVAL_MS` | `300000` | Bot stats snapshot refresh interval |
 | `DASHBOARD_PRESENCE_INTERVAL_MS` | `60000` | Dashboard presence snapshot refresh interval |
+| `DASHBOARD_API_TOKEN` | unset | Read by the web service (not the bot). `GET /api/dashboard-presence` requires `Authorization: Bearer <token>` and answers 404 otherwise (constant-time compare, ADR 0004 amendment). Unset leaves it open and logs a one-time warning; set it on any internet-reachable deployment |
 | `YOUTUBE_COOKIE` | unset | Optional cookie for `discord-player-youtubei` |
 | `NODE_ENV` | unset | Controls log level (`debug` outside production, `info` in production) |
 | `TARGET_GUILD_ID` | `199168135935295488` | The Home Server: Home-Server Features (`/summarize`, `/personality`, `/guess_who`, AI replies) run only here |

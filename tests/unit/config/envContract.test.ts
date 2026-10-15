@@ -35,7 +35,9 @@ function botVariables(): Set<string> {
 function webVariables(): Set<string> {
 	const found = new Set<string>();
 	for (const file of sourceFiles("web/src")) {
-		for (const name of matches(read(file), new RegExp(`import\\.meta\\.env\\.(${VAR})\\b`, "g"))) found.add(name);
+		const text = read(file);
+		// `import.meta.env.X` for the PUBLIC_ vars, `process.env.X` for the ones read at request time.
+		for (const name of matches(text, new RegExp(`(?:import\\.meta|process)\\.env\\.(${VAR})\\b`, "g"))) found.add(name);
 	}
 	return found;
 }

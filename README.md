@@ -84,6 +84,7 @@ WEB_PORT=3000
 PUBLIC_BOT_INVITE_URL=https://discord.com/oauth2/authorize
 PUBLIC_STATS_INTERVAL_MS=300000
 DASHBOARD_PRESENCE_INTERVAL_MS=60000
+DASHBOARD_API_TOKEN=                  # bearer token for /api/dashboard-presence; blank leaves it open (local dev only)
 NODE_ENV=development
 TARGET_GUILD_ID=199168135935295488
 TARGET_TEXT_CHANNEL_ID=199168135935295488
@@ -124,6 +125,8 @@ docker compose up -d
 ```
 
 The service hostname (`postgres`) is injected automatically — `.env` values are only used for local development.
+
+The web service serves the public site, so set `DASHBOARD_API_TOKEN` in the deployment's `.env`: `GET /api/dashboard-presence` (member IDs and voice state) then requires `Authorization: Bearer <DASHBOARD_API_TOKEN>` and answers 404 without it. When updating a deployment, also update the homelab Glance dashboard widget to send that header, or it will start getting 404s. Left unset, the endpoint is open and the web service logs a warning.
 
 ## Development
 
