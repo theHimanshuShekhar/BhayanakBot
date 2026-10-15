@@ -8,6 +8,7 @@ web/src/routeTree.gen.ts
 *.js.map
 .superpowers/
 .worktrees/
+.claude/worktrees/
 coverage/
 thoughts/ledgers/
 .tokensave
