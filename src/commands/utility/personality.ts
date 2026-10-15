@@ -52,6 +52,7 @@ function formatRefreshResult(
 		skipped_in_progress: "another refresh is already running",
 		skipped_insufficient_evidence: "there is not enough archived training evidence",
 		skipped_model_empty: "the model returned no profile text",
+		skipped_quoted_source: "the model kept copying source messages, so the previous profile was kept",
 	};
 	return `Refresh skipped: ${reasons[result.status]}.`;
 }

@@ -6,6 +6,8 @@ import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
 import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
 import { callBackgroundLlm } from "../llmProvider.js";
+import { quotesSource } from "./quoteGuard.js";
+import { NO_QUOTE_RETRY_INSTRUCTION, SOURCE_DATA_NOTICE, wrapSourceMessages } from "./sourcePrompt.js";
 
 // Prevent runaway prompts: absorb at most 100 messages or 8 000 chars per build pass.
 // phi3:mini on CPU can't handle 40K chars in a reasonable time; smaller chunks finish reliably.
@@ -19,7 +21,8 @@ export type PersonalityBuildStatus =
 	| "skipped_cooldown"
 	| "skipped_in_progress"
 	| "skipped_insufficient_evidence"
-	| "skipped_model_empty";
+	| "skipped_model_empty"
+	| "skipped_quoted_source";
 export interface PersonalityBuildResult {
 	status: PersonalityBuildStatus;
 }
@@ -42,6 +45,7 @@ const SYSTEM_PROMPT = [
 	"Write in flowing prose, not bullet points. Be specific and detailed — the more nuanced the better.",
 	"Do not be generic. Ground every observation in evidence from the messages.",
 	"Do not quote source messages directly.",
+	SOURCE_DATA_NOTICE,
 ].join(" ");
 
 export async function buildPersonalityProfile(userId: string, guildId: string): Promise<PersonalityBuildResult> {
@@ -137,13 +141,13 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 				existingProfile,
 				"",
 				"New messages from this person since the last profile update:",
-				messageBlock,
+				wrapSourceMessages(messageBlock),
 				"",
 				"Refine and expand the personality profile by incorporating insights from the new messages. Keep all previous observations that still hold true and deepen them. Add new observations where the new messages reveal something not previously captured.",
 			].join("\n")
 		: [
 				"Messages from this person:",
-				messageBlock,
+				wrapSourceMessages(messageBlock),
 				"",
 				"Build a detailed personality profile based on these messages.",
 			].join("\n");
@@ -154,7 +158,7 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		`[personality] llm-call userId=${userId} guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length}`,
 	);
 	const llmStartedAt = Date.now();
-	const result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", "personality:user");
+	let result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", "personality:user");
 	container.logger.debug(
 		`[personality] llm-result userId=${userId} guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
 	);
@@ -165,14 +169,30 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		container.logger.debug(
 			`[personality] storage-empty-result userId=${userId} guildId=${guildId} action=touch-lastRefreshedAt`,
 		);
-		await db
-			.insert(userPersonalityProfiles)
-			.values({ userId, guildId, lastRefreshedAt: new Date() })
-			.onConflictDoUpdate({
-				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
-				set: { lastRefreshedAt: new Date() },
-			});
+		await touchLastRefreshed(userId, guildId);
 		return { status: "skipped_model_empty" };
+	}
+
+	const sources = processed.map((m) => m.content);
+	if (quotesSource(result, sources)) {
+		container.logger.warn(
+			`[personality] profile quoted source text, retrying once userId=${userId} guildId=${guildId} sources=${sources.length}`,
+		);
+		result = await callBackgroundLlm(
+			SYSTEM_PROMPT,
+			`${userPrompt}\n\n${NO_QUOTE_RETRY_INSTRUCTION}`,
+			"personality",
+			"personality:user:retry",
+		);
+		if (!result || quotesSource(result, sources)) {
+			// Keep the previous profile and leave the cursor and counter alone so the same messages are
+			// reconsidered once the cooldown passes; lastRefreshedAt stops an immediate repeat.
+			container.logger.warn(
+				`[personality] profile rejected: quoted source text userId=${userId} guildId=${guildId} sources=${sources.length} retry=${result ? "quoted" : "no-result"}`,
+			);
+			await touchLastRefreshed(userId, guildId);
+			return { status: "skipped_quoted_source" };
+		}
 	}
 
 	const newestProcessedMessage = processed[processed.length - 1];
@@ -226,4 +246,14 @@ async function buildPersonalityProfileUnguarded(userId: string, guildId: string)
 		`[personality] Profile updated for userId=${userId} guildId=${guildId} (${processed.length}/${messages.length} messages processed)`,
 	);
 	return { status: "built" };
+}
+
+async function touchLastRefreshed(userId: string, guildId: string): Promise<void> {
+	await db
+		.insert(userPersonalityProfiles)
+		.values({ userId, guildId, lastRefreshedAt: new Date() })
+		.onConflictDoUpdate({
+			target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
+			set: { lastRefreshedAt: new Date() },
+		});
 }
