@@ -11,6 +11,7 @@ import {
 } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
+import { invalidateGuildSettings } from "../../../src/lib/music/guildSettingsCache.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
 import { createCommandContext, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
@@ -39,6 +40,7 @@ async function cleanupRows(): Promise<void> {
 	await db.delete(guildPersonalityProfiles).where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
 	await db.delete(userPersonalityProfiles).where(eq(userPersonalityProfiles.guildId, GUILD_ID));
 	await db.delete(guildSettings).where(eq(guildSettings.guildId, GUILD_ID));
+	invalidateGuildSettings(GUILD_ID);
 }
 
 async function archiveMessages(input: { count: number; authorUserId?: string; idPrefix: string }): Promise<void> {

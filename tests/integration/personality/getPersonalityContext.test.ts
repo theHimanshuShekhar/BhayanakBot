@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { guildPersonalityProfiles, guildSettings, userPersonalityProfiles } from "../../../src/db/schema.js";
 import type { BhayanakClient } from "../../../src/lib/BhayanakClient.js";
 import { db } from "../../../src/lib/database.js";
+import { invalidateGuildSettings } from "../../../src/lib/music/guildSettingsCache.js";
 import { getPersonalityContext } from "../../../src/lib/personality/getPersonalityContext.js";
 
 const GUILD_ID = "context-guild";
@@ -23,6 +24,7 @@ async function cleanupRows(): Promise<void> {
 		.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
 	await db.delete(guildPersonalityProfiles).where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
 	await db.delete(guildSettings).where(eq(guildSettings.guildId, GUILD_ID));
+	invalidateGuildSettings(GUILD_ID);
 }
 
 async function setUserProfile(profile: string | null): Promise<void> {

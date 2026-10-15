@@ -47,11 +47,13 @@ Vitest tests live under `tests/`. `tests/setup/globalSetup.ts` points `DATABASE_
 
 **Entry point:** `src/index.ts` loads dotenv and Sapphire plugins, loads discord-player extractors plus `discord-player-youtubei`, registers music player events, logs in, starts the in-process task scheduler, and installs shutdown/process error handlers.
 
-**Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool. Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.
+**Shutdown:** `src/lib/shutdown.ts` builds the one idempotent `shutdown(reason, exitCode)` used by `src/index.ts`. SIGINT/SIGTERM exit 0, an uncaught exception or startup failure exits 1 (a later non-zero code overrides an earlier zero), and an unhandled rejection is only logged. It runs these steps in order, each isolated so one failure does not block the rest: stop the task scheduler, destroy the music player, destroy the Discord client, end the database pool (`closeDatabase()`). A 10-second unref'd timer forces exit if a step hangs.
+
+**Database:** `src/lib/database.ts` uses Drizzle ORM over a `pg` connection pool (`buildPoolConfig`): `application_name` `bhayanakbot`, 10s connection timeout, 30s idle timeout, and a 60s `statement_timeout` (generous because personality and archive queries scan large message windows). Schema is in `src/db/schema.ts`; query helpers live in `src/db/queries/`.
 
 Key query helpers:
 
-- `guildSettings.ts` — per-guild config for channels, roles, XP, auto-mod, anti-raid, personality, and random responses.
+- `guildSettings.ts` — per-guild config for channels, roles, XP, auto-mod, anti-raid, personality, and random responses. `getOrCreateSettings` is race-safe (insert on conflict do nothing, then select) and cached for 60 seconds in `src/lib/music/guildSettingsCache.ts`, shared with the music `IsDJ` lookup; `updateSettings` invalidates. Write `guild_settings` only through `updateSettings`, and call `invalidateGuildSettings` in tests that insert or delete rows directly.
 - `archivedChannelMessages.ts` — durable archive of non-bot messages from the Guess Who channel, with edit/delete tracking and filtered random selection for `/guess_who`.
 - `personalityTraining.ts` — archive-backed personality training eligibility and cursor-window queries.
 - `personality.ts` and `guildPersonality.ts` — generated user/guild personality profile storage and lookup helpers.
@@ -179,7 +181,7 @@ Real-Zen personality e2e coverage is opt-in with `RUN_ZEN_E2E=1 ZEN_API_KEY=<key
 
 ## Deployment
 
-`docker-compose.yml` runs Postgres, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `node dist/index.js`.
+`docker-compose.yml` runs Postgres, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `sh -c "pnpm db:migrate && exec node dist/index.js"`; `exec` makes node receive SIGTERM directly so shutdown can run.
 
 The `Dockerfile` has these stages:
 

@@ -11,18 +11,34 @@ import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conve
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
+import { closeDatabase } from "./lib/database.js";
 import { optionalEnv } from "./lib/env.js";
 import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { removeGlobalHomeServerCommands } from "./lib/homeServer.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
+import { createShutdown, FORCE_EXIT_MS } from "./lib/shutdown.js";
 import { getTasks } from "./tasks/index.js";
-import { createTaskScheduler } from "./tasks/scheduler.js";
+import { createTaskScheduler, type TaskScheduler } from "./tasks/scheduler.js";
 
 validateRuntimeConfig();
 
 const client = new BhayanakClient();
+let scheduler: TaskScheduler | undefined;
+
+const shutdown = createShutdown({
+	logger: client.logger,
+	forceExitMs: FORCE_EXIT_MS,
+	exit: (code) => process.exit(code),
+	// Tasks and the player stop first so nothing starts new work; the pool closes last because they use it.
+	steps: [
+		{ name: "task scheduler", run: () => scheduler?.stop() },
+		{ name: "music player", run: () => client.player.destroy() },
+		{ name: "discord client", run: () => client.destroy() },
+		{ name: "database pool", run: () => closeDatabase() },
+	],
+});
 
 function formatDuration(ms: number): string {
 	const seconds = Math.floor(ms / 1000);
@@ -119,30 +135,27 @@ async function main() {
 		await client.login(process.env.DISCORD_TOKEN);
 
 		// Cold-start pass is non-blocking so a slow task can't hang startup; failures are logged per task.
-		createTaskScheduler(getTasks(), client.logger).start();
+		scheduler = createTaskScheduler(getTasks(), client.logger);
+		scheduler.start();
 	} catch (error) {
 		client.logger.fatal(error);
-		client.destroy();
-		process.exit(1);
+		await shutdown("startup failure", 1);
 	}
 }
 
-async function shutdown() {
-	await client.player.destroy();
-	client.destroy();
-	process.exit(0);
-}
+// `on`, not `once`: a repeated signal must reach the re-entry guard instead of Node's default handler.
+process.on("SIGINT", () => void shutdown("SIGINT", 0));
+process.on("SIGTERM", () => void shutdown("SIGTERM", 0));
 
-process.once("SIGINT", () => void shutdown());
-process.once("SIGTERM", () => void shutdown());
-
+// Logged only. Nearly every handler is fire-and-forget, durable state lives in Postgres, and one failed Discord
+// call should not take down the bot. An uncaught exception is different: the process state is unknown.
 process.on("unhandledRejection", (reason, promise) => {
 	client.logger.error("[process] Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 process.on("uncaughtException", (error) => {
 	client.logger.error("[process] Uncaught Exception:", error);
-	void shutdown();
+	void shutdown("uncaught exception", 1);
 });
 
 void main();

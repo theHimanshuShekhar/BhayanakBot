@@ -61,4 +61,5 @@ COPY --from=base /app/dist ./dist
 RUN chown -R node:node /app
 USER node
 
-CMD ["sh", "-c", "pnpm db:migrate && node dist/index.js"]
+# exec replaces the shell so node receives SIGTERM directly.
+CMD ["sh", "-c", "pnpm db:migrate && exec node dist/index.js"]
