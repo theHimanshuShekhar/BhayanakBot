@@ -69,6 +69,7 @@ const webCompose = composeEnvironment("web");
 const DOCUMENTED_BUT_NOT_READ: Record<string, string> = {
 	TEST_DATABASE_URL: "read by the Vitest global setup, not by the bot",
 	POSTGRES_PASSWORD: "consumed by Compose for the Postgres service and the default DATABASE_URL",
+	WEB_DATABASE_URL: "consumed by Compose as the web service's DATABASE_URL (opt-in SELECT-only bhayanak_web role)",
 	WEB_PORT: "consumed by Compose for the web service's published port",
 };
 
@@ -128,13 +129,21 @@ describe("environment contract", () => {
 	});
 
 	it("derives the default DATABASE_URL password from POSTGRES_PASSWORD for the bot and web services", () => {
+		// The bot reads DATABASE_URL; the web service reads WEB_DATABASE_URL (opt-in read-only role) and falls back to the same login.
 		const defaults = matches(
 			read("docker-compose.yml"),
-			/DATABASE_URL: \$\{DATABASE_URL:-(postgresql:\/\/\S+@postgres:5432\/bhayanakbot)\}/g,
+			/DATABASE_URL: \$\{(?:WEB_)?DATABASE_URL:-(postgresql:\/\/\S+@postgres:5432\/bhayanakbot)\}/g,
 		);
 		// biome-ignore lint/suspicious/noTemplateCurlyInString: Compose interpolation syntax, not a JS template
 		const expected = "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot";
 		expect(defaults).toEqual([expected, expected]);
+		const web = read("docker-compose.yml").split("\n  web:\n")[1] ?? "";
+		expect(web).toContain("DATABASE_URL: ${WEB_DATABASE_URL:-");
+	});
+
+	it("documents the opt-in web database URL as the read-only role", () => {
+		const example = /^#?\s*WEB_DATABASE_URL=(\S+)$/m.exec(read(".env.example"))?.[1];
+		expect(example).toMatch(/^postgresql:\/\/bhayanak_web:[^@]+@postgres:5432\/bhayanakbot$/);
 	});
 
 	it("does not document the unused DISCORD_CLIENT_ID", () => {

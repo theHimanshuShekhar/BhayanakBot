@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	bigint,
 	boolean,
@@ -97,7 +98,11 @@ export const users = pgTable(
 		totalMessages: integer("total_messages").default(0).notNull(),
 		lastMessageAt: timestamp("last_message_at"),
 	},
-	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
+	(t) => [
+		primaryKey({ columns: [t.userId, t.guildId] }),
+		// getLeaderboard: one guild's members by XP.
+		index("users_guild_xp_idx").on(t.guildId, t.xp.desc().nullsFirst()),
+	],
 );
 
 export const modCases = pgTable(
@@ -115,7 +120,13 @@ export const modCases = pgTable(
 		active: boolean("active").default(true).notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
-	(t) => [unique("mod_cases_guild_id_case_number_unique").on(t.guildId, t.caseNumber)],
+	(t) => [
+		unique("mod_cases_guild_id_case_number_unique").on(t.guildId, t.caseNumber),
+		// getUserCases / findRecentCase: one member's cases, newest first.
+		index("mod_cases_guild_user_created_idx").on(t.guildId, t.userId, t.createdAt),
+		// getExpiredActiveCases (30s expiry tasks): only active cases are ever scanned.
+		index("mod_cases_active_expiry_idx").on(t.type, t.expiresAt).where(sql`${t.active} = true`),
+	],
 );
 
 export const levelRewards = pgTable(
@@ -141,23 +152,34 @@ export const polls = pgTable(
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		closed: boolean("closed").default(false).notNull(),
 	},
-	(t) => [unique("polls_message_id_unique").on(t.messageId)],
+	(t) => [
+		unique("polls_message_id_unique").on(t.messageId),
+		// getActiveExpiredPolls (30s task): only open polls are ever scanned.
+		index("polls_open_expires_idx").on(t.expiresAt).where(sql`${t.closed} = false`),
+	],
 );
 
-export const reminders = pgTable("reminders", {
-	id: serial("id").primaryKey(),
-	userId: varchar("user_id", { length: 20 }).notNull(),
-	channelId: varchar("channel_id", { length: 20 }).notNull(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	message: text("message").notNull(),
-	remindAt: timestamp("remind_at").notNull(),
-	sent: boolean("sent").default(false).notNull(),
-	// Delivery retries: failed deliveries are retried at nextAttemptAt, and abandoned (failed) after the retry window.
-	attempts: integer("attempts").default(0).notNull(),
-	nextAttemptAt: timestamp("next_attempt_at"),
-	failed: boolean("failed").default(false).notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const reminders = pgTable(
+	"reminders",
+	{
+		id: serial("id").primaryKey(),
+		userId: varchar("user_id", { length: 20 }).notNull(),
+		channelId: varchar("channel_id", { length: 20 }).notNull(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		message: text("message").notNull(),
+		remindAt: timestamp("remind_at").notNull(),
+		sent: boolean("sent").default(false).notNull(),
+		// Delivery retries: failed deliveries are retried at nextAttemptAt, and abandoned (failed) after the retry window.
+		attempts: integer("attempts").default(0).notNull(),
+		nextAttemptAt: timestamp("next_attempt_at"),
+		failed: boolean("failed").default(false).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => [
+		// getPendingReminders (30s task): only reminders still waiting for delivery are ever scanned.
+		index("reminders_pending_remind_at_idx").on(t.remindAt).where(sql`${t.sent} = false and ${t.failed} = false`),
+	],
+);
 
 export const giveaways = pgTable(
 	"giveaways",
@@ -179,7 +201,15 @@ export const giveaways = pgTable(
 		announceAttemptedAt: timestamp("announce_attempted_at"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
-	(t) => [unique("giveaways_message_id_unique").on(t.messageId)],
+	(t) => [
+		unique("giveaways_message_id_unique").on(t.messageId),
+		// getActiveExpiredGiveaways (30s task): only running giveaways are ever scanned.
+		index("giveaways_running_ends_at_idx").on(t.endsAt).where(sql`${t.ended} = false`),
+		// getGiveawaysAwaitingAnnouncement (30s task): ended giveaways whose result is still unposted.
+		index("giveaways_unannounced_attempted_idx")
+			.on(t.announceAttemptedAt)
+			.where(sql`${t.ended} = true and ${t.announced} = false`),
+	],
 );
 
 export const starredMessages = pgTable("starred_messages", {
@@ -237,20 +267,27 @@ export const afkUsers = pgTable(
 	(t) => [primaryKey({ columns: [t.userId, t.guildId] })],
 );
 
-export const autoResponses = pgTable("auto_responses", {
-	id: serial("id").primaryKey(),
-	guildId: varchar("guild_id", { length: 20 }).notNull(),
-	trigger: text("trigger").notNull(),
-	response: text("response").notNull(),
-	matchType: autoResponseMatchTypeEnum("match_type").default("contains").notNull(),
-	responseType: autoResponseTypeEnum("response_type").default("static").notNull(),
-	useRegex: boolean("use_regex").default(false).notNull(),
-	channelIds: jsonb("channel_ids").$type<string[]>().default([]).notNull(), // empty = all channels
-	requireMention: boolean("require_mention").default(false).notNull(),
-	chancePercent: integer("chance_percent").default(100).notNull(), // 0-100
-	deleteTrigger: boolean("delete_trigger").default(false).notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const autoResponses = pgTable(
+	"auto_responses",
+	{
+		id: serial("id").primaryKey(),
+		guildId: varchar("guild_id", { length: 20 }).notNull(),
+		trigger: text("trigger").notNull(),
+		response: text("response").notNull(),
+		matchType: autoResponseMatchTypeEnum("match_type").default("contains").notNull(),
+		responseType: autoResponseTypeEnum("response_type").default("static").notNull(),
+		useRegex: boolean("use_regex").default(false).notNull(),
+		channelIds: jsonb("channel_ids").$type<string[]>().default([]).notNull(), // empty = all channels
+		requireMention: boolean("require_mention").default(false).notNull(),
+		chancePercent: integer("chance_percent").default(100).notNull(), // 0-100
+		deleteTrigger: boolean("delete_trigger").default(false).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => [
+		// getGuildAutoResponses and the trigger lookups: one guild's responses.
+		index("auto_responses_guild_idx").on(t.guildId),
+	],
+);
 
 // --- Personality Profiling ---
 

@@ -105,6 +105,7 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 |---|---|---|
 | `DISCORD_TOKEN` | required | Bot token |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot` | Postgres connection |
+| `WEB_DATABASE_URL` | the bot's default `DATABASE_URL` | Compose only: the web service's Postgres URL. Set it to `postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot` to use the SELECT-only role on the two snapshot tables. Migration 0024 creates that role without a password; set one with `ALTER ROLE bhayanak_web PASSWORD '...'` first (README, Docker). The web service ignores `DATABASE_URL` |
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password; also the password in Compose's default `DATABASE_URL` for the bot and web services |
 | `ZEN_API_KEY` | unset | opencode Zen API key; responder and summary replies require it (plus `ZEN_ALLOW_DISCORD_CONTENT=true`). Personality generation is disabled independently |
@@ -210,7 +211,9 @@ The `Dockerfile` has these stages:
 - `migration` is a small image target that can run `drizzle-kit migrate` if used separately.
 - `production` is Debian-based, installs runtime dependencies, copies source, and runs the bot through `tsx`.
 
-Compose injects the service hostname for `DATABASE_URL`, so local `.env` values are mainly for non-Docker development.
+Compose injects the service hostname for the bot's `DATABASE_URL`, so local `.env` values are mainly for non-Docker development. The web service can connect as the read-only `bhayanak_web` role through `WEB_DATABASE_URL` (opt-in; README, Docker). Any new table or column the web reads needs a `GRANT SELECT` to that role in a migration; the role gets nothing by default.
+
+All timestamps are `timestamp without time zone`, read and written as UTC: the pool sets `TimeZone=UTC` on every connection (`buildPoolConfig`) and the Postgres Compose service sets `TZ`/`PGTZ`.
 
 ## Agent skills
 

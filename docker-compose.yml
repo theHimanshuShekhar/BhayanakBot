@@ -10,6 +10,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: bhayanakbot
+      # Pin the server and its client tools to UTC; the schema's timestamps carry no zone.
+      TZ: UTC
+      PGTZ: UTC
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -77,7 +80,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot}
+      # Opt-in: set WEB_DATABASE_URL to the read-only bhayanak_web role (migration 0024) once its password is set.
+      DATABASE_URL: ${WEB_DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot}
       PUBLIC_BOT_INVITE_URL: ${PUBLIC_BOT_INVITE_URL:-https://discord.com/oauth2/authorize}
       DASHBOARD_API_TOKEN: ${DASHBOARD_API_TOKEN:-}
     ports:

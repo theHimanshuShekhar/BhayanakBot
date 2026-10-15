@@ -13,6 +13,9 @@ export function buildPoolConfig(connectionString: string): PoolConfig {
 		idleTimeoutMillis: 30_000,
 		// Cuts off runaway queries. Generous because personality and archive queries scan large message windows.
 		statement_timeout: 60_000,
+		// Timestamp columns are `timestamp without time zone`; a UTC session keeps what is written and read the same
+		// instant whatever the server's TimeZone is.
+		options: "-c TimeZone=UTC",
 	};
 }
 

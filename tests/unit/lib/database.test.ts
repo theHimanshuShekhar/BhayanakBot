@@ -15,4 +15,8 @@ describe("buildPoolConfig", () => {
 	it("keeps the statement timeout above the slowest expected personality and archive queries", () => {
 		expect(buildPoolConfig("postgresql://example/db").statement_timeout).toBeGreaterThanOrEqual(30_000);
 	});
+
+	it("pins every connection to UTC", () => {
+		expect(buildPoolConfig("postgresql://example/db").options).toContain("TimeZone=UTC");
+	});
 });

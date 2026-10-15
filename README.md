@@ -75,6 +75,7 @@ DISCORD_TOKEN=your_bot_token
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 POSTGRES_PASSWORD=postgres
+# WEB_DATABASE_URL=postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot   # optional read-only web login; see Docker below
 ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries; requires ZEN_ALLOW_DISCORD_CONTENT=true before Discord content is sent to Zen
 ZEN_ALLOW_DISCORD_CONTENT=false      # must be true for responder/summary AI replies (no local fallback)
 ZEN_BASE_URL=https://opencode.ai/zen/go/v1
@@ -125,6 +126,15 @@ docker compose up -d
 ```
 
 The service hostname (`postgres`) is injected automatically — `.env` values are only used for local development.
+
+By default the web service uses the same database login as the bot (`postgres`). Migration `0024` also creates `bhayanak_web`, a role that can only `SELECT` the two snapshot tables the site reads (`public_bot_stats_snapshots`, `dashboard_presence_snapshots`). It is created without a password, so switching the website to it is an opt-in, ordered step:
+
+1. Deploy, so the bot container runs the migration.
+2. Set a password: `docker compose exec postgres psql -U postgres -d bhayanakbot -c "ALTER ROLE bhayanak_web PASSWORD '<password>'"`.
+3. Set `WEB_DATABASE_URL=postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot` in the deployment's `.env` (use only letters, digits, and `- _ . ~` in the password, since it sits in a URL).
+4. Redeploy the web service.
+
+Until `WEB_DATABASE_URL` is set the web service keeps the default login. Postgres and the bot's connections run in UTC (`TZ`/`PGTZ` on the Postgres service, `TimeZone=UTC` on the pool).
 
 The web service serves the public site, so set `DASHBOARD_API_TOKEN` in the deployment's `.env`: `GET /api/dashboard-presence` (member IDs and voice state) then requires `Authorization: Bearer <DASHBOARD_API_TOKEN>` and answers 404 without it. When updating a deployment, also update the homelab Glance dashboard widget to send that header, or it will start getting 404s. Left unset, the endpoint is open and the web service logs a warning.
 

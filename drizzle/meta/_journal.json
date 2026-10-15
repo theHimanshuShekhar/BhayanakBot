@@ -169,6 +169,13 @@
       "when": 1792036972216,
       "tag": "0023_reminder_and_giveaway_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792105858717,
+      "tag": "0024_schema_indexes_and_web_role",
+      "breakpoints": true
     }
   ]
 }
