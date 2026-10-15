@@ -6,9 +6,9 @@ export class VolumeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly", "IsDJ"],
+			preconditions: ["GuildOnly", "IsDJ", "InBotVoiceChannel"],
 			help: {
-				summary: "Set the playback volume (1–200).",
+				summary: "Set the playback volume (0–100).",
 				examples: ["/volume level:80"],
 			},
 		});

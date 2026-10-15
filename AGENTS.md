@@ -145,7 +145,7 @@ Scheduled tasks are declared as `ScheduledTask` classes but scheduled manually i
 
 ## Music
 
-Music uses `discord-player` v7 with `DefaultExtractors` and `discord-player-youtubei`. Event wiring is in `src/lib/music/events.ts`; embeds/components/errors/cache helpers are under `src/lib/music/`. Music commands are gated by `IsDJ` where appropriate. `YOUTUBE_COOKIE` may be passed to the YouTube extractor.
+Music uses `discord-player` v7 with `DefaultExtractors` and `discord-player-youtubei`. Event wiring is in `src/lib/music/events.ts`; embeds/components/errors/cache helpers are under `src/lib/music/`. Music commands are gated by `IsDJ` where appropriate. Playback controls (commands and `musicButtons`) also share one same-channel rule, `getVoiceChannelRefusal` in `src/lib/music/voiceChannel.ts`, applied via the `InBotVoiceChannel` precondition (`/play` calls it inline): while the bot is connected to a voice channel, the member must be in it unless they have Administrator. `/queue` and `/nowplaying` are open. `YOUTUBE_COOKIE` may be passed to the YouTube extractor.
 
 ## Interaction Handlers
 
@@ -157,7 +157,7 @@ Failed and denied interactions are answered centrally by the listeners in `src/l
 
 ## Preconditions
 
-Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags.
+Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`, `InBotVoiceChannel`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags.
 
 ## Code Style
 

@@ -10,6 +10,7 @@ import {
 } from "../lib/music/components.js";
 import { buildNowPlayingEmbed, buildQueueEmbed, QUEUE_PAGE_SIZE } from "../lib/music/embeds.js";
 import { getGuildSettingsCached } from "../lib/music/guildSettingsCache.js";
+import { getVoiceChannelRefusal } from "../lib/music/voiceChannel.js";
 
 async function checkDJ(interaction: ButtonInteraction): Promise<boolean> {
 	const member = interaction.member as GuildMember;
@@ -33,13 +34,18 @@ export class MusicButtonsHandler extends InteractionHandler {
 	public override async run(interaction: ButtonInteraction) {
 		const customId = interaction.customId;
 
-		// Queue pagination — no DJ check needed
+		// Queue pagination is read-only — no DJ or voice-channel check needed
 		if (customId.startsWith("music:queue:")) {
 			return this.handleQueuePage(interaction);
 		}
 
 		if (!(await checkDJ(interaction))) {
 			return interaction.reply({ content: "You need the DJ role to control music.", flags: MessageFlags.Ephemeral });
+		}
+
+		const refusal = getVoiceChannelRefusal(interaction.guild!, interaction.member as GuildMember);
+		if (refusal) {
+			return interaction.reply({ content: refusal, flags: MessageFlags.Ephemeral });
 		}
 
 		const queue = useQueue(interaction.guildId!);

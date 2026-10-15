@@ -18,7 +18,7 @@ export class LoopCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly", "IsDJ"],
+			preconditions: ["GuildOnly", "IsDJ", "InBotVoiceChannel"],
 			help: {
 				summary: "Set the queue loop mode (off, track, or queue).",
 				examples: ["/loop mode:track", "/loop mode:queue", "/loop mode:off"],

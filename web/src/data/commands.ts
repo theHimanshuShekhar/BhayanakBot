@@ -127,12 +127,15 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Play a song or playlist from a URL or search query.",
 		examples: ["/play query:never gonna give you up", "/play query:https://youtu.be/dQw4w9WgXcQ"],
 		category: "music",
+		usageNotes:
+			"Joins your voice channel when the bot is idle; if it is playing in another channel, you are told which. A YouTube video link with a playlist parameter plays that video only. Administrators are exempt from the same-channel rule.",
 	},
 	{
 		name: "/music",
 		description: "Pause, resume, skip, stop, or disconnect the music player.",
 		examples: ["/music pause", "/music resume", "/music skip", "/music stop", "/music disconnect"],
 		category: "music",
+		usageNotes: "While the bot is in a voice channel you must be in the same channel; administrators are exempt.",
 		subcommands: {
 			pause: { summary: "Pause the current track.", examples: ["/music pause"] },
 			resume: { summary: "Resume paused playback.", examples: ["/music resume"] },
@@ -158,13 +161,21 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Set the playback volume (0–100).",
 		examples: ["/volume level:80"],
 		category: "music",
+		usageNotes: "While the bot is in a voice channel you must be in the same channel; administrators are exempt.",
 	},
-	{ name: "/shuffle", description: "Shuffle the current music queue.", examples: ["/shuffle"], category: "music" },
+	{
+		name: "/shuffle",
+		description: "Shuffle the current music queue.",
+		examples: ["/shuffle"],
+		category: "music",
+		usageNotes: "While the bot is in a voice channel you must be in the same channel; administrators are exempt.",
+	},
 	{
 		name: "/loop",
 		description: "Set the queue loop mode (off, track, or queue).",
 		examples: ["/loop mode:track", "/loop mode:queue", "/loop mode:off"],
 		category: "music",
+		usageNotes: "While the bot is in a voice channel you must be in the same channel; administrators are exempt.",
 	},
 	{ name: "/ping", description: "Check bot latency and API response time.", examples: ["/ping"], category: "utility" },
 	{

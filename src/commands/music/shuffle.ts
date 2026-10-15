@@ -6,7 +6,7 @@ export class ShuffleCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly", "IsDJ"],
+			preconditions: ["GuildOnly", "IsDJ", "InBotVoiceChannel"],
 			help: {
 				summary: "Shuffle the current music queue.",
 				examples: ["/shuffle"],

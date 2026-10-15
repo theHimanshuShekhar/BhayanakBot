@@ -14,7 +14,7 @@ export class MusicControlsCommand extends Subcommand {
 				{ name: "stop", chatInputRun: "runStop" },
 				{ name: "disconnect", chatInputRun: "runDisconnect" },
 			],
-			preconditions: ["GuildOnly", "IsDJ"],
+			preconditions: ["GuildOnly", "IsDJ", "InBotVoiceChannel"],
 			help: {
 				summary: "Pause, resume, skip, stop, or disconnect the music player.",
 				examples: ["/music pause", "/music skip", "/music stop", "/music disconnect"],

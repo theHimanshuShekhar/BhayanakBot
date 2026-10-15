@@ -34,6 +34,7 @@ const expectedPreconditionNames: Record<string, string> = {
 	"IsAdmin.js": "IsAdmin",
 	"IsModerator.js": "IsModerator",
 	"IsDJ.js": "IsDJ",
+	"InBotVoiceChannel.js": "InBotVoiceChannel",
 };
 
 describe("precondition structure", () => {

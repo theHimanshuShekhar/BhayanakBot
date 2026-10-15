@@ -27,7 +27,7 @@ function discoverCommandFiles(): string[] {
 
 const commandFiles = discoverCommandFiles();
 
-const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "Cooldown"];
+const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "InBotVoiceChannel", "Cooldown"];
 
 function getPreconditionName(precondition: unknown): unknown {
 	if (typeof precondition === "string") return precondition;
@@ -95,6 +95,21 @@ describe("command preconditions", () => {
 			const instance = new CommandClass(context, {});
 			const names = instance.preconditions.entries.map(getPreconditionName);
 			expect(names).toContain("IsDJ");
+		}
+	});
+
+	it("playback controls require the bot's voice channel, read-only music commands do not", async () => {
+		const load = async (file: string) => {
+			const CommandClass = await loadCommandClass(`../../../src/commands/music/${file}.js`);
+			const context = createCommandContext(`src/commands/music/${file}.ts`);
+			return new CommandClass(context, {}).preconditions.entries.map(getPreconditionName);
+		};
+		for (const file of ["controls", "volume", "shuffle", "loop"]) {
+			expect(await load(file), file).toContain("InBotVoiceChannel");
+		}
+		// /play applies the same check itself so it can say "join the voice channel" first and let an idle bot join
+		for (const file of ["play", "queue", "nowplaying"]) {
+			expect(await load(file), file).not.toContain("InBotVoiceChannel");
 		}
 	});
 

@@ -4,12 +4,7 @@ import { type GuildMember, MessageFlags, PermissionFlagsBits } from "discord.js"
 import { QueryType, useMainPlayer } from "discord-player";
 import { formatPlayerError } from "../../lib/music/errors.js";
 import type { MusicQueueMetadata } from "../../lib/music/events.js";
-
-/** Matches YouTube single-video URLs (not playlists). Pre-search workaround
- *  is still needed in discord-player v7 to avoid SoundCloud fallback. */
-function isYouTubeVideoUrl(query: string): boolean {
-	return /(youtube\.com\/watch\?v=|youtu\.be\/)/.test(query);
-}
+import { getVoiceChannelRefusal, getYouTubeVideoId } from "../../lib/music/voiceChannel.js";
 
 export class PlayCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -43,6 +38,12 @@ export class PlayCommand extends Command {
 			});
 		}
 
+		// The bot idles anywhere; once it is connected, only members in its channel (or administrators) may queue.
+		const refusal = getVoiceChannelRefusal(interaction.guild!, member);
+		if (refusal) {
+			return interaction.reply({ content: refusal, flags: MessageFlags.Ephemeral });
+		}
+
 		// Check bot has permission to join and speak
 		const botPermissions = voiceChannel.permissionsFor(interaction.guild!.members.me!);
 		if (!botPermissions?.has(PermissionFlagsBits.Connect)) {
@@ -60,7 +61,10 @@ export class PlayCommand extends Command {
 
 		const query = interaction.options.getString("query", true);
 		const player = useMainPlayer();
-		const isYTVideo = isYouTubeVideoUrl(query);
+		// Pre-search workaround is still needed in discord-player v7 to avoid SoundCloud fallback. Searching the bare
+		// video URL (not the pasted one) keeps a `list=` playlist parameter from turning it into a playlist request.
+		const ytVideoId = getYouTubeVideoId(query);
+		const isYTVideo = ytVideoId !== null;
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -70,7 +74,9 @@ export class PlayCommand extends Command {
 			// For YouTube single-video URLs, pre-search to get title/author and re-query
 			// via YOUTUBE_SEARCH to avoid discord-player v7 falling back to SoundCloud.
 			if (isYTVideo) {
-				const ytResult = await player.search(query, { requestedBy: interaction.user });
+				const ytResult = await player.search(`https://www.youtube.com/watch?v=${ytVideoId}`, {
+					requestedBy: interaction.user,
+				});
 				if (!ytResult.hasTracks()) {
 					return interaction.editReply({
 						content: "Could not retrieve YouTube video info. Try searching by song name instead.",
