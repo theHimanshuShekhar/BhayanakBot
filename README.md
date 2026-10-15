@@ -17,6 +17,8 @@ A fully custom Discord bot built for the Bhayanak server. Features a moderation 
 | **Config** | `/config` |
 | **Minecraft** | `/minecraft` |
 
+`/summarize`, `/personality`, `/guess_who`, and the AI replies below are Home-Server Features: they run only in the guild named by `TARGET_GUILD_ID` (the Bhayanak server). The three commands are registered as guild commands there and are invisible elsewhere, and mentioning the bot in any other guild sends nothing to Zen and gets no AI reply. Everything else works in every guild.
+
 ### AI Personality System
 
 The bot can build personality profiles from archived server conversation to generate contextual responses. Profile generation is currently disabled (`PERSONALITY_GENERATION_ENABLED = false` in `src/lib/features.ts`) — profiles reflect previously generated data only.

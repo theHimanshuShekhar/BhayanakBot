@@ -20,6 +20,7 @@ import { generateAutoResponse, generateMentionReply } from "../../lib/autorespon
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
 import { db } from "../../lib/database.js";
+import { isHomeServer } from "../../lib/homeServer.js";
 import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
@@ -119,7 +120,8 @@ export class MessageCreateListener extends Listener {
 		}
 
 		const settings = await getOrCreateSettings(message.guild.id);
-		const isTargetTextChannel = message.channelId === TARGET_TEXT_CHANNEL_ID;
+		// Smart mentions and random replies send chat to Zen: Home Server only (ADR 0007).
+		const isTargetTextChannel = isHomeServer(message.guild.id) && message.channelId === TARGET_TEXT_CHANNEL_ID;
 
 		// --- Store eligible conversation history for LLM context ---
 		addConversationHistoryMessage(message.channel.id, message, this.container.logger);

@@ -31,6 +31,7 @@ const preconditionFiles = discoverPreconditionFiles();
 
 const expectedPreconditionNames: Record<string, string> = {
 	"GuildOnly.js": "GuildOnly",
+	"HomeServerOnly.js": "HomeServerOnly",
 	"IsAdmin.js": "IsAdmin",
 	"IsModerator.js": "IsModerator",
 	"IsDJ.js": "IsDJ",

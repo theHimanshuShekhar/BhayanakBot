@@ -10,6 +10,7 @@ import {
 	getGuessWhoSession,
 	recordWrongGuess,
 } from "../../lib/guessWho/session.js";
+import { HOME_SERVER_REGISTRATION } from "../../lib/homeServer.js";
 
 const startingChannels = new Set<string>();
 
@@ -17,7 +18,7 @@ export class GuessWhoCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly"],
+			preconditions: ["GuildOnly", "HomeServerOnly"],
 			help: {
 				summary: "Start a Guess Who round from archived channel messages.",
 				examples: ["/guess_who"],
@@ -26,8 +27,9 @@ export class GuessWhoCommand extends Command {
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
-		registry.registerChatInputCommand((builder) =>
-			builder.setName("guess_who").setDescription("Start a Guess Who round."),
+		registry.registerChatInputCommand(
+			(builder) => builder.setName("guess_who").setDescription("Start a Guess Who round."),
+			HOME_SERVER_REGISTRATION,
 		);
 	}
 

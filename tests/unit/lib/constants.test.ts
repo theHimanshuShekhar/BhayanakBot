@@ -36,4 +36,20 @@ describe("runtime constants", () => {
 
 		expect(BOT_OWNER_ID).toBe("123456789012345678");
 	});
+
+	it("falls back to the default Home Server when TARGET_GUILD_ID is blank", async () => {
+		process.env.TARGET_GUILD_ID = "  ";
+
+		const { TARGET_GUILD_ID } = await importConstants();
+
+		expect(TARGET_GUILD_ID).toBe("199168135935295488");
+	});
+
+	it("uses the configured TARGET_GUILD_ID as the Home Server", async () => {
+		process.env.TARGET_GUILD_ID = "123456789012345678";
+
+		const { TARGET_GUILD_ID } = await importConstants();
+
+		expect(TARGET_GUILD_ID).toBe("123456789012345678");
+	});
 });

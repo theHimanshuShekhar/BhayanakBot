@@ -194,6 +194,48 @@ describe("messageCreate Mention Policy", () => {
 		expect(resolveAllowedMentions(sent)).toEqual(NOTIFIES_NOBODY);
 	});
 
+	it("sends nothing to the LLM and does not reply to a bot mention outside the Home Server", async () => {
+		const message = createMessage({ id: "foreign-mention-1", channelId: "target", content: "<@bot-user> roast me" });
+		message.guild.id = "foreign-guild";
+		message.mentions.has = vi.fn(() => true);
+
+		await createListener().run(message as never);
+
+		expect(mockedGenerateMentionReply).not.toHaveBeenCalled();
+		expect(mockedGenerateAutoResponse).not.toHaveBeenCalled();
+		expect(message.reply).not.toHaveBeenCalled();
+		expect(message.channel.send).not.toHaveBeenCalled();
+	});
+
+	it("never rolls a random chat reply outside the Home Server", async () => {
+		mockedGetOrCreateSettings.mockResolvedValue(
+			createSettings({ randomResponseChannelId: "target", randomResponseChance: 100 }),
+		);
+		const message = createMessage({ id: "foreign-random-1", channelId: "target" });
+		message.guild.id = "foreign-guild";
+		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+		try {
+			await createListener().run(message as never);
+		} finally {
+			randomSpy.mockRestore();
+		}
+
+		expect(mockedGenerateMentionReply).not.toHaveBeenCalled();
+		expect(message.channel.send).not.toHaveBeenCalled();
+	});
+
+	it("still runs Generic Features outside the Home Server", async () => {
+		mockedFindMatchingResponse.mockResolvedValue(staticResponse("static hello") as never);
+		const message = createMessage({ id: "foreign-static-1", channelId: "target" });
+		message.guild.id = "foreign-guild";
+
+		await createListener().run(message as never);
+
+		expect(message.reply).toHaveBeenCalledWith("static hello");
+		expect(mockedAddXp).toHaveBeenCalled();
+	});
+
 	it("notifies only the levelled-up member on level-up", async () => {
 		mockedAddXp.mockResolvedValueOnce({ user: { lastMessageAt: new Date(0) } } as never);
 		mockedAddXp.mockResolvedValueOnce({ user: {}, leveledUp: true, newLevel: 5 } as never);

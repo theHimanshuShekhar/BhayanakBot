@@ -1,5 +1,6 @@
 import { BucketScope, Command } from "@sapphire/framework";
 import { EmbedBuilder, SnowflakeUtil, type TextBasedChannel } from "discord.js";
+import { HOME_SERVER_REGISTRATION } from "../../lib/homeServer.js";
 import { callInteractiveLlm } from "../../lib/llmProvider.js";
 
 const COOLDOWN_MS = 10 * 60 * 1000;
@@ -76,7 +77,7 @@ export class SummarizeCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly"],
+			preconditions: ["GuildOnly", "HomeServerOnly"],
 			cooldownDelay: COOLDOWN_MS,
 			cooldownScope: BucketScope.User,
 			cooldownLimit: 1,
@@ -89,32 +90,34 @@ export class SummarizeCommand extends Command {
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
-		registry.registerChatInputCommand((builder) =>
-			builder
-				.setName("summarize")
-				.setDescription("Summarize recent messages in this channel using AI")
-				.addIntegerOption((opt) =>
-					opt
-						.setName("count")
-						.setDescription("Number of messages to summarize (default: 50)")
-						.setMinValue(1)
-						.setMaxValue(200)
-						.setRequired(false),
-				)
-				.addStringOption((opt) =>
-					opt
-						.setName("time")
-						.setDescription("Summarize messages from the past time window (overrides count)")
-						.setRequired(false)
-						.addChoices(
-							{ name: "15 minutes", value: "15m" },
-							{ name: "30 minutes", value: "30m" },
-							{ name: "1 hour", value: "1h" },
-							{ name: "2 hours", value: "2h" },
-							{ name: "6 hours", value: "6h" },
-							{ name: "24 hours", value: "24h" },
-						),
-				),
+		registry.registerChatInputCommand(
+			(builder) =>
+				builder
+					.setName("summarize")
+					.setDescription("Summarize recent messages in this channel using AI")
+					.addIntegerOption((opt) =>
+						opt
+							.setName("count")
+							.setDescription("Number of messages to summarize (default: 50)")
+							.setMinValue(1)
+							.setMaxValue(200)
+							.setRequired(false),
+					)
+					.addStringOption((opt) =>
+						opt
+							.setName("time")
+							.setDescription("Summarize messages from the past time window (overrides count)")
+							.setRequired(false)
+							.addChoices(
+								{ name: "15 minutes", value: "15m" },
+								{ name: "30 minutes", value: "30m" },
+								{ name: "1 hour", value: "1h" },
+								{ name: "2 hours", value: "2h" },
+								{ name: "6 hours", value: "6h" },
+								{ name: "24 hours", value: "24h" },
+							),
+					),
+			HOME_SERVER_REGISTRATION,
 		);
 	}
 

@@ -15,6 +15,7 @@ import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
 import { getDashboardPresenceIntervalMs, writeDashboardPresenceSnapshotForClient } from "./lib/dashboardPresence.js";
 import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
+import { removeGlobalHomeServerCommands } from "./lib/homeServer.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
 import { getPublicStatsIntervalMs, writePublicBotStatsSnapshotForClient } from "./lib/publicStats.js";
@@ -131,6 +132,7 @@ async function main() {
 				client.logger.info(`  - ${guild.name} (${guild.id}) — member for ${duration}`);
 			}
 
+			if (client.application) void removeGlobalHomeServerCommands(client.application.commands, client.logger);
 			void writePublicStats();
 			void writeDashboardPresence();
 			void preloadConversationHistoryCache().catch((err) =>

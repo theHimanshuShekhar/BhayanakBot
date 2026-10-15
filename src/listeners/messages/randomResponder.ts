@@ -1,6 +1,7 @@
 import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { TARGET_TEXT_CHANNEL_ID } from "../../lib/constants.js";
+import { isHomeServer } from "../../lib/homeServer.js";
 import { callInteractiveLlm } from "../../lib/llmProvider.js";
 
 const HISTORY_LIMIT = 20;
@@ -35,6 +36,7 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 	public async run(message: Message): Promise<void> {
 		if (message.author.bot) return;
+		if (!isHomeServer(message.guildId)) return;
 		if (message.channelId !== TARGET_TEXT_CHANNEL_ID) return;
 
 		// Variable ~1% average chance: P(X < Y * 0.02) = 1% for uniform X, Y

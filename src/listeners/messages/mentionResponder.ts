@@ -2,6 +2,7 @@ import { Listener } from "@sapphire/framework";
 import { Events, type Message } from "discord.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
+import { isHomeServer } from "../../lib/homeServer.js";
 import { callInteractiveLlm } from "../../lib/llmProvider.js";
 import { getPersonalityContext } from "../../lib/personality/getPersonalityContext.js";
 
@@ -27,6 +28,7 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 	public async run(message: Message): Promise<void> {
 		if (message.author.bot) return;
 		if (!message.inGuild()) return;
+		if (!isHomeServer(message.guildId)) return;
 		if (!message.mentions.has(message.client.user)) return;
 
 		// Skip if personality features are enabled — messageCreate.ts handles smart mentions instead

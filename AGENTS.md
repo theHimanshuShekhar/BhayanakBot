@@ -72,6 +72,8 @@ Major Discord command areas:
 - Server systems: `/config`, `/autorespond`, `/giveaway`.
 - Minecraft: `/minecraft` shows `mc.bhayanak.net` status, Homestead version, live map link, required mods, and recommended mods.
 
+`/summarize`, `/personality`, and `/guess_who` are Home-Server Features (ADR 0007): they register with `HOME_SERVER_REGISTRATION` (`guildIds: [TARGET_GUILD_ID]`) from `src/lib/homeServer.ts` and carry the `HomeServerOnly` precondition. Sapphire never deletes commands, so moving a command from global to guild registration leaves the old global one behind; `removeGlobalHomeServerCommands` (called on `clientReady`) deletes stale global copies of `HOME_SERVER_COMMAND_NAMES`. A new Home-Server command must be added to both. Passive AI paths (`mentionResponder`, `randomResponder`, `messageCreate` smart mention and random reply) gate on `isHomeServer(guildId)`.
+
 When any Discord command is added, deleted, renamed, or behaviorally modified, update the web app command catalog and any relevant command documentation in `web/src/data/commands.ts` and `web/src/content/commands/` in the same change.
 
 ## Web Frontend
@@ -110,7 +112,7 @@ Keep `.env.example`, `README.md`, Docker Compose, and this table in sync when en
 | `DASHBOARD_PRESENCE_INTERVAL_MS` | `60000` | Dashboard presence snapshot refresh interval |
 | `YOUTUBE_COOKIE` | unset | Optional cookie for `discord-player-youtubei` |
 | `NODE_ENV` | unset | Controls log level (`debug` outside production, `info` in production) |
-| `TARGET_GUILD_ID` | `199168135935295488` | Guild gate for some LLM features |
+| `TARGET_GUILD_ID` | `199168135935295488` | The Home Server: Home-Server Features (`/summarize`, `/personality`, `/guess_who`, AI replies) run only here |
 | `TARGET_TEXT_CHANNEL_ID` | `199168135935295488` | Text-channel gate for responder features |
 | `GUESS_WHO_CHANNEL_ID` | `199168135935295488` | Channel whose messages are archived and where `/guess_who` can run |
 | `GUESS_WHO_BACKFILL_LIMIT` | `1000` | Maximum Discord messages scanned during startup backfill for Guess Who archive |
@@ -151,7 +153,7 @@ Failed and denied interactions are answered centrally by the listeners in `src/l
 
 ## Preconditions
 
-Available preconditions in command constructors: `GuildOnly`, `IsModerator`, `IsAdmin`, `IsDJ`, `InBotVoiceChannel`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags. `IsModerator` takes the permission that fits the action as context, e.g. `{ name: "IsModerator", context: { permission: PermissionFlagsBits.BanMembers } }` (ban/unban: BanMembers; kick: KickMembers; mute/unmute: ModerateMembers; warn/purge/case/history/giveaway: ManageMessages). The moderator role or that permission passes; Administrator passes everything.
+Available preconditions in command constructors: `GuildOnly`, `HomeServerOnly`, `IsModerator`, `IsAdmin`, `IsDJ`, `InBotVoiceChannel`. Moderator/Admin/DJ roles resolve from `guildSettings`, falling back to Discord permission flags. `IsModerator` takes the permission that fits the action as context, e.g. `{ name: "IsModerator", context: { permission: PermissionFlagsBits.BanMembers } }` (ban/unban: BanMembers; kick: KickMembers; mute/unmute: ModerateMembers; warn/purge/case/history/giveaway: ManageMessages). The moderator role or that permission passes; Administrator passes everything.
 
 Staff commands set `setDefaultMemberPermissions` so regular members do not see them (moderation: its action permission, or ModerateMembers for warn/case/history; `/config`, `/autorespond`, `/giveaway`, `/level-reset`: ManageGuild). Server admins can widen visibility in Server Settings > Integrations. `/snipe` and `/editsnipe` are open to everyone; their caches drop entries older than 10 minutes.
 

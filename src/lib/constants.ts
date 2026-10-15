@@ -1,5 +1,7 @@
 // Central constants for LLM feature gating — overridable via env vars
-export const TARGET_GUILD_ID = process.env.TARGET_GUILD_ID ?? "199168135935295488";
+// The Home Server. A blank value (Docker Compose passes `${TARGET_GUILD_ID:-}`) falls back to the default
+// rather than becoming "", which would make every guild registration invalid.
+export const TARGET_GUILD_ID = process.env.TARGET_GUILD_ID?.trim() || "199168135935295488";
 export const TARGET_TEXT_CHANNEL_ID = process.env.TARGET_TEXT_CHANNEL_ID ?? "199168135935295488";
 export const GUESS_WHO_CHANNEL_ID = process.env.GUESS_WHO_CHANNEL_ID ?? "199168135935295488";
 export const GUESS_WHO_BACKFILL_LIMIT = Number.parseInt(process.env.GUESS_WHO_BACKFILL_LIMIT ?? "1000", 10);

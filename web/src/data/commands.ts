@@ -243,7 +243,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
 		category: "utility",
 		usageNotes:
-			"Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes up to 200 non-bot text messages and successful summaries apply a 10-minute channel cooldown.",
+			"Only available in the Bhayanak server. Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes up to 200 non-bot text messages and successful summaries apply a 10-minute channel cooldown.",
 	},
 	{
 		name: "/personality",
@@ -251,7 +251,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/personality view user user:@someone", "/personality view guild"],
 		category: "utility",
 		usageNotes:
-			"Profile generation is currently disabled, so profiles only reflect previously generated data. Server administrators can disable personality features entirely with /config.",
+			"Only available in the Bhayanak server. Profile generation is currently disabled, so profiles only reflect previously generated data. Server administrators can disable personality features entirely with /config.",
 		subcommands: {
 			"view user": {
 				summary: "View your own user personality profile or another member's profile.",
@@ -297,7 +297,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/guess_who"],
 		category: "games",
 		usageNotes:
-			"Only works in GUESS_WHO_CHANNEL_ID. Guess by mentioning a user. One active round is allowed per channel; three wrong guesses or a 10-minute timeout reveals the author.",
+			"Only available in the Bhayanak server, and only works in GUESS_WHO_CHANNEL_ID. Guess by mentioning a user. One active round is allowed per channel; three wrong guesses or a 10-minute timeout reveals the author.",
 	},
 	{
 		name: "/rank",

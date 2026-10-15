@@ -10,6 +10,7 @@ import {
 import { guildPersonalityProfiles, userPersonalityProfiles } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
 import { PERSONALITY_GENERATION_ENABLED } from "../../lib/features.js";
+import { HOME_SERVER_REGISTRATION } from "../../lib/homeServer.js";
 import {
 	buildGuildPersonalityProfile,
 	type GuildPersonalityBuildResult,
@@ -63,7 +64,7 @@ export class PersonalityCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			preconditions: ["GuildOnly"],
+			preconditions: ["GuildOnly", "HomeServerOnly"],
 			help: {
 				summary: "View or refresh user personality and server culture profiles.",
 				examples: [
@@ -78,40 +79,42 @@ export class PersonalityCommand extends Command {
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
-		registry.registerChatInputCommand((builder) =>
-			builder
-				.setName("personality")
-				.setDescription("View or refresh user personality and server culture profiles")
-				.addSubcommandGroup((group) =>
-					group
-						.setName("view")
-						.setDescription("View a personality profile")
-						.addSubcommand((sub) =>
-							sub
-								.setName("user")
-								.setDescription("View the personality profile for a user")
-								.addUserOption((opt) =>
-									opt.setName("user").setDescription("User to look up (defaults to yourself)").setRequired(false),
-								),
-						)
-						.addSubcommand((sub) => sub.setName("guild").setDescription("View this server's culture profile")),
-				)
-				.addSubcommandGroup((group) =>
-					group
-						.setName("refresh")
-						.setDescription("Start an incremental profile refresh from archived messages")
-						.addSubcommand((sub) =>
-							sub
-								.setName("user")
-								.setDescription("Refresh a user's personality profile from new archive evidence")
-								.addUserOption((opt) =>
-									opt.setName("user").setDescription("User to refresh (defaults to yourself)").setRequired(false),
-								),
-						)
-						.addSubcommand((sub) =>
-							sub.setName("guild").setDescription("Refresh this server's culture profile from new archive evidence"),
-						),
-				),
+		registry.registerChatInputCommand(
+			(builder) =>
+				builder
+					.setName("personality")
+					.setDescription("View or refresh user personality and server culture profiles")
+					.addSubcommandGroup((group) =>
+						group
+							.setName("view")
+							.setDescription("View a personality profile")
+							.addSubcommand((sub) =>
+								sub
+									.setName("user")
+									.setDescription("View the personality profile for a user")
+									.addUserOption((opt) =>
+										opt.setName("user").setDescription("User to look up (defaults to yourself)").setRequired(false),
+									),
+							)
+							.addSubcommand((sub) => sub.setName("guild").setDescription("View this server's culture profile")),
+					)
+					.addSubcommandGroup((group) =>
+						group
+							.setName("refresh")
+							.setDescription("Start an incremental profile refresh from archived messages")
+							.addSubcommand((sub) =>
+								sub
+									.setName("user")
+									.setDescription("Refresh a user's personality profile from new archive evidence")
+									.addUserOption((opt) =>
+										opt.setName("user").setDescription("User to refresh (defaults to yourself)").setRequired(false),
+									),
+							)
+							.addSubcommand((sub) =>
+								sub.setName("guild").setDescription("Refresh this server's culture profile from new archive evidence"),
+							),
+					),
+			HOME_SERVER_REGISTRATION,
 		);
 	}
 

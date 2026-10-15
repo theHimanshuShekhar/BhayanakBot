@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "@sapphire/framework";
 import { SlashCommandBuilder } from "discord.js";
 import { beforeAll, describe, expect, it } from "vitest";
+import { TARGET_GUILD_ID } from "../../../src/lib/constants.js";
 import { GUESS_WHO_MAX_WRONG_GUESSES } from "../../../src/lib/guessWho/session.js";
 import { createCommandContext, loadCommandClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
 
@@ -27,7 +28,15 @@ function discoverCommandFiles(): string[] {
 
 const commandFiles = discoverCommandFiles();
 
-const knownPreconditions = ["GuildOnly", "IsAdmin", "IsModerator", "IsDJ", "InBotVoiceChannel", "Cooldown"];
+const knownPreconditions = [
+	"GuildOnly",
+	"HomeServerOnly",
+	"IsAdmin",
+	"IsModerator",
+	"IsDJ",
+	"InBotVoiceChannel",
+	"Cooldown",
+];
 
 function getPreconditionName(precondition: unknown): unknown {
 	if (typeof precondition === "string") return precondition;
@@ -144,6 +153,56 @@ describe("command preconditions", () => {
 				if (typeof name === "string") {
 					expect(knownPreconditions).toContain(name);
 				}
+			}
+		}
+	});
+});
+
+describe("Home-Server Feature commands", () => {
+	beforeAll(() => {
+		setupSapphireContainer();
+	});
+
+	const homeServerCommands = [
+		{ name: "summarize", file: "../../../src/commands/utility/summarize.js" },
+		{ name: "personality", file: "../../../src/commands/utility/personality.js" },
+		{ name: "guess_who", file: "../../../src/commands/games/guess-who.js" },
+	];
+
+	async function inspectCommand(file: string) {
+		const CommandClass = await loadCommandClass(file);
+		const context = createCommandContext(file.replace(/\.\.\/\.\.\/\.\.\//, "src/").replace(".js", ".ts"));
+		const instance = new CommandClass(context, {});
+		const registrations: { name: string; options: { guildIds?: string[] } | undefined }[] = [];
+		instance.registerApplicationCommands({
+			registerChatInputCommand(register: (builder: SlashCommandBuilder) => unknown, options?: { guildIds?: string[] }) {
+				const json = (register(new SlashCommandBuilder()) as SlashCommandBuilder).toJSON();
+				registrations.push({ name: json.name, options });
+			},
+		} as never);
+		return { instance, registrations };
+	}
+
+	for (const { name, file } of homeServerCommands) {
+		it(`/${name} is registered as a guild command in the Home Server only`, async () => {
+			const { registrations } = await inspectCommand(file);
+			expect(registrations).toHaveLength(1);
+			expect(registrations[0]?.name).toBe(name);
+			expect(registrations[0]?.options?.guildIds).toEqual([TARGET_GUILD_ID]);
+		});
+
+		it(`/${name} refuses to run outside the Home Server`, async () => {
+			const { instance } = await inspectCommand(file);
+			expect(instance.preconditions.entries.map(getPreconditionName)).toContain("HomeServerOnly");
+		});
+	}
+
+	it("every other command stays globally registered", async () => {
+		const homeFiles = new Set(homeServerCommands.map((c) => c.file));
+		for (const file of commandFiles.filter((f) => !homeFiles.has(f))) {
+			const { registrations } = await inspectCommand(file);
+			for (const registration of registrations) {
+				expect(registration.options?.guildIds, `${registration.name} must stay a global command`).toBeUndefined();
 			}
 		}
 	});
