@@ -297,7 +297,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/guess_who"],
 		category: "games",
 		usageNotes:
-			"Only available in the Bhayanak server, and only works in GUESS_WHO_CHANNEL_ID. Guess by mentioning a user. One active round is allowed per channel; three wrong guesses or a 10-minute timeout reveals the author.",
+			"Only available in the Bhayanak server, and only works in GUESS_WHO_CHANNEL_ID. Guess by typing a mention of a user; replying to someone without typing a mention does not count as a guess. One active round is allowed per channel; three wrong guesses or a 10-minute timeout reveals the author.",
 	},
 	{
 		name: "/rank",

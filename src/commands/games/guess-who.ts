@@ -1,8 +1,9 @@
 import { Command } from "@sapphire/framework";
 import { MessageFlags } from "discord.js";
-import { getRandomGuessWhoMessage } from "../../db/queries/archivedChannelMessages.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 import { buildGuessWhoPromptEmbed, buildGuessWhoRevealEmbed } from "../../lib/guessWho/embeds.js";
+import { getGuessedUserId } from "../../lib/guessWho/guess.js";
+import { pickLiveGuessWhoMessage } from "../../lib/guessWho/pick.js";
 import {
 	clearGuessWhoSession,
 	createGuessWhoSession,
@@ -56,11 +57,20 @@ export class GuessWhoCommand extends Command {
 		await interaction.deferReply();
 
 		try {
-			const message = await getRandomGuessWhoMessage({
-				guildId: interaction.guildId,
-				channelId: interaction.channelId,
-				excludeAuthorUserId: interaction.user.id,
-			});
+			const channel = interaction.channel;
+			if (!channel?.isTextBased() || !("createMessageCollector" in channel)) {
+				return interaction.editReply("I could not start a Guess Who round in this channel.");
+			}
+
+			const message = await pickLiveGuessWhoMessage(
+				{
+					guildId: interaction.guildId,
+					channelId: interaction.channelId,
+					excludeAuthorUserId: interaction.user.id,
+				},
+				channel,
+				this.container.logger,
+			);
 
 			if (!message) {
 				return interaction.editReply("I need more archived chat history before starting a Guess Who round.");
@@ -68,11 +78,6 @@ export class GuessWhoCommand extends Command {
 
 			await interaction.editReply({ embeds: [buildGuessWhoPromptEmbed(message)] });
 			const reply = await interaction.fetchReply();
-			const channel = interaction.channel;
-
-			if (!channel?.isTextBased() || !("createMessageCollector" in channel)) {
-				return interaction.editReply("I could not start a Guess Who round in this channel.");
-			}
 
 			const collector = channel.createMessageCollector({ time: GUESS_WHO_TIMEOUT_MS });
 			const timeout = setTimeout(() => collector.stop("time"), GUESS_WHO_TIMEOUT_MS);
@@ -91,13 +96,14 @@ export class GuessWhoCommand extends Command {
 				if (ended) return;
 				ended = true;
 				clearGuessWhoSession(interaction.channelId);
+				collector.stop(outcome);
 				await editQueue;
 
 				const revealEmbed = buildGuessWhoRevealEmbed({ message, outcome, guessedByUserId });
 				try {
 					await reply.edit({ embeds: [revealEmbed] });
 				} catch {
-					await channel.send({ embeds: [revealEmbed] });
+					await channel.send({ embeds: [revealEmbed] }).catch(() => undefined);
 				}
 			};
 
@@ -113,18 +119,17 @@ export class GuessWhoCommand extends Command {
 			collector.on("collect", async (collectedMessage) => {
 				if (ended || collectedMessage.author.bot || collectedMessage.author.id === message.authorUserId) return;
 
-				const guessedUser = collectedMessage.mentions.users.first();
-				if (!guessedUser) return;
+				// Only a mention typed in the text is a guess; the automatic mention on a reply is not.
+				const guessedUserId = getGuessedUserId(collectedMessage.content);
+				if (!guessedUserId) return;
 
-				if (guessedUser.id === message.authorUserId) {
-					collector.stop("correct");
+				if (guessedUserId === message.authorUserId) {
 					await revealAndEnd("correct", collectedMessage.author.id);
 					return;
 				}
 
 				const wrongGuess = recordWrongGuess(interaction.channelId);
 				if (wrongGuess.exhausted) {
-					collector.stop("exhausted");
 					await revealAndEnd("exhausted");
 					return;
 				}
@@ -133,8 +138,13 @@ export class GuessWhoCommand extends Command {
 			});
 
 			collector.on("end", async (_collected, reason) => {
+				if (ended) return;
 				if (reason === "time") {
 					await revealAndEnd("timeout");
+				} else {
+					// The collector died for another reason (e.g. the channel was deleted): free the channel.
+					ended = true;
+					clearGuessWhoSession(interaction.channelId);
 				}
 			});
 

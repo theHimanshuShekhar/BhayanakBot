@@ -36,7 +36,8 @@ The bot can build personality profiles from archived server conversation to gene
 
 - **Archive source**: non-bot messages from `GUESS_WHO_CHANNEL_ID` are archived with the Discord message ID, content, timestamps, user ID, global username, and server display name
 - **Backfill**: on startup, the bot imports up to `GUESS_WHO_BACKFILL_LIMIT` accessible recent messages so the game has data immediately after deployment
-- **Game flow**: the bot posts a polished quote embed, players guess by mentioning the author, and the same embed updates the remaining guess count
+- **Live messages only**: before a round shows a message the bot confirms it still exists on Discord; deleted messages (including bulk deletes such as `/purge`) are marked deleted in the archive and never used
+- **Game flow**: the bot posts a polished quote embed, players guess by typing a mention of the author (a reply ping alone does not count), and the same embed updates the remaining guess count
 - **Reveal**: after a correct guess, 3 wrong guesses, or a 10-minute timeout, the same embed reveals the author, relative message age, original message ID, and jump link
 - **Archive retention**: archived messages are kept indefinitely for DBA-side history/log retrieval; there is no Discord-facing archive search command
 

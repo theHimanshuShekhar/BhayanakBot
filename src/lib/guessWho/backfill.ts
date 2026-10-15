@@ -2,6 +2,13 @@ import { ChannelType, type Client, type TextChannel } from "discord.js";
 import { upsertArchivedChannelMessage } from "../../db/queries/archivedChannelMessages.js";
 import { GUESS_WHO_BACKFILL_LIMIT, GUESS_WHO_CHANNEL_ID } from "../constants.js";
 
+const DEFAULT_BACKFILL_LIMIT = 1000;
+
+/** An unset, blank or otherwise unparseable GUESS_WHO_BACKFILL_LIMIT reaches us as NaN; use the default then. */
+export function resolveBackfillLimit(limit: number): number {
+	return Number.isFinite(limit) && limit >= 0 ? Math.floor(limit) : DEFAULT_BACKFILL_LIMIT;
+}
+
 export async function backfillGuessWhoMessages(client: Client): Promise<number> {
 	const channel = await client.channels.fetch(GUESS_WHO_CHANNEL_ID).catch(() => null);
 	if (!channel || channel.type !== ChannelType.GuildText) return 0;
@@ -9,7 +16,7 @@ export async function backfillGuessWhoMessages(client: Client): Promise<number> 
 	let before: string | undefined;
 	let scanned = 0;
 	let imported = 0;
-	const limit = Math.max(0, GUESS_WHO_BACKFILL_LIMIT);
+	const limit = resolveBackfillLimit(GUESS_WHO_BACKFILL_LIMIT);
 
 	while (scanned < limit) {
 		const batchSize = Math.min(100, limit - scanned);

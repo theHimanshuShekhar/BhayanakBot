@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
 import { db } from "../../lib/database.js";
 import { isGameEligibleContent } from "../../lib/guessWho/eligibility.js";
 import { archivedChannelMessages } from "../schema.js";
@@ -70,13 +70,21 @@ export async function markArchivedChannelMessageEdited(input: ArchivedMessageInp
 	await upsertArchivedChannelMessage({ ...input, editedAt: input.editedAt ?? new Date() });
 }
 
-export async function markArchivedChannelMessageDeleted(messageId: string, deletedAt = new Date()): Promise<void> {
+export async function markArchivedChannelMessagesDeleted(messageIds: string[], deletedAt = new Date()): Promise<void> {
+	if (messageIds.length === 0) return;
 	const updatedRows = await db
 		.update(archivedChannelMessages)
 		.set({ deletedAt, updatedAt: deletedAt })
-		.where(eq(archivedChannelMessages.messageId, messageId))
+		.where(inArray(archivedChannelMessages.messageId, messageIds))
 		.returning({ messageId: archivedChannelMessages.messageId });
-	if (updatedRows.length === 0) pendingDeletedMessages.set(messageId, deletedAt);
+	const updatedIds = new Set(updatedRows.map((row) => row.messageId));
+	for (const messageId of messageIds) {
+		if (!updatedIds.has(messageId)) pendingDeletedMessages.set(messageId, deletedAt);
+	}
+}
+
+export async function markArchivedChannelMessageDeleted(messageId: string, deletedAt = new Date()): Promise<void> {
+	await markArchivedChannelMessagesDeleted([messageId], deletedAt);
 }
 
 export async function isArchivedChannelMessageDeleted(messageId: string): Promise<boolean> {
@@ -87,44 +95,58 @@ export async function isArchivedChannelMessageDeleted(messageId: string): Promis
 	return row?.deletedAt != null;
 }
 
+/** Each attempt drops one row the JS game rules reject, so a handful is plenty for the SQL/JS rule overlap. */
+const MAX_RANDOM_PICK_ATTEMPTS = 5;
+
 export async function getRandomGuessWhoMessage(input: {
 	guildId: string;
 	channelId: string;
 	excludeAuthorUserId: string;
+	/** Messages that must not be picked, e.g. ones already found deleted on Discord during this draw. */
+	excludeMessageIds?: string[];
 	now?: Date;
 }): Promise<GuessWhoArchivedMessage | null> {
 	const now = input.now ?? new Date();
 	const cutoff = new Date(now.getTime() - 60 * 60 * 1000);
-	const eligibleWhere = and(
-		eq(archivedChannelMessages.guildId, input.guildId),
-		eq(archivedChannelMessages.channelId, input.channelId),
-		ne(archivedChannelMessages.authorUserId, input.excludeAuthorUserId),
-		isNull(archivedChannelMessages.deletedAt),
-		lt(archivedChannelMessages.messageCreatedAt, cutoff),
-		sql`length(regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g')) between 15 and 300`,
-		sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '/%'`,
-		sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '!%'`,
-		sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') !~* '^https?://\\S+$'`,
-		sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '%@everyone%'`,
-		sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '%@here%'`,
-	);
+	const rejectedMessageIds = [...(input.excludeMessageIds ?? [])];
 
-	const [countRow] = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(archivedChannelMessages)
-		.where(eligibleWhere);
-	const count = countRow?.count ?? 0;
-	if (count === 0) return null;
+	for (let attempt = 0; attempt < MAX_RANDOM_PICK_ATTEMPTS; attempt++) {
+		const eligibleWhere = and(
+			eq(archivedChannelMessages.guildId, input.guildId),
+			eq(archivedChannelMessages.channelId, input.channelId),
+			ne(archivedChannelMessages.authorUserId, input.excludeAuthorUserId),
+			isNull(archivedChannelMessages.deletedAt),
+			lt(archivedChannelMessages.messageCreatedAt, cutoff),
+			sql`length(regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g')) between 15 and 300`,
+			sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '/%'`,
+			sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '!%'`,
+			sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') !~* '^https?://\\S+$'`,
+			sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '%@everyone%'`,
+			sql`regexp_replace(${archivedChannelMessages.content}, '^\\s+|\\s+$', '', 'g') not like '%@here%'`,
+			rejectedMessageIds.length > 0 ? notInArray(archivedChannelMessages.messageId, rejectedMessageIds) : undefined,
+		);
 
-	const [candidate] = await db
-		.select()
-		.from(archivedChannelMessages)
-		.where(eligibleWhere)
-		.limit(1)
-		.offset(Math.floor(Math.random() * count));
-	if (!candidate) return null;
+		const [countRow] = await db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(archivedChannelMessages)
+			.where(eligibleWhere);
+		const count = countRow?.count ?? 0;
+		if (count === 0) return null;
 
-	return isGameEligibleContent({ content: candidate.content, messageCreatedAt: candidate.messageCreatedAt }, now)
-		? candidate
-		: null;
+		const [candidate] = await db
+			.select()
+			.from(archivedChannelMessages)
+			.where(eligibleWhere)
+			.orderBy(asc(archivedChannelMessages.messageCreatedAt), asc(archivedChannelMessages.messageId))
+			.limit(1)
+			.offset(Math.floor(Math.random() * count));
+		if (!candidate) return null;
+
+		if (isGameEligibleContent({ content: candidate.content, messageCreatedAt: candidate.messageCreatedAt }, now)) {
+			return candidate;
+		}
+		rejectedMessageIds.push(candidate.messageId);
+	}
+
+	return null;
 }
