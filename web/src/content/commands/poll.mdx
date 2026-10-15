@@ -31,6 +31,6 @@ related:
   - { n: "/giveaway", d: "Run giveaway" }
 ---
 
-Poll votes are handled by buttons. Timed polls end through the scheduled poll task.
+Poll votes are handled by buttons. Timed polls end through the scheduled poll task. Votes are refused as soon as the end time passes, even before the results are posted. A poll only counts as ended once its results have been posted; if posting fails the bot retries for up to 30 minutes.
 
 Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and no poll is created when the value is invalid. Polls last at most 30 days; leave the option out for a poll that never expires.

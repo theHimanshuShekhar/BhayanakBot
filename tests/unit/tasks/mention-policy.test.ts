@@ -1,6 +1,10 @@
 import { container } from "@sapphire/framework";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { endGiveaway, getActiveExpiredGiveaways } from "../../../src/db/queries/giveaways.js";
+import {
+	endGiveaway,
+	getActiveExpiredGiveaways,
+	getGiveawaysAwaitingAnnouncement,
+} from "../../../src/db/queries/giveaways.js";
 import { getPendingReminders, markReminderSent } from "../../../src/db/queries/reminders.js";
 import { endGiveaways } from "../../../src/tasks/endGiveaways.js";
 import { sendReminders } from "../../../src/tasks/sendReminders.js";
@@ -10,10 +14,15 @@ import { createGuild } from "../../helpers/giveawayMocks.js";
 vi.mock("../../../src/db/queries/giveaways.js", () => ({
 	endGiveaway: vi.fn(),
 	getActiveExpiredGiveaways: vi.fn(),
+	getGiveawaysAwaitingAnnouncement: vi.fn(),
+	markGiveawayAnnounced: vi.fn(),
+	recordGiveawayAnnounceFailure: vi.fn(),
 }));
 vi.mock("../../../src/db/queries/reminders.js", () => ({
 	getPendingReminders: vi.fn(),
 	markReminderSent: vi.fn(),
+	markReminderFailed: vi.fn(),
+	scheduleReminderRetry: vi.fn(),
 }));
 
 function createChannel() {
@@ -49,6 +58,7 @@ describe("task Mention Policy", () => {
 	});
 
 	it("giveaway announcement notifies only the winners", async () => {
+		vi.mocked(getGiveawaysAwaitingAnnouncement).mockResolvedValue([]);
 		vi.mocked(getActiveExpiredGiveaways).mockResolvedValue([
 			{
 				id: 1,
@@ -61,6 +71,10 @@ describe("task Mention Policy", () => {
 			},
 		] as never);
 		vi.mocked(endGiveaway).mockImplementation((async (_guildId: string, _messageId: string, winners: string[]) => ({
+			id: 1,
+			channelId: "c1",
+			messageId: "m1",
+			prize: "@everyone Nitro",
 			winners,
 		})) as never);
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.999);

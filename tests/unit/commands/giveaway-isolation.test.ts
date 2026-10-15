@@ -7,6 +7,8 @@ import { createCommandContext, setupSapphireContainer } from "../../helpers/sapp
 vi.mock("../../../src/db/queries/giveaways.js", () => ({
 	createGiveaway: vi.fn(),
 	endGiveaway: vi.fn(),
+	markGiveawayAnnounced: vi.fn(),
+	recordGiveawayAnnounceFailure: vi.fn(),
 	getGiveawayByMessage: vi.fn(),
 	rerollGiveaway: vi.fn(),
 }));
@@ -82,7 +84,11 @@ describe("giveaway guild isolation", () => {
 	it("/giveaway end draws only members who are still in the server", async () => {
 		const giveaway = createGiveawayRow({ winnerCount: 2, entries: ["w1", "left", "w2"] });
 		vi.mocked(getGiveawayByMessage).mockResolvedValue(giveaway as never);
-		vi.mocked(endGiveaway).mockResolvedValue({ ...giveaway, ended: true } as never);
+		vi.mocked(endGiveaway).mockImplementation((async (_guildId: string, _messageId: string, winners: string[]) => ({
+			...giveaway,
+			ended: true,
+			winners,
+		})) as never);
 		const interaction = createInteraction(["w1", "w2"]);
 
 		await createCommand().runEnd(interaction as never);

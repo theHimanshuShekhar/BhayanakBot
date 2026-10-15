@@ -152,6 +152,10 @@ export const reminders = pgTable("reminders", {
 	message: text("message").notNull(),
 	remindAt: timestamp("remind_at").notNull(),
 	sent: boolean("sent").default(false).notNull(),
+	// Delivery retries: failed deliveries are retried at nextAttemptAt, and abandoned (failed) after the retry window.
+	attempts: integer("attempts").default(0).notNull(),
+	nextAttemptAt: timestamp("next_attempt_at"),
+	failed: boolean("failed").default(false).notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -169,6 +173,10 @@ export const giveaways = pgTable(
 		hostId: varchar("host_id", { length: 20 }).notNull(),
 		winners: jsonb("winners").$type<string[]>().default([]).notNull(),
 		entries: jsonb("entries").$type<string[]>().default([]).notNull(),
+		// Ending decides the winners; announced is set once the result is posted (or abandoned after repeated failures).
+		announced: boolean("announced").default(false).notNull(),
+		announceAttempts: integer("announce_attempts").default(0).notNull(),
+		announceAttemptedAt: timestamp("announce_attempted_at"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(t) => [unique("giveaways_message_id_unique").on(t.messageId)],

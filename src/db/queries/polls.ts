@@ -9,6 +9,11 @@ export interface PollOption {
 	votes: string[]; // user IDs
 }
 
+/** A poll takes votes only until it is closed or its end time passes, even if the closing task has not run yet. */
+export function isPollOpen(poll: Pick<Poll, "closed" | "expiresAt">, now = new Date()): boolean {
+	return !poll.closed && !(poll.expiresAt && poll.expiresAt <= now);
+}
+
 export async function createPoll(data: {
 	messageId: string;
 	channelId: string;
@@ -30,7 +35,7 @@ export async function vote(messageId: string, optionIndex: number, userId: strin
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`poll:${messageId}`}, 0))`);
 
 		const [poll] = await tx.select().from(polls).where(eq(polls.messageId, messageId)).limit(1);
-		if (!poll || poll.closed) return undefined;
+		if (!poll || !isPollOpen(poll)) return undefined;
 
 		const options = poll.options as PollOption[];
 		// Remove user's previous vote

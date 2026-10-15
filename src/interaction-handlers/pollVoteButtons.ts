@@ -2,7 +2,7 @@ import { InteractionHandler, InteractionHandlerTypes } from "@sapphire/framework
 import type { ButtonInteraction } from "discord.js";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } from "discord.js";
 import { eq } from "drizzle-orm";
-import { vote } from "../db/queries/polls.js";
+import { isPollOpen, vote } from "../db/queries/polls.js";
 import { polls } from "../db/schema.js";
 import { db } from "../lib/database.js";
 
@@ -26,7 +26,7 @@ export class PollVoteButtonsHandler extends InteractionHandler {
 		if (!poll) {
 			return interaction.reply({ content: "Poll not found.", flags: MessageFlags.Ephemeral });
 		}
-		if (poll.closed) {
+		if (!isPollOpen(poll)) {
 			return interaction.reply({ content: "This poll has already ended.", flags: MessageFlags.Ephemeral });
 		}
 

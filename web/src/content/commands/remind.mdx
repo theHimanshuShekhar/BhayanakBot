@@ -8,7 +8,7 @@ syntax:
   args:
     - { n: "set|list|cancel", d: "Reminder action", req: true, t: "subcommand" }
     - { n: "time", d: "Delay up to 1 year, such as 10m, 2h, 1d, or 1h30m", req: false, t: "duration" }
-    - { n: "message", d: "Reminder message", req: false, t: "string" }
+    - { n: "message", d: "Reminder message, up to 1000 characters", req: false, t: "string" }
     - { n: "id", d: "Reminder ID for cancel", req: false, t: "integer" }
 examples:
   - label: "set"
@@ -31,3 +31,5 @@ related:
 Use `/remind list` to see active reminders and `/remind cancel id:<id>` to remove one.
 
 Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and nothing is changed when the value is invalid. Reminders can be set at most 1 year ahead.
+
+Reminder messages are limited to 1000 characters; longer ones are rejected and nothing is saved. Reminders are posted in the channel where you set them, pinging only you. If that channel is gone or the bot cannot post there, the reminder is sent to you by DM instead. If neither works, the bot keeps retrying with a growing delay for up to 24 hours, then gives up and the reminder disappears from `/remind list`.

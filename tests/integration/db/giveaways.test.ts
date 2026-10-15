@@ -5,6 +5,9 @@ import {
 	createGiveaway,
 	endGiveaway,
 	getGiveawayByMessage,
+	getGiveawaysAwaitingAnnouncement,
+	markGiveawayAnnounced,
+	recordGiveawayAnnounceFailure,
 	rerollGiveaway,
 } from "../../../src/db/queries/giveaways.js";
 import { giveaways } from "../../../src/db/schema.js";
@@ -79,5 +82,38 @@ describe("giveaway queries", () => {
 
 		expect(results.filter((r) => r !== undefined)).toHaveLength(1);
 		expect((await getGiveawayByMessage(GUILD, MESSAGE))?.winners).toHaveLength(2);
+	});
+
+	describe("announcement delivery", () => {
+		const longAgo = () => new Date(Date.now() - 10 * 60_000);
+		const awaiting = async (attemptedBefore = new Date()) =>
+			(await getGiveawaysAwaitingAnnouncement(attemptedBefore)).filter((g) => g.messageId === MESSAGE);
+
+		it("is awaiting announcement once ended, but not before", async () => {
+			expect(await awaiting()).toEqual([]);
+
+			await endGiveaway(GUILD, MESSAGE, ["first"]);
+
+			expect(await awaiting()).toHaveLength(1);
+		});
+
+		it("waits out the retry delay after ending and after every failed attempt", async () => {
+			await endGiveaway(GUILD, MESSAGE, ["first"]);
+			expect(await awaiting(longAgo())).toEqual([]);
+
+			await recordGiveawayAnnounceFailure((await getGiveawayByMessage(GUILD, MESSAGE))!.id);
+
+			const row = await getGiveawayByMessage(GUILD, MESSAGE);
+			expect(row?.announceAttempts).toBe(1);
+			expect(await awaiting(longAgo())).toEqual([]);
+			expect(await awaiting(new Date(Date.now() + 1000))).toHaveLength(1);
+		});
+
+		it("is no longer awaiting once announced", async () => {
+			await endGiveaway(GUILD, MESSAGE, ["first"]);
+			await markGiveawayAnnounced((await getGiveawayByMessage(GUILD, MESSAGE))!.id);
+
+			expect(await awaiting(new Date(Date.now() + 1000))).toEqual([]);
+		});
 	});
 });

@@ -49,7 +49,8 @@ export async function endGiveaway(
 ): Promise<Giveaway | undefined> {
 	const [ended] = await db
 		.update(giveaways)
-		.set({ ended: true, winners })
+		// Ending is the first announcement attempt (the caller announces next), so retries wait their turn after it.
+		.set({ ended: true, winners, announceAttemptedAt: new Date() })
 		.where(and(eq(giveaways.guildId, guildId), eq(giveaways.messageId, messageId), eq(giveaways.ended, false)))
 		.returning();
 	return ended;
@@ -85,4 +86,26 @@ export async function getActiveExpiredGiveaways(): Promise<Giveaway[]> {
 	return db.query.giveaways.findMany({
 		where: and(eq(giveaways.ended, false), lte(giveaways.endsAt, new Date())),
 	});
+}
+
+/** Ended giveaways whose result has not been posted and whose last attempt is at or before `attemptedBefore`. */
+export async function getGiveawaysAwaitingAnnouncement(attemptedBefore: Date): Promise<Giveaway[]> {
+	return db.query.giveaways.findMany({
+		where: and(
+			eq(giveaways.ended, true),
+			eq(giveaways.announced, false),
+			lte(giveaways.announceAttemptedAt, attemptedBefore),
+		),
+	});
+}
+
+export async function markGiveawayAnnounced(id: number): Promise<void> {
+	await db.update(giveaways).set({ announced: true }).where(eq(giveaways.id, id));
+}
+
+export async function recordGiveawayAnnounceFailure(id: number): Promise<void> {
+	await db
+		.update(giveaways)
+		.set({ announceAttempts: sql`${giveaways.announceAttempts} + 1`, announceAttemptedAt: new Date() })
+		.where(eq(giveaways.id, id));
 }

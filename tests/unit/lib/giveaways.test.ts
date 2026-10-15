@@ -4,7 +4,20 @@ import { drawEligibleWinners, endAndAnnounceGiveaway } from "../../../src/lib/gi
 import { NOTIFIES_NOBODY, resolveAllowedMentions } from "../../helpers/allowedMentions.js";
 import { createGiveawayRow, createGuild } from "../../helpers/giveawayMocks.js";
 
-vi.mock("../../../src/db/queries/giveaways.js", () => ({ endGiveaway: vi.fn() }));
+vi.mock("../../../src/db/queries/giveaways.js", () => ({
+	endGiveaway: vi.fn(),
+	markGiveawayAnnounced: vi.fn(),
+	recordGiveawayAnnounceFailure: vi.fn(),
+}));
+
+/** Like the real query: the returned row carries the winners that were passed in. */
+function endStoringWinners(giveaway: object) {
+	vi.mocked(endGiveaway).mockImplementation((async (_guildId: string, _messageId: string, winners: string[]) => ({
+		...giveaway,
+		ended: true,
+		winners,
+	})) as never);
+}
 
 describe("drawEligibleWinners", () => {
 	it("never picks entrants who left the server", async () => {
@@ -56,7 +69,7 @@ describe("endAndAnnounceGiveaway", () => {
 	it("announces the same winners it stored", async () => {
 		const guild = createGuild(["w1", "w2"]);
 		const giveaway = createGiveawayRow({ winnerCount: 2, entries: ["w1", "w2", "left"] });
-		vi.mocked(endGiveaway).mockResolvedValue({ ...giveaway, ended: true } as never);
+		endStoringWinners(giveaway);
 
 		const winners = await endAndAnnounceGiveaway(guild as never, giveaway as never);
 
@@ -83,7 +96,7 @@ describe("endAndAnnounceGiveaway", () => {
 	it("says No eligible entrants instead of congratulating nobody", async () => {
 		const guild = createGuild([]);
 		const giveaway = createGiveawayRow({ entries: ["left1", "left2"] });
-		vi.mocked(endGiveaway).mockResolvedValue({ ...giveaway, ended: true } as never);
+		endStoringWinners(giveaway);
 
 		const winners = await endAndAnnounceGiveaway(guild as never, giveaway as never);
 

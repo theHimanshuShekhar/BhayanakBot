@@ -230,7 +230,8 @@ export const RAW_COMMANDS: Command[] = [
 		category: "utility",
 		subcommands: {
 			set: {
-				summary: "Set a reminder after a duration such as 10m, 2h, 1d, or 1h30m (units s, m, h, d, w; up to 1 year).",
+				summary:
+					"Set a reminder after a duration such as 10m, 2h, 1d, or 1h30m (units s, m, h, d, w; up to 1 year). Messages are limited to 1000 characters. Delivered in this channel, by DM if that fails.",
 				examples: ['/remind set time:30m message:"check oven"'],
 			},
 			list: { summary: "List your active reminders.", examples: ["/remind list"] },

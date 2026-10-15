@@ -6,6 +6,8 @@ import { reminders } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
 import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
 
+export const REMINDER_MAX_LENGTH = 1000;
+
 export class RemindCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
 		super(context, {
@@ -47,7 +49,11 @@ export class RemindCommand extends Subcommand {
 								.setRequired(true),
 						)
 						.addStringOption((opt) =>
-							opt.setName("message").setDescription("What to remind you about").setRequired(true),
+							opt
+								.setName("message")
+								.setDescription("What to remind you about")
+								.setMaxLength(REMINDER_MAX_LENGTH)
+								.setRequired(true),
 						),
 				)
 				.addSubcommand((sub) => sub.setName("list").setDescription("List your active reminders"))
@@ -63,6 +69,13 @@ export class RemindCommand extends Subcommand {
 	public async runSet(interaction: Subcommand.ChatInputCommandInteraction) {
 		const timeStr = interaction.options.getString("time", true);
 		const message = interaction.options.getString("message", true);
+
+		if (message.length > REMINDER_MAX_LENGTH) {
+			return interaction.reply({
+				content: `Reminders can be at most ${REMINDER_MAX_LENGTH} characters (yours is ${message.length}).`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
 
 		const parsed = parseDuration(timeStr, DURATION_CAPS.reminder);
 		if (!parsed.ok) return interaction.reply({ content: parsed.error, flags: MessageFlags.Ephemeral });
@@ -87,7 +100,7 @@ export class RemindCommand extends Subcommand {
 
 	public async runList(interaction: Subcommand.ChatInputCommandInteraction) {
 		const userReminders = await db.query.reminders.findMany({
-			where: and(eq(reminders.userId, interaction.user.id), eq(reminders.sent, false)),
+			where: and(eq(reminders.userId, interaction.user.id), eq(reminders.sent, false), eq(reminders.failed, false)),
 		});
 
 		if (userReminders.length === 0) {
