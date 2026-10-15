@@ -1,8 +1,8 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
-import ms from "ms";
 import { createGiveaway, endGiveaway, getGiveawayByMessage } from "../../db/queries/giveaways.js";
 import { notifyOnly } from "../../lib/allowedMentions.js";
+import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
 
 export class GiveawayCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -23,7 +23,7 @@ export class GiveawayCommand extends Subcommand {
 				],
 				subcommands: {
 					start: {
-						summary: "Start a timed giveaway in the current channel.",
+						summary: "Start a timed giveaway of up to 30 days in the current channel.",
 						examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
 					},
 					end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },
@@ -46,7 +46,10 @@ export class GiveawayCommand extends Subcommand {
 						.setName("start")
 						.setDescription("Start a giveaway")
 						.addStringOption((opt) =>
-							opt.setName("duration").setDescription("Duration (e.g. 10m, 1h, 1d)").setRequired(true),
+							opt
+								.setName("duration")
+								.setDescription("Duration, up to 30 days (e.g. 10m, 1h30m, 2d, 1w)")
+								.setRequired(true),
 						)
 						.addStringOption((opt) =>
 							opt.setName("prize").setDescription("What are you giving away?").setRequired(true),
@@ -79,15 +82,10 @@ export class GiveawayCommand extends Subcommand {
 		const prize = interaction.options.getString("prize", true);
 		const winnerCount = interaction.options.getInteger("winners") ?? 1;
 
-		const duration = ms(durationStr as any) as unknown as number;
-		if (!duration || duration <= 0) {
-			return interaction.reply({
-				content: "Invalid duration. Use e.g. `10m`, `1h`, `1d`.",
-				flags: MessageFlags.Ephemeral,
-			});
-		}
+		const parsed = parseDuration(durationStr, DURATION_CAPS.giveaway);
+		if (!parsed.ok) return interaction.reply({ content: parsed.error, flags: MessageFlags.Ephemeral });
 
-		const endsAt = new Date(Date.now() + duration);
+		const endsAt = new Date(Date.now() + parsed.ms);
 
 		const embed = new EmbedBuilder()
 			.setTitle("🎉 Giveaway!")

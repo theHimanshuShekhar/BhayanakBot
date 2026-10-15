@@ -65,9 +65,6 @@ importers:
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
-      ms:
-        specifier: ^2.1.3
-        version: 2.1.3
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -102,9 +99,6 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.2.2
         version: 4.2.2(vite@8.0.7(@types/node@25.5.2)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0))
-      '@types/ms':
-        specifier: ^2.1.0
-        version: 2.1.0
       '@types/node':
         specifier: ^25.5.2
         version: 25.5.2

@@ -8,7 +8,7 @@ syntax:
   args:
     - { n: "user", d: "Member to ban", req: true, t: "@user" }
     - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
-    - { n: "duration", d: "Temporary ban duration", req: false, t: "duration" }
+    - { n: "duration", d: "Temporary ban duration, up to 1 year (e.g. 7d, 1w, 12h30m)", req: false, t: "duration" }
 examples:
   - label: "temporary"
     tag: "BAN"
@@ -30,3 +30,5 @@ related:
 ---
 
 Requires moderator access. A duration creates a temporary ban entry for the expiration task to reverse later, retrying if Discord is temporarily unreachable. The latest action wins: a new ban or temporary ban replaces the member's earlier active ban, so an old temporary ban's expiry cannot unban them, and `/unban` closes any active ban too.
+
+Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and nothing is changed when the value is invalid. Temporary bans last at most 1 year.

@@ -1,7 +1,8 @@
 import { Command } from "@sapphire/framework";
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, type TextChannel } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags, type TextChannel } from "discord.js";
 import { polls } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
+import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
 
 export class PollCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
@@ -25,11 +26,10 @@ export class PollCommand extends Command {
 				.addStringOption((opt) => opt.setName("option2").setDescription("Option 2").setRequired(true))
 				.addStringOption((opt) => opt.setName("option3").setDescription("Option 3").setRequired(false))
 				.addStringOption((opt) => opt.setName("option4").setDescription("Option 4").setRequired(false))
-				.addIntegerOption((opt) =>
+				.addStringOption((opt) =>
 					opt
 						.setName("duration")
-						.setDescription("Poll duration in minutes (0 = no expiry)")
-						.setMinValue(0)
+						.setDescription("How long the poll runs, up to 30 days (e.g. 30m, 2h, 1d). Omit for no expiry")
 						.setRequired(false),
 				),
 		);
@@ -44,8 +44,13 @@ export class PollCommand extends Command {
 			interaction.options.getString("option4"),
 		].filter(Boolean) as string[];
 
-		const durationMins = interaction.options.getInteger("duration") ?? 0;
-		const expiresAt = durationMins > 0 ? new Date(Date.now() + durationMins * 60_000) : null;
+		const durationStr = interaction.options.getString("duration");
+		let expiresAt: Date | null = null;
+		if (durationStr !== null) {
+			const parsed = parseDuration(durationStr, DURATION_CAPS.poll);
+			if (!parsed.ok) return interaction.reply({ content: parsed.error, flags: MessageFlags.Ephemeral });
+			expiresAt = new Date(Date.now() + parsed.ms);
+		}
 
 		const optionData = rawOptions.map((label) => ({ label, votes: [] as string[] }));
 

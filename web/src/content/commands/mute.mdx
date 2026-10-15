@@ -7,7 +7,7 @@ syntax:
   cmd: "/mute"
   args:
     - { n: "user", d: "Member to mute", req: true, t: "@user" }
-    - { n: "duration", d: "Mute duration", req: true, t: "duration" }
+    - { n: "duration", d: "Mute duration, up to 1 year (e.g. 10m, 1h30m, 2d)", req: true, t: "duration" }
     - { n: "reason", d: "Reason for the moderation log", req: false, t: "string" }
 examples:
   - label: "mute"
@@ -30,3 +30,5 @@ related:
 ---
 
 Requires moderator access and a configured muted role from `/config set setting:muted-role role:@Muted`. The expiration task removes the role after the stored duration, and keeps retrying if Discord is temporarily unreachable. A new mute replaces the member's earlier active mute, so the earlier expiry cannot unmute them early; `/unmute` closes any active mute too.
+
+Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and nothing is changed when the value is invalid. Mutes last at most 1 year.

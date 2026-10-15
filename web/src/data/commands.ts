@@ -62,6 +62,7 @@ export const RAW_COMMANDS: Command[] = [
 		name: "/ban",
 		description: "Ban a member from the server, optionally as a temporary ban.",
 		examples: ["/ban user:@spammer reason:raid", "/ban user:@x duration:7d"],
+		usageNotes: "Duration (temp ban) is a number plus a unit, e.g. 7d or 1h30m (s, m, h, d, w), up to 1 year.",
 		category: "moderation",
 	},
 	{
@@ -75,7 +76,8 @@ export const RAW_COMMANDS: Command[] = [
 		description: "Mute a member for a duration.",
 		examples: ["/mute user:@x duration:10m reason:spam", "/mute user:@y duration:1h"],
 		category: "moderation",
-		usageNotes: "Requires a configured muted role via /config set muted-role.",
+		usageNotes:
+			"Requires a configured muted role via /config set muted-role. Duration is a number plus a unit, e.g. 10m or 1h30m (s, m, h, d, w), up to 1 year.",
 	},
 	{
 		name: "/unmute",
@@ -215,7 +217,7 @@ export const RAW_COMMANDS: Command[] = [
 		category: "utility",
 		subcommands: {
 			set: {
-				summary: "Set a reminder after a duration such as 10m, 2h, or 1d.",
+				summary: "Set a reminder after a duration such as 10m, 2h, 1d, or 1h30m (units s, m, h, d, w; up to 1 year).",
 				examples: ['/remind set time:30m message:"check oven"'],
 			},
 			list: { summary: "List your active reminders.", examples: ["/remind list"] },
@@ -268,9 +270,11 @@ export const RAW_COMMANDS: Command[] = [
 	{
 		name: "/poll",
 		description: "Create a button-based poll with 2–4 options and an optional duration.",
+		usageNotes:
+			"Duration is a number plus a unit, e.g. 30m or 1d (s, m, h, d, w), up to 30 days. Omit it for a poll with no expiry.",
 		examples: [
 			'/poll question:"Best language?" option1:Python option2:JS option3:Go option4:Rust',
-			'/poll question:"Raid time?" option1:Now option2:Later duration:30',
+			'/poll question:"Raid time?" option1:Now option2:Later duration:30m',
 		],
 		category: "fun",
 	},
@@ -329,7 +333,8 @@ export const RAW_COMMANDS: Command[] = [
 		category: "giveaway",
 		subcommands: {
 			start: {
-				summary: "Start a timed giveaway in the current channel.",
+				summary:
+					"Start a timed giveaway in the current channel. Duration is a number plus a unit, e.g. 1h or 1d (s, m, h, d, w), up to 30 days.",
 				examples: ["/giveaway start duration:1h prize:Nitro winners:2"],
 			},
 			end: { summary: "End a giveaway early and draw winners.", examples: ["/giveaway end message-id:123456"] },

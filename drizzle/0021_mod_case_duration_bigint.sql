@@ -1,0 +1,1 @@
+ALTER TABLE "mod_cases" ALTER COLUMN "duration" SET DATA TYPE bigint;

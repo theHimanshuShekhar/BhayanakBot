@@ -1,7 +1,7 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
-import ms from "ms";
 import { createCase } from "../../db/queries/modCases.js";
+import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
 import { logToChannel } from "./warn.js";
 
 export class BanCommand extends Command {
@@ -27,7 +27,7 @@ export class BanCommand extends Command {
 				.addUserOption((opt) => opt.setName("user").setDescription("Member to ban").setRequired(true))
 				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for the ban"))
 				.addStringOption((opt) =>
-					opt.setName("duration").setDescription("Duration for a temp ban (e.g. 7d, 24h, 30m)"),
+					opt.setName("duration").setDescription("Temp ban length, up to 1 year (e.g. 7d, 1w, 12h30m)"),
 				),
 		);
 	}
@@ -42,8 +42,9 @@ export class BanCommand extends Command {
 		let expiresAt: Date | null = null;
 
 		if (durationStr) {
-			duration = ms(durationStr as Parameters<typeof ms>[0]) ?? null;
-			if (!duration) return interaction.editReply("❌ Invalid duration format. Use e.g. `7d`, `24h`, `30m`.");
+			const parsed = parseDuration(durationStr, DURATION_CAPS.tempban);
+			if (!parsed.ok) return interaction.editReply(`❌ ${parsed.error}`);
+			duration = parsed.ms;
 			expiresAt = new Date(Date.now() + duration);
 		}
 

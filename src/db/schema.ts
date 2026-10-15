@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	index,
 	integer,
@@ -109,7 +110,7 @@ export const modCases = pgTable(
 		moderatorId: varchar("moderator_id", { length: 20 }).notNull(),
 		type: modCaseTypeEnum("type").notNull(),
 		reason: text("reason"),
-		duration: integer("duration"), // ms, for timed actions
+		duration: bigint("duration", { mode: "number" }), // ms, for timed actions; a 1 year cap overflows int4
 		expiresAt: timestamp("expires_at"),
 		active: boolean("active").default(true).notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),

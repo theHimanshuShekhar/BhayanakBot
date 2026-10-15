@@ -1,10 +1,10 @@
 import { Subcommand } from "@sapphire/plugin-subcommands";
 import { EmbedBuilder, MessageFlags } from "discord.js";
 import { and, eq } from "drizzle-orm";
-import ms from "ms";
 import { markReminderSent } from "../../db/queries/reminders.js";
 import { reminders } from "../../db/schema.js";
 import { db } from "../../lib/database.js";
+import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
 
 export class RemindCommand extends Subcommand {
 	public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
@@ -21,7 +21,7 @@ export class RemindCommand extends Subcommand {
 				examples: ['/remind set time:2h message:"stretch"', "/remind list", "/remind cancel id:3"],
 				subcommands: {
 					set: {
-						summary: "Set a reminder after a duration (e.g. 10m, 2h, 1d).",
+						summary: "Set a reminder after a duration of up to 1 year (e.g. 10m, 2h, 1d, 1h30m).",
 						examples: ['/remind set time:30m message:"check oven"'],
 					},
 					list: { summary: "List your active reminders.", examples: ["/remind list"] },
@@ -41,7 +41,10 @@ export class RemindCommand extends Subcommand {
 						.setName("set")
 						.setDescription("Set a reminder")
 						.addStringOption((opt) =>
-							opt.setName("time").setDescription("When to remind you (e.g. 10m, 2h, 1d)").setRequired(true),
+							opt
+								.setName("time")
+								.setDescription("When to remind you, up to 1 year (e.g. 10m, 2h, 1h30m, 1d)")
+								.setRequired(true),
 						)
 						.addStringOption((opt) =>
 							opt.setName("message").setDescription("What to remind you about").setRequired(true),
@@ -61,15 +64,10 @@ export class RemindCommand extends Subcommand {
 		const timeStr = interaction.options.getString("time", true);
 		const message = interaction.options.getString("message", true);
 
-		const duration = ms(timeStr as any) as unknown as number;
-		if (!duration || duration <= 0) {
-			return interaction.reply({
-				content: "Invalid time format. Use e.g. `10m`, `2h`, `1d`.",
-				flags: MessageFlags.Ephemeral,
-			});
-		}
+		const parsed = parseDuration(timeStr, DURATION_CAPS.reminder);
+		if (!parsed.ok) return interaction.reply({ content: parsed.error, flags: MessageFlags.Ephemeral });
 
-		const remindAt = new Date(Date.now() + duration);
+		const remindAt = new Date(Date.now() + parsed.ms);
 		const [reminder] = await db
 			.insert(reminders)
 			.values({

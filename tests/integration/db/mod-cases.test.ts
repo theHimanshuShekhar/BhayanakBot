@@ -58,6 +58,20 @@ describe("moderation case queries", () => {
 		expect(new Set(rows.map((modCase) => modCase.caseNumber)).size).toBe(12);
 	});
 
+	it("stores a duration longer than a 32-bit integer of milliseconds", async () => {
+		const oneYear = 365 * 24 * 60 * 60 * 1000;
+		const created = await createCase({
+			guildId: TEST_GUILD_ID,
+			userId: "user-1",
+			moderatorId: "mod-1",
+			type: "mute",
+			duration: oneYear,
+			expiresAt: new Date(Date.now() + oneYear),
+		});
+
+		expect(created.duration).toBe(oneYear);
+	});
+
 	describe("supersession", () => {
 		const base = { guildId: TEST_GUILD_ID, userId: "target", moderatorId: "mod-1" } as const;
 

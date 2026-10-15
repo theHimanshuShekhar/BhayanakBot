@@ -148,6 +148,13 @@
       "when": 1792033490279,
       "tag": "0020_drop_rpg_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792034196854,
+      "tag": "0021_mod_case_duration_bigint",
+      "breakpoints": true
     }
   ]
 }

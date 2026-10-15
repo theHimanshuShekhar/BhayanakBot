@@ -11,7 +11,7 @@ syntax:
     - { n: "option2", d: "Second option", req: true, t: "string" }
     - { n: "option3", d: "Third option", req: false, t: "string" }
     - { n: "option4", d: "Fourth option", req: false, t: "string" }
-    - { n: "duration", d: "Optional duration in minutes", req: false, t: "integer" }
+    - { n: "duration", d: "Optional poll length, up to 30 days (e.g. 30m, 2h, 1d); omit for no expiry", req: false, t: "duration" }
 examples:
   - label: "vote"
     tag: "POLL"
@@ -32,3 +32,5 @@ related:
 ---
 
 Poll votes are handled by buttons. Timed polls end through the scheduled poll task.
+
+Durations are a number plus a unit: `s`, `m` (minutes), `h`, `d`, `w`, case-insensitive and chainable, e.g. `10m`, `2d`, `1h30m`, `2d12h`. A bare number, zero, or a negative is rejected, and no poll is created when the value is invalid. Polls last at most 30 days; leave the option out for a poll that never expires.

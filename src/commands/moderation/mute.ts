@@ -1,8 +1,8 @@
 import { Command } from "@sapphire/framework";
 import { type ChatInputCommandInteraction, EmbedBuilder, type GuildMember, PermissionFlagsBits } from "discord.js";
-import ms from "ms";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { createCase } from "../../db/queries/modCases.js";
+import { DURATION_CAPS, parseDuration } from "../../lib/duration.js";
 import { logToChannel } from "./warn.js";
 
 export class MuteCommand extends Command {
@@ -27,7 +27,7 @@ export class MuteCommand extends Command {
 				.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
 				.addUserOption((opt) => opt.setName("user").setDescription("Member to mute").setRequired(true))
 				.addStringOption((opt) =>
-					opt.setName("duration").setDescription("Duration (e.g. 10m, 1h, 1d)").setRequired(true),
+					opt.setName("duration").setDescription("Duration, up to 1 year (e.g. 10m, 1h30m, 2d, 1w)").setRequired(true),
 				)
 				.addStringOption((opt) => opt.setName("reason").setDescription("Reason for the mute")),
 		);
@@ -40,10 +40,11 @@ export class MuteCommand extends Command {
 		const durationStr = interaction.options.getString("duration", true);
 		const reason = interaction.options.getString("reason") ?? "No reason provided";
 
-		if (!target) return interaction.editReply("❌ Member not found.");
+		const parsed = parseDuration(durationStr, DURATION_CAPS.mute);
+		if (!parsed.ok) return interaction.editReply(`❌ ${parsed.error}`);
+		const duration = parsed.ms;
 
-		const duration = ms(durationStr as Parameters<typeof ms>[0]);
-		if (!duration) return interaction.editReply("❌ Invalid duration. Use e.g. `10m`, `1h`, `1d`.");
+		if (!target) return interaction.editReply("❌ Member not found.");
 
 		const myHighest = interaction.guild!.members.me!.roles.highest.position;
 		const modHighest = (interaction.member as GuildMember).roles.highest.position;
