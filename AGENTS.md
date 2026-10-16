@@ -210,13 +210,17 @@ Tests are type-checked by `tsconfig.test.json` (Vitest-style ESM/bundler resolut
 
 ## Deployment
 
-`docker-compose.yml` runs Postgres, the bot, and the Astro web server on the `botnet` bridge network. The production bot container runs migrations and starts the compiled bot with `sh -c "pnpm db:migrate && exec node dist/index.js"`; `exec` makes node receive SIGTERM directly so shutdown can run.
+`docker-compose.yml` runs Postgres, the bot, and the Astro web server on the `botnet` bridge network. Dockhand builds the Compose stack from this repository (CI does not build images), so only the `Dockerfile` and Compose matter. The bot service runs `sh -c "node dist/db/migrate.js && exec node dist/index.js"`: migrations stay in the start command, and `exec` makes node receive SIGTERM directly so shutdown can run. The web service starts the prebuilt server with `node web/dist/server/entry.mjs` (`HOST`/`PORT` are image `ENV`s); it never rebuilds Astro at start.
 
-The `Dockerfile` has these stages:
+`dist/db/migrate.js` (`src/db/migrate.ts`) applies `drizzle/` with drizzle-orm's migrator, because the runtime image has no dev dependencies and `drizzle-kit` is one. It reads and writes the same `drizzle.__drizzle_migrations` table, so it and `pnpm db:migrate` (still the dev and test command) are interchangeable. `tests/integration/db/migrate.test.ts` covers it.
 
-- `base` installs full dependencies and copies source/config.
-- `migration` is a small image target that can run `drizzle-kit migrate` if used separately.
-- `production` is Debian-based, installs runtime dependencies, copies source, and runs the bot through `tsx`.
+The `Dockerfile` builds two runtime targets, `bot` and `web` (`docker build --target bot .`), both as non-root `node` with `COPY --chown` (never `chown -R` over `node_modules`):
+
+- `toolchain` (internal) is Debian plus pnpm and python3/make/g++, so `@discordjs/opus` can compile when no prebuilt binary matches. `prod-deps` (`pnpm install --frozen-lockfile --prod`) and `build` (full install, `pnpm build`, `pnpm web:build`) extend it; no runtime image inherits the compilers.
+- `bot` is `node:22-bookworm-slim` with `ca-certificates`, `procps` (the bot healthcheck is the anchored `pgrep -f '^node dist/index.js'`; the web service checks `GET /` with node), a static `ffmpeg` copied from `mwader/static-ffmpeg`, production `node_modules`, `dist/` and `drizzle/`.
+- `web` is `node:22-alpine` plus `web/dist/` only. `web/astro.config.mjs` sets `vite.ssr.noExternal: true`, so the server bundle carries its dependencies and the image has no `node_modules`.
+
+Base images and the ffmpeg image are pinned by version and digest (Renovate bumps both). `pnpm-workspace.yaml` is copied wherever `pnpm install --frozen-lockfile` runs. `.dockerignore` excludes `**/node_modules`, `**/dist` and `**/.env*`, so host dependencies, builds and secrets never enter the context. `@types/node` stays on the Node 22 major to match the images.
 
 Compose injects the service hostname for the bot's `DATABASE_URL`, so local `.env` values are mainly for non-Docker development. The web service can connect as the read-only `bhayanak_web` role through `WEB_DATABASE_URL` (opt-in; README, Docker). Any new table or column the web reads needs a `GRANT SELECT` to that role in a migration; the role gets nothing by default.
 

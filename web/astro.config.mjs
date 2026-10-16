@@ -11,5 +11,7 @@ export default defineConfig({
 	integrations: [mdx(), sitemap()],
 	vite: {
 		plugins: [tailwindcss()],
+		// Bundle dependencies into web/dist/server so the Docker web image needs no node_modules.
+		ssr: { noExternal: true },
 	},
 });

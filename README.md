@@ -119,7 +119,7 @@ pnpm build && pnpm start  # production
 
 ## Docker
 
-The included `docker-compose.yml` runs everything (Postgres, bot, and web). The bot container runs migrations before startup:
+The included `docker-compose.yml` runs everything (Postgres, bot, and web). Each service builds its own `Dockerfile` target (`bot`, `web`), so the images hold production dependencies only. The bot container applies migrations before startup (`node dist/db/migrate.js`); the web container serves the site built at image build time and never rebuilds it on start:
 
 ```bash
 cp .env.example .env
@@ -151,6 +151,6 @@ pnpm db:push    # push schema changes without a migration (dev only)
 
 Biome enforces: tabs, double quotes, trailing commas, 120-char line width.
 
-`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. The hook does not run the type check or the tests, so run `pnpm typecheck`, `pnpm test`, and (after changing `web/`) `pnpm web:build` before pushing.
+`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. The hook does not run the type check or the tests, so run `pnpm typecheck`, `pnpm test`, and (after changing `web/`) `pnpm web:build` before pushing. Dockhand builds the Docker images from the repository.
 
 When adding new Drizzle `pgEnum` values, always generate and run a migration — `db:push` skips enum changes.

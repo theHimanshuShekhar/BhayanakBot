@@ -1,16 +1,34 @@
-node_modules
-*.log
+# Installed and built inside the image. `**/` matters: web/node_modules and any other nested copy from the host
+# must never reach a COPY.
+**/node_modules
+**/dist
+**/.astro
+**/coverage
+**/*.log
+
+# Secrets and local config. `.env.example` is documentation, not build input.
+**/.env*
+
+# Repository metadata and tooling the image never reads.
 .git
 .gitignore
-.env
-.env.example
-Dockerfile
-docker-compose.yml
 .github
+.githooks
+.claude
+.impeccable
 .vscode
 .idea
-dist
-web/dist
-coverage
+.worktrees
+
+# Not part of any image: tests, docs, and the Docker files themselves.
+tests
+docs
+thoughts
 *.md
-!README.md
+vitest.config.ts
+drizzle.config.ts
+tsconfig.test.json
+biome.json
+renovate.json
+Dockerfile
+docker-compose.yml

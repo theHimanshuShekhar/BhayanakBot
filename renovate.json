@@ -7,6 +7,11 @@
 	"lockFileMaintenance": { "enabled": true },
 	"packageRules": [
 		{
+			"description": "@types/node stays on the Node 22 major the Docker images run",
+			"matchPackageNames": ["@types/node"],
+			"allowedVersions": "<23"
+		},
+		{
 			"description": "One weekly PR for all minor and patch updates",
 			"matchUpdateTypes": ["minor", "patch", "digest"],
 			"groupName": "all non-major dependencies",
