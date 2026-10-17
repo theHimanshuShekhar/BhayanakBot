@@ -1,11 +1,6 @@
 import { container } from "@sapphire/framework";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { markArchivedChannelMessagesDeleted } from "../../../src/db/queries/archivedChannelMessages.js";
-import {
-	addConversationHistoryMessage,
-	clearConversationHistoryForTests,
-	getConversationContext,
-} from "../../../src/lib/autoresponder/conversationHistory.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { MessageDeleteBulkListener } from "../../../src/listeners/messages/messageDeleteBulk.js";
 import { createListenerContext, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
@@ -34,7 +29,6 @@ describe("messageDeleteBulk", () => {
 		vi.clearAllMocks();
 		setupSapphireContainer();
 		(container as any).logger = { debug: vi.fn(), error: vi.fn(), warn: vi.fn() };
-		clearConversationHistoryForTests();
 	});
 
 	it("marks every bulk-deleted Guess Who Channel message deleted in the archive", async () => {
@@ -56,25 +50,11 @@ describe("messageDeleteBulk", () => {
 		expect(markArchivedChannelMessagesDeleted).not.toHaveBeenCalled();
 	});
 
-	it("removes bulk-deleted messages from the AI conversation context", async () => {
-		for (const id of ["a", "b", "c"]) addConversationHistoryMessage("other-channel", chatMessage(id, "other-channel"));
-		const messages = new Map([
-			["a", { id: "a" }],
-			["c", { id: "c" }],
-		]);
-
-		await createListener().run(messages as never, { id: "other-channel" } as never);
-
-		expect(getConversationContext("other-channel", 10)).toBe("<@user-b>: message b text");
-	});
-
-	it("still clears the AI context when the archive update fails", async () => {
+	it("logs, without throwing, when the archive update fails", async () => {
 		vi.mocked(markArchivedChannelMessagesDeleted).mockRejectedValueOnce(new Error("db down"));
-		addConversationHistoryMessage(GUESS_WHO_CHANNEL_ID, chatMessage("a", GUESS_WHO_CHANNEL_ID));
 
 		await createListener().run(new Map([["a", { id: "a" }]]) as never, { id: GUESS_WHO_CHANNEL_ID } as never);
 
-		expect(getConversationContext(GUESS_WHO_CHANNEL_ID, 10)).toBe("");
 		expect(container.logger.error).toHaveBeenCalled();
 	});
 });

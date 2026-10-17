@@ -4,14 +4,14 @@ import { getAfk } from "../../../src/db/queries/afk.js";
 import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import { addXp } from "../../../src/db/queries/users.js";
-import { generateAutoResponse, generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
+import { replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
+import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { NOTIFIES_NOBODY, resolveAllowedMentions } from "../../helpers/allowedMentions.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
 
 vi.mock("../../../src/lib/constants.js", () => ({
 	GUESS_WHO_CHANNEL_ID: "guess-who",
-	TARGET_TEXT_CHANNEL_ID: "target",
 	TARGET_GUILD_ID: "guild-1",
 	GUESS_WHO_BACKFILL_LIMIT: 1000,
 	BOT_OWNER_ID: "bot-owner",
@@ -27,10 +27,7 @@ vi.mock("../../../src/db/queries/users.js", () => ({
 	addXp: vi.fn(async () => ({ user: {}, leveledUp: false, newLevel: 1, awarded: true })),
 	getLevelRewards: vi.fn(async () => []),
 }));
-vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({
-	generateAutoResponse: vi.fn(),
-	generateMentionReply: vi.fn(),
-}));
+vi.mock("../../../src/lib/llmProvider.js", () => ({ callInteractiveLlm: vi.fn(), callBackgroundLlm: vi.fn() }));
 vi.mock("../../../src/lib/personality/getPersonalityContext.js", () => ({
 	getPersonalityContext: vi.fn(async () => ""),
 }));
@@ -41,8 +38,8 @@ const mockedGetAfk = vi.mocked(getAfk);
 const mockedFindMatchingResponse = vi.mocked(findMatchingResponse);
 const mockedGetOrCreateSettings = vi.mocked(getOrCreateSettings);
 const mockedAddXp = vi.mocked(addXp);
-const mockedGenerateAutoResponse = vi.mocked(generateAutoResponse);
-const mockedGenerateMentionReply = vi.mocked(generateMentionReply);
+const mockedInteractive = vi.mocked(callInteractiveLlm);
+const mockedBackground = vi.mocked(callBackgroundLlm);
 
 function createSettings(overrides: Record<string, unknown> = {}) {
 	return {
@@ -69,9 +66,18 @@ function createMessage(input: { id: string; channelId?: string; content?: string
 		id: input.id,
 		channelId: input.channelId ?? "other",
 		content: input.content ?? "just chatting here",
+		cleanContent: input.content ?? "just chatting here",
 		createdAt: new Date(),
+		createdTimestamp: Date.now(),
 		reference: null,
-		author: { id: authorId, bot: false, username: "author", globalName: "Author", send: vi.fn() },
+		author: {
+			id: authorId,
+			bot: false,
+			username: "author",
+			globalName: "Author",
+			displayName: "Author",
+			send: vi.fn(),
+		},
 		guild: {
 			id: "guild-1",
 			name: "Guild",
@@ -80,7 +86,12 @@ function createMessage(input: { id: string; channelId?: string; content?: string
 			members: { cache: new Map() },
 		},
 		member: { displayName: "Author", permissions: { has: vi.fn(() => false) }, roles: { add: vi.fn() } },
-		channel: { id: input.channelId ?? "other", send: vi.fn(async () => null), messages: { fetch: vi.fn() } },
+		channel: {
+			id: input.channelId ?? "other",
+			send: vi.fn(async () => null),
+			sendTyping: vi.fn(async () => undefined),
+			messages: { fetch: vi.fn(async () => new Map()) },
+		},
 		mentions: { users: mentionedUsers, has: vi.fn(() => false) },
 		client: { user: { id: "bot-user", username: "BhayanakBot" } },
 		reply: vi.fn(async () => ({ delete: vi.fn(async () => null) })),
@@ -114,6 +125,7 @@ function staticResponse(response: string) {
 describe("messageCreate Mention Policy", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		replyGuardTestHooks.reset();
 		mockedGetOrCreateSettings.mockResolvedValue(createSettings());
 		mockedGetAfk.mockResolvedValue(undefined as never);
 		mockedFindMatchingResponse.mockResolvedValue(null as never);
@@ -154,7 +166,7 @@ describe("messageCreate Mention Policy", () => {
 			response: { ...staticResponse("Be rude.").response, responseType: "llm" },
 		} as never);
 		const message = createMessage({ id: "llm-1", channelId: "target" });
-		mockedGenerateAutoResponse.mockResolvedValue(`<@${message.author.id}> and <@111> and @everyone and <@&555>`);
+		mockedInteractive.mockResolvedValue(`<@${message.author.id}> and <@111> and @everyone and <@&555>`);
 
 		await createListener().run(message as never);
 
@@ -163,9 +175,9 @@ describe("messageCreate Mention Policy", () => {
 		expect(resolveAllowedMentions(sent)).toEqual(NOTIFIES_NOBODY);
 	});
 
-	it("notifies nobody, including the author, for a smart mention reply", async () => {
+	it("notifies nobody, including the author, for a mention reply", async () => {
 		const message = createMessage({ id: "smart-1", channelId: "target", content: "<@bot-user> roast me" });
-		mockedGenerateMentionReply.mockResolvedValue(`<@${message.author.id}> shut up @here`);
+		mockedInteractive.mockResolvedValue(`<@${message.author.id}> shut up @here`);
 		message.mentions.has = vi.fn(() => true);
 
 		await createListener().run(message as never);
@@ -180,7 +192,7 @@ describe("messageCreate Mention Policy", () => {
 			createSettings({ randomResponseChannelId: "target", randomResponseChance: 100 }),
 		);
 		const message = createMessage({ id: "random-1", channelId: "target" });
-		mockedGenerateMentionReply.mockResolvedValue(`<@${message.author.id}> lol @everyone`);
+		mockedBackground.mockResolvedValue(`<@${message.author.id}> lol @everyone`);
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
 
 		try {
@@ -201,8 +213,8 @@ describe("messageCreate Mention Policy", () => {
 
 		await createListener().run(message as never);
 
-		expect(mockedGenerateMentionReply).not.toHaveBeenCalled();
-		expect(mockedGenerateAutoResponse).not.toHaveBeenCalled();
+		expect(mockedInteractive).not.toHaveBeenCalled();
+		expect(mockedBackground).not.toHaveBeenCalled();
 		expect(message.reply).not.toHaveBeenCalled();
 		expect(message.channel.send).not.toHaveBeenCalled();
 	});
@@ -221,7 +233,7 @@ describe("messageCreate Mention Policy", () => {
 			randomSpy.mockRestore();
 		}
 
-		expect(mockedGenerateMentionReply).not.toHaveBeenCalled();
+		expect(mockedBackground).not.toHaveBeenCalled();
 		expect(message.channel.send).not.toHaveBeenCalled();
 	});
 

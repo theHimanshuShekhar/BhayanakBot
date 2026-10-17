@@ -9,8 +9,15 @@ const MAX_INJECTED_CHARS = 800;
 /**
  * Returns a formatted personality context string to prepend to LLM system prompts.
  * Returns an empty string if no profile exists yet (graceful degradation).
+ * `memberProfile: false` leaves out the member's profile, so only the server culture profile is injected.
  */
-export async function getPersonalityContext(client: BhayanakClient, userId: string, guildId: string): Promise<string> {
+export async function getPersonalityContext(
+	client: BhayanakClient,
+	userId: string,
+	guildId: string,
+	options: { memberProfile?: boolean } = {},
+): Promise<string> {
+	const { memberProfile = true } = options;
 	client.logger.debug(`[personality-context] lookup start userId=${userId} guildId=${guildId}`);
 	const settings = await getOrCreateSettings(guildId);
 	if (!settings.personalityEnabled) {
@@ -22,7 +29,7 @@ export async function getPersonalityContext(client: BhayanakClient, userId: stri
 
 	client.logger.debug(`[personality-context] profile-fetch start userId=${userId} guildId=${guildId}`);
 	const [userProfile, guildProfile] = await Promise.all([
-		getPersonalityProfile(userId, guildId),
+		memberProfile ? getPersonalityProfile(userId, guildId) : Promise.resolve(null),
 		getGuildPersonalityProfile(guildId),
 	]);
 	client.logger.debug(

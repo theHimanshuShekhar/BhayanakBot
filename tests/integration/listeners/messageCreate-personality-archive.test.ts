@@ -5,13 +5,11 @@ import {
 	archivedChannelMessageTestHooks,
 	markArchivedChannelMessageDeleted,
 } from "../../../src/db/queries/archivedChannelMessages.js";
-import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
-import { generateAutoResponse, generateMentionReply } from "../../../src/lib/autoresponder/llmResponse.js";
-import { GUESS_WHO_CHANNEL_ID, TARGET_TEXT_CHANNEL_ID } from "../../../src/lib/constants.js";
+import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
-import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
+import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
 import { settleInlineBuilds } from "../../../src/lib/personality/inlineBuilds.js";
@@ -29,7 +27,6 @@ vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
 
 vi.mock("../../../src/lib/constants.js", () => ({
 	GUESS_WHO_CHANNEL_ID: "guess-general",
-	TARGET_TEXT_CHANNEL_ID: "legacy-target",
 	TARGET_GUILD_ID: "listener-guild",
 	GUESS_WHO_BACKFILL_LIMIT: 1000,
 	BOT_OWNER_ID: "bot-owner",
@@ -64,16 +61,13 @@ vi.mock("../../../src/db/queries/users.js", () => ({
 	addXp: vi.fn(async () => ({ user: {}, leveledUp: false, newLevel: 1, awarded: true })),
 }));
 
-vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({
-	generateAutoResponse: vi.fn(),
-	generateMentionReply: vi.fn(),
-}));
-
 vi.mock("../../../src/lib/llmProvider.js", () => ({
 	callBackgroundLlm: vi.fn(async () => "Profile summary from listener archived messages."),
+	callInteractiveLlm: vi.fn(async () => "Interactive reply."),
 }));
 
 const GUILD_ID = "listener-guild";
+const RANDOM_CHANNEL_ID = "listener-chat";
 const USER_ID = "listener-user";
 const OTHER_USER_ID = "listener-other";
 
@@ -82,10 +76,8 @@ const OTHER_USER_ID = "listener-other";
 const SLOW_SEED_TIMEOUT_MS = 30_000;
 
 const mockedCallBackgroundLlm = vi.mocked(callBackgroundLlm);
-const mockedGenerateAutoResponse = vi.mocked(generateAutoResponse);
-const mockedGenerateMentionReply = vi.mocked(generateMentionReply);
+const mockedCallInteractiveLlm = vi.mocked(callInteractiveLlm);
 const mockedGetOrCreateSettings = vi.mocked(getOrCreateSettings);
-const mockedFindMatchingResponse = vi.mocked(findMatchingResponse);
 
 function createSettings(overrides: Record<string, unknown> = {}) {
 	return {
@@ -108,7 +100,7 @@ function createMessage(input: {
 	createdAt?: Date;
 	bot?: boolean;
 	mentionCount?: number;
-	referencedMessageId?: string;
+	botMentioned?: boolean;
 }) {
 	const authorId = input.authorId ?? USER_ID;
 	const channelId = input.channelId ?? GUESS_WHO_CHANNEL_ID;
@@ -118,16 +110,17 @@ function createMessage(input: {
 	return {
 		id: input.messageId,
 		channelId,
-		reference: input.referencedMessageId
-			? { channelId, guildId: GUILD_ID, messageId: input.referencedMessageId }
-			: null,
+		reference: null,
 		content: input.content ?? `Listener archived personality message ${input.messageId} with enough context.`,
+		cleanContent: input.content ?? `Listener archived personality message ${input.messageId} with enough context.`,
 		createdAt: input.createdAt ?? new Date("2026-05-28T12:00:00.000Z"),
+		createdTimestamp: (input.createdAt ?? new Date("2026-05-28T12:00:00.000Z")).getTime(),
 		author: {
 			id: authorId,
 			bot: input.bot ?? false,
 			username: authorId,
 			globalName: `${authorId}-global`,
+			displayName: `${authorId}-global`,
 			send: vi.fn(async () => null),
 		},
 		guild: {
@@ -145,11 +138,12 @@ function createMessage(input: {
 		channel: {
 			id: channelId,
 			send: vi.fn(async () => null),
-			messages: { fetch: vi.fn() },
+			sendTyping: vi.fn(async () => undefined),
+			messages: { fetch: vi.fn(async () => new Map()) },
 		},
 		mentions: {
 			users: mentionedUsers,
-			has: vi.fn(() => false),
+			has: vi.fn(() => input.botMentioned ?? false),
 		},
 		client: {
 			user: { id: "bot-user", username: "BhayanakBot" },
@@ -212,9 +206,7 @@ describe("messageCreate personality archive flow", () => {
 		await cleanupRows();
 		archivedChannelMessageTestHooks.afterPendingDeleteRead = undefined;
 		mockedCallBackgroundLlm.mockClear();
-		mockedGenerateAutoResponse.mockClear();
-		mockedGenerateMentionReply.mockClear();
-		mockedFindMatchingResponse.mockClear();
+		mockedCallInteractiveLlm.mockClear();
 		mockedGetOrCreateSettings.mockReset();
 		mockedGetOrCreateSettings.mockImplementation(async (guildId: string) => createSettings({ guildId }) as never);
 		container.logger = { debug: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as typeof container.logger;
@@ -245,9 +237,7 @@ describe("messageCreate personality archive flow", () => {
 	});
 
 	it("does not archive or increment personality evidence outside the Guess Who general channel", async () => {
-		await createListener().run(
-			createMessage({ messageId: "legacy-channel", channelId: TARGET_TEXT_CHANNEL_ID }) as never,
-		);
+		await createListener().run(createMessage({ messageId: "legacy-channel", channelId: RANDOM_CHANNEL_ID }) as never);
 
 		expect(await getArchiveRow("legacy-channel")).toBeUndefined();
 		expect(await getUserProfile()).toBeUndefined();
@@ -456,7 +446,7 @@ describe("messageCreate personality archive flow", () => {
 		expect((await getUserProfile())?.profile).toBeNull();
 	});
 
-	it("keeps random unsolicited response context guild-culture-only", async () => {
+	it("gives a Random Reply the guild culture profile only", async () => {
 		await db.insert(userPersonalityProfiles).values({
 			userId: USER_ID,
 			guildId: GUILD_ID,
@@ -470,201 +460,48 @@ describe("messageCreate personality archive flow", () => {
 			async (guildId: string) =>
 				createSettings({
 					guildId,
-					randomResponseChannelId: TARGET_TEXT_CHANNEL_ID,
+					randomResponseChannelId: RANDOM_CHANNEL_ID,
 					randomResponseChance: 100,
 				}) as never,
 		);
-		mockedGenerateMentionReply.mockResolvedValueOnce("random reply");
+		mockedCallBackgroundLlm.mockClear();
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
 
 		try {
-			await createListener().run(
-				createMessage({ messageId: "random-context", channelId: TARGET_TEXT_CHANNEL_ID }) as never,
-			);
+			await createListener().run(createMessage({ messageId: "random-context", channelId: RANDOM_CHANNEL_ID }) as never);
 		} finally {
 			randomSpy.mockRestore();
 		}
 
-		const systemPrompt = mockedGenerateMentionReply.mock.calls[0]?.[0] ?? "";
+		const [systemPrompt, , , options] = mockedCallBackgroundLlm.mock.calls[0] ?? [];
 		expect(systemPrompt).toContain("Guild culture belongs in random context.");
 		expect(systemPrompt).not.toContain("Triggering user's private profile should not be in random context.");
+		expect(options).toMatchObject({ session: `random:${RANDOM_CHANNEL_ID}` });
 	});
 
-	it("normalizes known user names in generated smart mention replies to Discord mentions", async () => {
-		mockedGenerateMentionReply.mockResolvedValueOnce(
-			"piss off, excal11bur. goti is catching strays, and Adineo17 is wise beyond her years. excal11burrito stays plain and <@222> stays mentioned.",
-		);
-		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
+	it("gives a Mention Reply the guild culture and the member profile, with the personality toggle's profile gate intact", async () => {
+		await db.insert(userPersonalityProfiles).values({
+			userId: USER_ID,
+			guildId: GUILD_ID,
+			profile: "Member profile belongs in a mention reply.",
+		});
+		await db.insert(guildPersonalityProfiles).values({
+			guildId: GUILD_ID,
+			profile: "Guild culture belongs in a mention reply.",
+		});
 		const message = createMessage({
-			messageId: "mention-normalize",
-			channelId: TARGET_TEXT_CHANNEL_ID,
-			content: "<@bot-user> say something about everyone",
-		});
-		message.reply = reply;
-		message.mentions.has = vi.fn(() => true);
-		message.guild.members.cache.set("111", { id: "111", displayName: "excal11bur", user: { username: "excal11bur" } });
-		message.guild.members.cache.set("222", { id: "222", displayName: "goti", user: { username: "goti" } });
-		message.guild.members.cache.set("333", { id: "333", displayName: "Adineo17", user: { username: "Adineo17" } });
-
-		await createListener().run(message as never);
-
-		expect(reply).toHaveBeenCalledWith(
-			"piss off, <@111>. <@222> is catching strays, and <@333> is wise beyond her years. excal11burrito stays plain and <@222> stays mentioned.",
-		);
-	});
-
-	it("anchors bot-tagged reply context on the replied message and up to 10 messages before it", async () => {
-		const listener = createListener();
-		mockedFindMatchingResponse.mockResolvedValue(undefined);
-		for (let index = 1; index <= 12; index++) {
-			await listener.run(
-				createMessage({
-					messageId: `reply-prior-${index}`,
-					channelId: TARGET_TEXT_CHANNEL_ID,
-					authorId: `reply-user-${index}`,
-					content: `reply context message ${index}`,
-				}) as never,
-			);
-		}
-		mockedGenerateMentionReply.mockResolvedValueOnce("reply context answer");
-		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
-		const message = createMessage({
-			messageId: "reply-mention-current",
-			channelId: TARGET_TEXT_CHANNEL_ID,
-			authorId: "reply-mention-author",
-			content: "<@bot-user> what do you think?",
-			referencedMessageId: "reply-prior-12",
-		});
-		message.reply = reply;
-		message.mentions.has = vi.fn(() => true);
-
-		await listener.run(message as never);
-
-		expect(mockedGenerateMentionReply.mock.calls[0]?.[4]).toMatch(/^mention:/);
-		expect(mockedGenerateMentionReply.mock.calls[0]?.[1]).toBe(
-			Array.from({ length: 11 }, (_, index) => `<@reply-user-${index + 2}>: reply context message ${index + 2}`).join(
-				"\n",
-			),
-		);
-		expect(reply).toHaveBeenCalledWith("reply context answer");
-	});
-
-	it("normalizes known user names in generated autoresponder replies", async () => {
-		mockedFindMatchingResponse.mockResolvedValueOnce({
-			response: {
-				id: 1,
-				guildId: GUILD_ID,
-				trigger: "hello",
-				response: "Be rude.",
-				matchType: "contains",
-				responseType: "llm",
-				useRegex: false,
-				channelIds: [],
-				requireMention: false,
-				chancePercent: 100,
-				deleteTrigger: false,
-				createdAt: new Date("2026-05-28T12:00:00.000Z"),
-			},
-		});
-		mockedGenerateAutoResponse.mockResolvedValueOnce("excal11bur and goti are both in this generated reply.");
-		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
-		const message = createMessage({ messageId: "llm-autoresponse-normalize", channelId: TARGET_TEXT_CHANNEL_ID });
-		message.reply = reply;
-		message.guild.members.cache.set("111", { id: "111", displayName: "excal11bur", user: { username: "excal11bur" } });
-		message.guild.members.cache.set("222", { id: "222", displayName: "goti", user: { username: "goti" } });
-
-		await createListener().run(message as never);
-
-		expect(mockedGenerateAutoResponse.mock.calls[0]?.[2]).toBe(`<@${USER_ID}>`);
-		expect(mockedGenerateAutoResponse.mock.calls[0]?.[3]).toMatch(/^autoresponse:/);
-		expect(reply).toHaveBeenCalledWith("<@111> and <@222> are both in this generated reply.");
-	});
-
-	it("passes the last 20 cached prior channel messages to LLM auto-responses", async () => {
-		const listener = createListener();
-		mockedFindMatchingResponse.mockResolvedValue(undefined);
-		for (let index = 1; index <= 21; index++) {
-			await listener.run(
-				createMessage({
-					messageId: `prior-${index}`,
-					channelId: TARGET_TEXT_CHANNEL_ID,
-					authorId: `user-${index}`,
-					content: `previous channel message ${index}`,
-				}) as never,
-			);
-		}
-		mockedFindMatchingResponse.mockResolvedValueOnce({
-			response: {
-				id: 1,
-				guildId: GUILD_ID,
-				trigger: "context",
-				response: "Use context.",
-				matchType: "contains",
-				responseType: "llm",
-				useRegex: false,
-				channelIds: [],
-				requireMention: false,
-				chancePercent: 100,
-				deleteTrigger: false,
-				createdAt: new Date("2026-05-28T12:00:00.000Z"),
-			},
-		});
-		mockedGenerateAutoResponse.mockResolvedValueOnce("context-aware reply");
-		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
-		const message = createMessage({
-			messageId: "llm-autoresponse-context",
-			channelId: TARGET_TEXT_CHANNEL_ID,
-			authorId: "context-trigger-user",
-			content: "context trigger message",
-		});
-		message.reply = reply;
-
-		await listener.run(message as never);
-
-		expect(message.channel.messages.fetch).not.toHaveBeenCalled();
-		expect(mockedGenerateAutoResponse.mock.calls[0]?.[4]).toBe(
-			Array.from({ length: 20 }, (_, index) => `<@user-${index + 2}>: previous channel message ${index + 2}`).join(
-				"\n",
-			),
-		);
-		expect(reply).toHaveBeenCalledWith("context-aware reply");
-	});
-
-	it("normalizes malformed known user ID mentions in generated autoresponder replies", async () => {
-		mockedFindMatchingResponse.mockResolvedValueOnce({
-			response: {
-				id: 1,
-				guildId: GUILD_ID,
-				trigger: "racing",
-				response: "Be playful.",
-				matchType: "contains",
-				responseType: "llm",
-				useRegex: false,
-				channelIds: [],
-				requireMention: false,
-				chancePercent: 100,
-				deleteTrigger: false,
-				createdAt: new Date("2026-05-28T12:00:00.000Z"),
-			},
-		});
-		mockedGenerateAutoResponse.mockResolvedValueOnce(
-			"Just kidding, @177390168829984768, now I'm cruising at your level.",
-		);
-		const reply = vi.fn(async () => ({ delete: vi.fn(async () => null) }));
-		const message = createMessage({
-			messageId: "llm-autoresponse-id-mention",
-			channelId: TARGET_TEXT_CHANNEL_ID,
-			authorId: "listener-id-mention-user",
-		});
-		message.reply = reply;
-		message.guild.members.cache.set("177390168829984768", {
-			id: "177390168829984768",
-			displayName: "Adineo",
-			user: { username: "adineo", globalName: "Adineo" },
+			messageId: "mention-context",
+			channelId: RANDOM_CHANNEL_ID,
+			content: "<@bot-user> say something",
+			botMentioned: true,
 		});
 
 		await createListener().run(message as never);
 
-		expect(reply).toHaveBeenCalledWith("Just kidding, <@177390168829984768>, now I'm cruising at your level.");
+		const [systemPrompt, , , options] = mockedCallInteractiveLlm.mock.calls[0] ?? [];
+		expect(systemPrompt).toContain("Member profile belongs in a mention reply.");
+		expect(systemPrompt).toContain("Guild culture belongs in a mention reply.");
+		expect(options).toMatchObject({ session: `mention:${RANDOM_CHANNEL_ID}` });
+		expect(message.reply).toHaveBeenCalledWith("Interactive reply.");
 	});
 });

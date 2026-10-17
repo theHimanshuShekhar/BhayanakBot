@@ -79,6 +79,17 @@ describe("getPersonalityContext", () => {
 		expect(context).toContain("Server culture likes playful pile-ons.");
 	});
 
+	it("leaves out the member profile when only the server profile is wanted", async () => {
+		await setUserProfile("Member profile that a random reply must not see.");
+		await setGuildProfile("Server culture likes playful pile-ons.");
+
+		const context = await getPersonalityContext(createClient(), USER_ID, GUILD_ID, { memberProfile: false });
+
+		expect(context).toContain("Server culture likes playful pile-ons.");
+		expect(context).not.toContain("User personality profile:");
+		expect(context).not.toContain("Member profile that a random reply must not see.");
+	});
+
 	it("excludes profiles without active profile text", async () => {
 		await setUserProfile(null);
 		await setGuildProfile(null);
