@@ -1,7 +1,10 @@
 import { envOr } from "./env.js";
 
-const DEFAULT_ZEN_BASE_URL = "https://opencode.ai/zen/go/v1";
-const DEFAULT_ZEN_MODEL = "deepseek-v4-flash";
+const DEFAULT_ZEN_BASE_URL = "https://opencode.ai/inference/go/openai/v1";
+const DEFAULT_ZEN_MODEL = "deepseek-v4.1-flash";
+const DEFAULT_ZEN_BACKUP_MODEL = "glm-5.3-flash";
+// The runtime image has no package.json to read a version from.
+const USER_AGENT = "bhayanakbot/1.0.0";
 const MIN_ZEN_TIMEOUT_MS = 1000;
 const MAX_CONCURRENT_ZEN_REQUESTS = 3;
 const MAX_QUEUED_ZEN_REQUESTS = 6;
@@ -31,6 +34,9 @@ type ZenFailureReason =
 	| "empty"
 	| "truncated"
 	| "refusal";
+
+// `session` names one conversation and is sent as x-opencode-session (Zen Go rejects requests without it).
+export type LlmCallOptions = { session: string; label?: string };
 
 type ZenResult = {
 	content: string | null;
@@ -104,52 +110,41 @@ function acquireSlot(priority: LlmPriority): Promise<(() => void) | null> {
 	});
 }
 
-async function callZenChat(
+type Attempt = "primary" | "backup";
+
+// One request to one model. Logs the outcome (never the content) and releases nothing: the caller holds the slot.
+async function attemptZenChat(
 	requestId: string,
+	attempt: Attempt,
+	model: string,
+	apiKey: string,
+	baseUrl: string,
 	mode: LlmMode,
-	priority: LlmPriority,
-	label: string | undefined,
+	session: string,
 	system: string,
 	prompt: string,
 ): Promise<ZenResult> {
 	const startedAt = Date.now();
-	const apiKey = process.env.ZEN_API_KEY;
-	if (!apiKey) {
-		logLlm(
-			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=skipped reason=not_configured`,
-		);
-		return { content: null, elapsedMs: 0, reason: "not_configured" };
-	}
-
-	if (!isExternalDiscordContentAllowed()) {
-		logLlm(
-			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=skipped reason=privacy_disabled`,
-		);
-		return { content: null, elapsedMs: 0, reason: "privacy_disabled" };
-	}
-
-	const release = await acquireSlot(priority);
-	if (!release) {
-		logLlm(
-			`request=${requestId} mode=${mode} priority=${priority} label=${label ?? "none"} provider=zen result=dropped reason=queue_full`,
-		);
-		return { content: null, elapsedMs: Date.now() - startedAt, reason: "queue_full" };
-	}
-
-	const baseUrl = envOr("ZEN_BASE_URL", DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");
-	const model = envOr("ZEN_MODEL", DEFAULT_ZEN_MODEL);
 	const { maxTokens } = LLM_BUDGETS[mode];
-	const controller = new AbortController();
 	const zenTimeoutMs = resolveZenTimeoutMs(mode);
+	const prefix = `request=${requestId} attempt=${attempt} model=${model} mode=${mode} provider=zen host=${safeUrlHost(baseUrl)} timeoutMs=${zenTimeoutMs} maxTokens=${maxTokens}`;
+	const fail = (reason: ZenFailureReason, extra = ""): ZenResult => {
+		const elapsedMs = Date.now() - startedAt;
+		logLlm(`${prefix} result=failure reason=${reason}${extra} elapsedMs=${elapsedMs}`);
+		return { content: null, elapsedMs, reason };
+	};
+	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), zenTimeoutMs);
-	logLlm(
-		`request=${requestId} mode=${mode} priority=${priority} label=${label ?? "none"} provider=zen event=start model=${model} host=${safeUrlHost(baseUrl)} timeoutMs=${zenTimeoutMs} maxTokens=${maxTokens}`,
-	);
 
 	try {
 		const res = await fetch(`${baseUrl}/chat/completions`, {
 			method: "POST",
-			headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+				"Content-Type": "application/json",
+				"User-Agent": USER_AGENT,
+				"x-opencode-session": session,
+			},
 			body: JSON.stringify({
 				model,
 				messages: [
@@ -161,55 +156,78 @@ async function callZenChat(
 			signal: controller.signal,
 		});
 
-		if (!res.ok) {
-			logLlm(
-				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=http_error status=${res.status} elapsedMs=${Date.now() - startedAt}`,
-			);
-			return { content: null, elapsedMs: Date.now() - startedAt, reason: "http_error" };
-		}
+		if (!res.ok) return fail("http_error", ` status=${res.status}`);
 
 		const data = (await res.json()) as ZenChatResponse;
 		const choice = data.choices?.[0];
 		const content = choice?.message?.content?.trim() ?? "";
 		// Cut off by the token limit: the text ends mid-thought (or reasoning used every token and left none), so it is
 		// never posted or stored. Checked before "empty" so the two failures stay distinguishable in the logs.
-		if (choice?.finish_reason === "length") {
-			logLlm(
-				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=truncated elapsedMs=${Date.now() - startedAt} outputLength=${content.length}`,
-			);
-			return { content: null, elapsedMs: Date.now() - startedAt, reason: "truncated" };
-		}
-		if (!content) {
-			logLlm(
-				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=empty elapsedMs=${Date.now() - startedAt}`,
-			);
-			return { content: null, elapsedMs: Date.now() - startedAt, reason: "empty" };
-		}
-		if (isRefusalOnly(content)) {
-			logLlm(
-				`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=refusal elapsedMs=${Date.now() - startedAt}`,
-			);
-			return { content: null, elapsedMs: Date.now() - startedAt, reason: "refusal" };
-		}
-		logLlm(
-			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=success elapsedMs=${Date.now() - startedAt} outputLength=${content.length}`,
-		);
-		return { content, elapsedMs: Date.now() - startedAt };
+		if (choice?.finish_reason === "length") return fail("truncated", ` outputLength=${content.length}`);
+		if (!content) return fail("empty");
+		if (isRefusalOnly(content)) return fail("refusal");
+		const elapsedMs = Date.now() - startedAt;
+		logLlm(`${prefix} result=success elapsedMs=${elapsedMs} outputLength=${content.length}`);
+		return { content, elapsedMs };
 	} catch (err) {
-		logLlm(
-			`request=${requestId} mode=${mode} label=${label ?? "none"} provider=zen result=failure reason=fetch_error error=${err instanceof Error ? err.name : "unknown"} elapsedMs=${Date.now() - startedAt}`,
-		);
-		return { content: null, elapsedMs: Date.now() - startedAt, reason: "fetch_error" };
+		return fail("fetch_error", ` error=${err instanceof Error ? err.name : "unknown"}`);
 	} finally {
 		clearTimeout(timeout);
+	}
+}
+
+async function callZenChat(
+	requestId: string,
+	mode: LlmMode,
+	priority: LlmPriority,
+	options: LlmCallOptions,
+	system: string,
+	prompt: string,
+): Promise<ZenResult> {
+	const startedAt = Date.now();
+	const label = options.label ?? "none";
+	const apiKey = process.env.ZEN_API_KEY;
+	if (!apiKey) {
+		logLlm(`request=${requestId} mode=${mode} label=${label} provider=zen result=skipped reason=not_configured`);
+		return { content: null, elapsedMs: 0, reason: "not_configured" };
+	}
+
+	if (!isExternalDiscordContentAllowed()) {
+		logLlm(`request=${requestId} mode=${mode} label=${label} provider=zen result=skipped reason=privacy_disabled`);
+		return { content: null, elapsedMs: 0, reason: "privacy_disabled" };
+	}
+
+	const release = await acquireSlot(priority);
+	if (!release) {
+		logLlm(
+			`request=${requestId} mode=${mode} priority=${priority} label=${label} provider=zen result=dropped reason=queue_full`,
+		);
+		return { content: null, elapsedMs: Date.now() - startedAt, reason: "queue_full" };
+	}
+
+	try {
+		const baseUrl = envOr("ZEN_BASE_URL", DEFAULT_ZEN_BASE_URL).replace(/\/$/, "");
+		const primaryModel = envOr("ZEN_MODEL", DEFAULT_ZEN_MODEL);
+		const backupModel = envOr("ZEN_BACKUP_MODEL", DEFAULT_ZEN_BACKUP_MODEL);
+		const run = (attempt: Attempt, model: string) =>
+			attemptZenChat(requestId, attempt, model, apiKey, baseUrl, mode, options.session, system, prompt);
+
+		const primary = await run("primary", primaryModel);
+		// Every failure that reaches this point (HTTP, network or timeout, empty, truncated, refusal) earns the Backup
+		// Model one attempt in the same slot. A backup equal to the primary would only repeat the failure.
+		if (primary.content !== null || backupModel === primaryModel) return primary;
+		return await run("backup", backupModel);
+	} finally {
 		release();
 	}
 }
 
+// A refusal is the whole reply: a short "I can't help with that." Replies that merely start that way are posted.
+const REFUSAL_PATTERN =
+	/^(?:(?:i['’]?m sorry|i am sorry|sorry),?\s*(?:but\s+)?)?i\s*(?:can(?:not|['’]?t)|am unable to|['’]?m unable to)\s+(?:help|assist)(?:\s+you)?(?:\s+with\s+(?:that|this)(?:\s+request)?)?\s*[.!]?$/i;
+
 function isRefusalOnly(content: string): boolean {
-	return /^(i can(?:not|['’]?t) (?:help|assist)(?: with that| with this| with that request| with this request)?|i am unable to|i['’]?m unable to)\b/i.test(
-		content.trim(),
-	);
+	return REFUSAL_PATTERN.test(content.trim());
 }
 
 // Interactive calls answer a person who is waiting; background calls (random replies, personality builds) are the
@@ -218,22 +236,31 @@ export async function callInteractiveLlm(
 	system: string,
 	prompt: string,
 	mode: LlmMode,
-	label?: string,
+	options: LlmCallOptions,
 ): Promise<string | null> {
-	const requestId = createRequestId();
-	logLlm(`request=${requestId} mode=${mode} priority=interactive label=${label ?? "none"} event=start`);
-	const zenResult = await callZenChat(requestId, mode, "interactive", label, system, prompt);
-	return zenResult.content;
+	return callLlm("interactive", system, prompt, mode, options);
 }
 
 export async function callBackgroundLlm(
 	system: string,
 	prompt: string,
 	mode: LlmMode,
-	label?: string,
+	options: LlmCallOptions,
+): Promise<string | null> {
+	return callLlm("background", system, prompt, mode, options);
+}
+
+async function callLlm(
+	priority: LlmPriority,
+	system: string,
+	prompt: string,
+	mode: LlmMode,
+	options: LlmCallOptions,
 ): Promise<string | null> {
 	const requestId = createRequestId();
-	logLlm(`request=${requestId} mode=${mode} priority=background label=${label ?? "none"} event=start`);
-	const zenResult = await callZenChat(requestId, mode, "background", label, system, prompt);
+	logLlm(
+		`request=${requestId} mode=${mode} priority=${priority} label=${options.label ?? "none"} session=${options.session} event=start`,
+	);
+	const zenResult = await callZenChat(requestId, mode, priority, options, system, prompt);
 	return zenResult.content;
 }

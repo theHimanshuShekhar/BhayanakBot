@@ -540,6 +540,7 @@ describe("messageCreate personality archive flow", () => {
 
 		await listener.run(message as never);
 
+		expect(mockedGenerateMentionReply.mock.calls[0]?.[4]).toMatch(/^mention:/);
 		expect(mockedGenerateMentionReply.mock.calls[0]?.[1]).toBe(
 			Array.from({ length: 11 }, (_, index) => `<@reply-user-${index + 2}>: reply context message ${index + 2}`).join(
 				"\n",
@@ -575,6 +576,7 @@ describe("messageCreate personality archive flow", () => {
 		await createListener().run(message as never);
 
 		expect(mockedGenerateAutoResponse.mock.calls[0]?.[2]).toBe(`<@${USER_ID}>`);
+		expect(mockedGenerateAutoResponse.mock.calls[0]?.[3]).toMatch(/^autoresponse:/);
 		expect(reply).toHaveBeenCalledWith("<@111> and <@222> are both in this generated reply.");
 	});
 
@@ -620,7 +622,7 @@ describe("messageCreate personality archive flow", () => {
 		await listener.run(message as never);
 
 		expect(message.channel.messages.fetch).not.toHaveBeenCalled();
-		expect(mockedGenerateAutoResponse.mock.calls[0]?.[3]).toBe(
+		expect(mockedGenerateAutoResponse.mock.calls[0]?.[4]).toBe(
 			Array.from({ length: 20 }, (_, index) => `<@user-${index + 2}>: previous channel message ${index + 2}`).join(
 				"\n",
 			),

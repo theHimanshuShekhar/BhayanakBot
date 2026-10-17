@@ -12,7 +12,7 @@ function okReply(content = "reply", finishReason = "stop") {
 	return { ok: true, json: async () => ({ choices: [{ message: { content }, finish_reason: finishReason }] }) };
 }
 
-function sentBody(callIndex = 0): { max_tokens: number; messages: Array<{ content: string }> } {
+function sentBody(callIndex = 0): { model: string; max_tokens: number; messages: Array<{ content: string }> } {
 	return JSON.parse((mockedFetch.mock.calls[callIndex]?.[1] as RequestInit).body as string);
 }
 
@@ -214,7 +214,7 @@ describe("LLM provider", () => {
 			delete process.env.ZEN_BACKUP_MODEL;
 		});
 
-		const modelOf = (i: number) => sentBody(i).model as unknown as string;
+		const modelOf = (i: number) => sentBody(i).model;
 
 		it("retries once on the backup model when the primary fails or refuses", async () => {
 			vi.spyOn(console, "log").mockImplementation(() => undefined);

@@ -78,7 +78,10 @@ export class MentionResponderListener extends Listener<typeof Events.MessageCrea
 		const personalityCtx = await getPersonalityContext(client, message.author.id, message.guildId!);
 		const systemWithPersonality = personalityCtx + SYSTEM_PROMPT;
 
-		const response = await callInteractiveLlm(systemWithPersonality, prompt, "chat", "mention-responder");
+		const response = await callInteractiveLlm(systemWithPersonality, prompt, "chat", {
+			session: `mention:${message.channelId}`,
+			label: "mention-responder",
+		});
 		if (!response) return;
 
 		const safeResponse = response.length > 1990 ? `${response.slice(0, 1989)}…` : response;

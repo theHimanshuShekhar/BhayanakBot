@@ -192,6 +192,10 @@ describe("personality profile builders", () => {
 
 		expect(result.status).toBe("built");
 		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+		expect(mockedCallBackgroundLlm.mock.calls[0]?.[3]).toEqual({
+			session: `profile:user:${GUILD_ID}:${USER_ID}`,
+			label: "personality:user",
+		});
 		expect((await getBuilderProfile())?.profile).toBe("Profile summary without direct quotes.");
 	});
 

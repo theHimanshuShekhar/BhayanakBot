@@ -494,6 +494,7 @@ export class MessageCreateListener extends Listener {
 			systemWithPersonality,
 			message.content,
 			`<@${message.author.id}>`,
+			`autoresponse:${message.channel.id}`,
 			conversationContext,
 		);
 		this.container.logger.debug(
@@ -584,6 +585,7 @@ export class MessageCreateListener extends Listener {
 			conversationContext,
 			`<@${message.author.id}>`,
 			message.content.replace(new RegExp(`<@!?${message.client.user.id}>`, "g"), "").trim(),
+			`mention:${message.channel.id}`,
 		);
 
 		this.container.logger.debug(
@@ -669,6 +671,7 @@ export class MessageCreateListener extends Listener {
 				conversationContext,
 				`<@${message.author.id}>`,
 				message.content,
+				`random:${message.channel.id}`,
 			);
 
 			this.container.logger.debug(

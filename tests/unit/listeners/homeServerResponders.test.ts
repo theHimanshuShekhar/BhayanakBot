@@ -110,12 +110,10 @@ describe("passive responders outside the Home Server", () => {
 
 		await runRandomResponder(message);
 
-		expect(mockedCallBackgroundLlm).toHaveBeenCalledWith(
-			expect.any(String),
-			expect.any(String),
-			"chat",
-			"random-responder",
-		);
+		expect(mockedCallBackgroundLlm).toHaveBeenCalledWith(expect.any(String), expect.any(String), "chat", {
+			session: "random:target",
+			label: "random-responder",
+		});
 		expect(message.channel.send).toHaveBeenCalledWith("a witty reply");
 	});
 
