@@ -12,7 +12,6 @@ const envSchema = z.object({
 	DISCORD_TOKEN: z.string().trim().min(1, "DISCORD_TOKEN is required"),
 	DATABASE_URL: z.string().trim().url().optional(),
 	TARGET_GUILD_ID: optionalSnowflake,
-	TARGET_TEXT_CHANNEL_ID: optionalSnowflake,
 	GUESS_WHO_CHANNEL_ID: optionalSnowflake,
 	BOT_OWNER_ID: optionalSnowflake,
 	ZEN_ALLOW_DISCORD_CONTENT: z.enum(["true", "false"]).optional(),

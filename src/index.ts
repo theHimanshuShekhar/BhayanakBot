@@ -4,14 +4,10 @@ import "@sapphire/plugin-subcommands/register";
 
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
-import { getGuildAutoResponses } from "./db/queries/autoResponses.js";
-import { getOrCreateSettings } from "./db/queries/guildSettings.js";
 import { getUsersEligibleForInitialPersonalityBuild } from "./db/queries/personalityTraining.js";
 import { recordLlmOutcome } from "./lib/aiOutage.js";
-import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conversationHistory.js";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
-import { TARGET_TEXT_CHANNEL_ID } from "./lib/constants.js";
 import { closeDatabase } from "./lib/database.js";
 import { optionalEnv } from "./lib/env.js";
 import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
@@ -59,27 +55,6 @@ function formatDuration(ms: number): string {
 	return `${seconds}s`;
 }
 
-async function preloadConversationHistoryCache(): Promise<void> {
-	const channelIds = new Set<string>([TARGET_TEXT_CHANNEL_ID]);
-	for (const guild of client.guilds.cache.values()) {
-		try {
-			const settings = await getOrCreateSettings(guild.id);
-			if (settings.randomResponseChannelId) channelIds.add(settings.randomResponseChannelId);
-
-			const autoResponses = await getGuildAutoResponses(guild.id);
-			for (const autoResponse of autoResponses) {
-				for (const channelId of autoResponse.channelIds) {
-					channelIds.add(channelId);
-				}
-			}
-		} catch (err) {
-			client.logger.warn(`[conversation-history] Failed to collect preload channels for guild=${guild.id}:`, err);
-		}
-	}
-
-	await preloadConversationHistoryForChannels(client, channelIds, client.logger);
-}
-
 async function buildEligibleBackfilledPersonalityProfiles(): Promise<void> {
 	const users = await getUsersEligibleForInitialPersonalityBuild({
 		minimumMessageCount: INITIAL_USER_PROFILE_THRESHOLD,
@@ -124,9 +99,6 @@ async function main() {
 			}
 
 			if (client.application) void removeGlobalHomeServerCommands(client.application.commands, client.logger);
-			void preloadConversationHistoryCache().catch((err) =>
-				client.logger.error("[conversation-history] Startup preload failed:", err),
-			);
 
 			void backfillGuessWhoMessages(client)
 				.then(async (count) => {

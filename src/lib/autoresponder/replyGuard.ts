@@ -1,116 +1,127 @@
-// Keeps every AI reply path honest: one message gets at most one AI reply, and the two random-reply
-// paths (messageCreate and randomResponder) share one per-channel cooldown.
+// Cooldowns and in-flight guards for the reply pipeline. Which surface answers a message is decided once, in
+// `decideReply`; this module only keeps a surface from firing too often. A cooldown starts only when a reply was
+// actually sent, so a failed reply costs nothing. An in-flight key keeps a burst of messages from starting several
+// LLM calls while the first reply is still being written.
 
 import { ExpiringBoundedMap } from "../boundedMap.js";
 
-/** Minimum gap between two random AI replies in the same channel. */
+/** Minimum gap between two Random Replies in the same channel. */
 export const RANDOM_REPLY_COOLDOWN_MS = 45 * 1000;
+/** Minimum gap between two Mention Replies to the same member. */
+export const MENTION_COOLDOWN_MS = 10 * 1000;
+/** Minimum gap between two firings of the same autoresponse trigger (a bot mention bypasses it). */
+export const AUTORESPONSE_TRIGGER_COOLDOWN_MS = 10 * 60 * 1000;
+/** Minimum gap between two autoresponses to the same member. */
+export const AUTORESPONSE_USER_COOLDOWN_MS = 30 * 1000;
 
-const CLAIM_TTL_MS = 5 * 60 * 1000;
-const CLAIM_MAX_ENTRIES = 5_000;
-const CHANNEL_MAX_ENTRIES = 1_000;
+const MAX_ENTRIES = 5_000;
 
-interface Claim {
-	kind: "ai" | "static" | "random" | "moderated";
-	at: number;
+class Cooldown {
+	private readonly lastSent: ExpiringBoundedMap<string, number>;
+	private readonly inFlight = new Set<string>();
+
+	constructor(
+		readonly name: string,
+		cooldownMs: number,
+	) {
+		this.lastSent = new ExpiringBoundedMap<string, number>(MAX_ENTRIES, cooldownMs, (sentAt) => new Date(sentAt));
+	}
+
+	/** Why `key` may not start a reply right now, or null when it may. */
+	blockedBy(key: string): string | null {
+		if (this.inFlight.has(key)) return `${this.name}-in-flight`;
+		if (this.lastSent.get(key) !== undefined) return `${this.name}-cooldown`;
+		return null;
+	}
+
+	hold(key: string): void {
+		this.inFlight.add(key);
+	}
+
+	release(key: string, sent: boolean): void {
+		this.inFlight.delete(key);
+		if (sent) this.lastSent.set(key, Date.now());
+	}
+
+	clear(): void {
+		this.lastSent.clear();
+		this.inFlight.clear();
+	}
+
+	get size(): number {
+		return this.lastSent.size;
+	}
 }
 
-// Message id -> who answers it. A claim is held for CLAIM_TTL_MS, far longer than any reply takes.
-const claims = new ExpiringBoundedMap<string, Claim>(CLAIM_MAX_ENTRIES, CLAIM_TTL_MS, (claim) => new Date(claim.at));
-// Channel id -> when its last random reply was actually sent.
-const randomLastSent = new ExpiringBoundedMap<string, number>(
-	CHANNEL_MAX_ENTRIES,
-	RANDOM_REPLY_COOLDOWN_MS,
-	(sentAt) => new Date(sentAt),
-);
-// Channels with a random reply being generated right now, so a burst cannot start several calls.
-const randomInFlight = new Set<string>();
+const triggerCooldown = new Cooldown("trigger", AUTORESPONSE_TRIGGER_COOLDOWN_MS);
+const userAutoresponseCooldown = new Cooldown("user", AUTORESPONSE_USER_COOLDOWN_MS);
+const mentionCooldown = new Cooldown("mention", MENTION_COOLDOWN_MS);
+const randomCooldown = new Cooldown("random", RANDOM_REPLY_COOLDOWN_MS);
 
-/**
- * Claim a message for a direct AI reply (LLM autoresponse or bot mention). Returns false when another direct
- * AI reply already owns it. A direct reply outranks a random one: it takes over a random reservation, whose
- * `stillOwned()` then turns false so the random reply is dropped before it is sent.
- */
-export function claimAiReply(messageId: string): boolean {
-	const now = Date.now();
-	const owner = claims.get(messageId)?.kind;
-	if (owner === "ai" || owner === "moderated") return false;
-	claims.set(messageId, { kind: "ai", at: now });
-	return true;
+export type ReplyGate = { ok: true; finish(sent: boolean): void } | { ok: false; reason: string };
+
+interface GateKey {
+	cooldown: Cooldown;
+	key: string;
+	/** False for a key that is held and cooled down but never blocks (the trigger, on a bot mention). */
+	check?: boolean;
 }
 
-/** Note that a static autoresponse answers the message, so no random AI reply is added to it. */
-export function markStaticReply(messageId: string): void {
-	const now = Date.now();
-	const owner = claims.get(messageId)?.kind;
-	if (owner === "ai" || owner === "moderated") return;
-	claims.set(messageId, { kind: "static", at: now });
-}
-
-/**
- * Note that auto-mod removed the message: no AI reply, direct or random, may answer it. This also cancels a
- * random reply already being generated (its `stillOwned()` turns false).
- */
-export function markModerated(messageId: string): void {
-	claims.set(messageId, { kind: "moderated", at: Date.now() });
-}
-
-export interface RandomReplyTicket {
-	/** False once a direct reply took the message over; check just before sending. */
-	stillOwned(): boolean;
-	/** Always call when done. Only `sent: true` starts the channel cooldown. */
-	finish(sent: boolean): void;
-}
-
-/**
- * Reserve a random AI reply for a message. Returns null when the message already has a reply, the channel is
- * still on cooldown, or another random reply is being generated in it.
- */
-export function beginRandomReply(messageId: string, channelId: string): RandomReplyTicket | null {
-	const now = Date.now();
-	if (claims.get(messageId) !== undefined || randomInFlight.has(channelId)) return null;
-	const lastSent = randomLastSent.get(channelId);
-	if (lastSent !== undefined && now - lastSent < RANDOM_REPLY_COOLDOWN_MS) return null;
-
-	const claim: Claim = { kind: "random", at: now };
-	claims.set(messageId, claim);
-	randomInFlight.add(channelId);
+/** Checks every key, then holds them all. `finish(sent)` releases them and, when `sent`, starts their cooldowns. */
+function begin(keys: GateKey[]): ReplyGate {
+	for (const { cooldown, key, check = true } of keys) {
+		const reason = check ? cooldown.blockedBy(key) : null;
+		if (reason) return { ok: false, reason };
+	}
+	for (const { cooldown, key } of keys) cooldown.hold(key);
 
 	let finished = false;
 	return {
-		stillOwned: () => claims.get(messageId) === claim,
+		ok: true,
 		finish: (sent) => {
 			if (finished) return;
 			finished = true;
-			randomInFlight.delete(channelId);
-			if (sent) randomLastSent.set(channelId, Date.now());
+			for (const { cooldown, key } of keys) cooldown.release(key, sent);
 		},
 	};
 }
 
-interface RandomReplySettings {
-	randomResponseChannelId: string | null;
-	randomResponseChance: number;
+/**
+ * Gate an autoresponse (static or AI): 10 minutes per trigger and 30 seconds per member. A bot mention skips the
+ * trigger check, but the trigger still starts its cooldown once the reply is sent.
+ */
+export function beginAutoresponse(input: {
+	guildId: string;
+	trigger: string;
+	userId: string;
+	botMentioned: boolean;
+}): ReplyGate {
+	return begin([
+		{ cooldown: triggerCooldown, key: `${input.guildId}:${input.trigger}`, check: !input.botMentioned },
+		{ cooldown: userAutoresponseCooldown, key: `${input.guildId}:${input.userId}` },
+	]);
 }
 
-/**
- * Why a message is outside the configured random-reply settings, or null when it is inside them. The roll
- * against `randomResponseChance` is left to the caller.
- */
-export function randomReplySkipReason(
-	settings: RandomReplySettings,
-	channelId: string,
-): "not-configured" | "wrong-channel" | null {
-	if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) return "not-configured";
-	if (channelId !== settings.randomResponseChannelId) return "wrong-channel";
-	return null;
+/** Gate a Mention Reply: 10 seconds per member. */
+export function beginMention(guildId: string, userId: string): ReplyGate {
+	return begin([{ cooldown: mentionCooldown, key: `${guildId}:${userId}` }]);
+}
+
+/** Gate a Random Reply: 45 seconds per channel, and one being written at a time. */
+export function beginRandom(channelId: string): ReplyGate {
+	return begin([{ cooldown: randomCooldown, key: channelId }]);
 }
 
 export const replyGuardTestHooks = {
 	reset() {
-		claims.clear();
-		randomLastSent.clear();
-		randomInFlight.clear();
+		for (const cooldown of [triggerCooldown, userAutoresponseCooldown, mentionCooldown, randomCooldown]) {
+			cooldown.clear();
+		}
 	},
-	sizes: () => ({ claims: claims.size, randomLastSent: randomLastSent.size }),
+	sizes: () => ({
+		trigger: triggerCooldown.size,
+		user: userAutoresponseCooldown.size,
+		mention: mentionCooldown.size,
+		random: randomCooldown.size,
+	}),
 };

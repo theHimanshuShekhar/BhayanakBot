@@ -55,7 +55,6 @@ describe("runtime constants", () => {
 
 	it("falls back to the documented defaults when the variables are blank", async () => {
 		process.env.TARGET_GUILD_ID = "";
-		process.env.TARGET_TEXT_CHANNEL_ID = "  ";
 		process.env.GUESS_WHO_CHANNEL_ID = "";
 		process.env.GUESS_WHO_BACKFILL_LIMIT = "";
 
@@ -63,7 +62,6 @@ describe("runtime constants", () => {
 
 		expect(constants.TARGET_GUILD_ID).toBe("199168135935295488");
 		expect(constants.getTargetGuildId()).toBe("199168135935295488");
-		expect(constants.TARGET_TEXT_CHANNEL_ID).toBe("199168135935295488");
 		expect(constants.GUESS_WHO_CHANNEL_ID).toBe("199168135935295488");
 		expect(constants.GUESS_WHO_BACKFILL_LIMIT).toBe(1000);
 	});

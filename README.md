@@ -26,8 +26,10 @@ The bot can build personality profiles from archived server conversation to gene
 - **User Profiles**: Per-user personality profiles built from eligible archived messages. View with `/personality view user`
 - **Guild Profiles**: Server culture profiles built from eligible archived messages. View with `/personality view guild`
 - **Generation disabled**: startup backfill builds, the 6-hour refresh task, and `/personality refresh` subcommands are inactive until re-enabled
-- **Smart Mentions**: When @mentioned, the bot uses personality context + conversation history for contextual replies
-- **Random Responder**: Chance-based responses in the configured random-response channel (`/config`), with a 45-second per-channel cooldown; a message gets at most one AI reply
+- **Mention Replies**: When @mentioned in any Home Server channel, the bot answers in its Bot Voice (a witty, playful roast, never genuinely hostile) using the server and member profiles and the channel's last 20 messages, fetched live from Discord (the bot's own earlier replies included). A bare `@bot` replies to the recent conversation. 10-second cooldown per member, started only after a reply is sent. Works whether or not the personality toggle is on; the toggle only controls whether profiles are used
+- **Random Replies**: A chance-based reply in the Bot Voice, using the server profile only, decided solely by `/config` `random-response-channel` and `random-response-chance` (one roll at exactly that chance), with a 45-second per-channel cooldown started only after a reply is sent
+- **AI autoresponses**: `/autorespond add use-llm` rules fire in any Home Server channel their own channel filter allows, following the administrator's prompt plus the server and member profiles
+- **One reply per message**: a matching autoresponse (static or AI) answers first, otherwise a mention reply, otherwise a random reply. Auto-moderated messages get none. If the model returns nothing, nothing is posted and the trigger is kept
 - **Operational Toggle**: Server admins can enable or disable personality behavior with `/config`; this is not consent or opt-in/opt-out language
 
 ### Guess Who Game
@@ -89,7 +91,6 @@ DASHBOARD_PRESENCE_INTERVAL_MS=60000
 DASHBOARD_API_TOKEN=                  # bearer token for /api/dashboard-presence; blank leaves it open (local dev only)
 NODE_ENV=development
 TARGET_GUILD_ID=199168135935295488
-TARGET_TEXT_CHANNEL_ID=199168135935295488
 GUESS_WHO_CHANNEL_ID=199168135935295488
 GUESS_WHO_BACKFILL_LIMIT=1000
 BOT_OWNER_ID=                         # optional privileged Discord user ID; blank disables owner bypasses

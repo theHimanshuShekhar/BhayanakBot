@@ -3,7 +3,6 @@ import type { Message, PartialMessage } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import { markArchivedChannelMessageDeleted } from "../../db/queries/archivedChannelMessages.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { removeConversationHistoryMessage } from "../../lib/autoresponder/conversationHistory.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 
@@ -13,8 +12,6 @@ export class MessageDeleteListener extends Listener {
 	}
 
 	public override async run(message: Message | PartialMessage) {
-		removeConversationHistoryMessage(message.channelId, message.id);
-
 		if (message.channelId === GUESS_WHO_CHANNEL_ID) {
 			void markArchivedChannelMessageDeleted(message.id).catch((err) =>
 				this.container.logger.error("[guess-who] Failed to mark archived message deleted:", err),

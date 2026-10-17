@@ -6,13 +6,12 @@ import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import { createCase } from "../../../src/db/queries/modCases.js";
 import { addXp } from "../../../src/db/queries/users.js";
-import { claimAiReply, replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
-import { MessageCreateListener, messageCreateTestHooks } from "../../../src/listeners/messages/messageCreate.js";
+import { replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
+import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
 
 vi.mock("../../../src/lib/constants.js", () => ({
 	GUESS_WHO_CHANNEL_ID: "guess-who",
-	TARGET_TEXT_CHANNEL_ID: "target",
 	TARGET_GUILD_ID: "guild-1",
 	GUESS_WHO_BACKFILL_LIMIT: 1000,
 	BOT_OWNER_ID: "bot-owner",
@@ -30,10 +29,7 @@ vi.mock("../../../src/db/queries/users.js", () => ({
 	addXp: vi.fn(async () => ({ user: {}, leveledUp: false, newLevel: 1, awarded: true })),
 	getLevelRewards: vi.fn(async () => []),
 }));
-vi.mock("../../../src/lib/autoresponder/llmResponse.js", () => ({
-	generateAutoResponse: vi.fn(),
-	generateMentionReply: vi.fn(),
-}));
+vi.mock("../../../src/lib/llmProvider.js", () => ({ callInteractiveLlm: vi.fn(), callBackgroundLlm: vi.fn() }));
 vi.mock("../../../src/lib/personality/getPersonalityContext.js", () => ({
 	getPersonalityContext: vi.fn(async () => ""),
 }));
@@ -232,8 +228,6 @@ describe("messageCreate auto-mod removal stops everything else", () => {
 		expect(mockedFindMatchingResponse).not.toHaveBeenCalled();
 		expect(message.reply).not.toHaveBeenCalled();
 		expect(message.channel.send).not.toHaveBeenCalled();
-		// Other listeners' AI replies (mention and random responders) are refused too.
-		expect(claimAiReply(message.id)).toBe(false);
 	});
 
 	it("creates exactly one case when several rules match, the first rule winning", async () => {
@@ -298,6 +292,7 @@ describe("messageCreate auto-mod removal stops everything else", () => {
 describe("messageCreate cooldown maps", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		replyGuardTestHooks.reset();
 		vi.useFakeTimers({ toFake: ["Date"] });
 		mockedGetOrCreateSettings.mockResolvedValue(createSettings());
 		mockedGetAfk.mockResolvedValue(undefined as never);
@@ -317,12 +312,12 @@ describe("messageCreate cooldown maps", () => {
 
 		await respond("evict-a");
 		await respond("evict-b");
-		expect(messageCreateTestHooks.cooldownSizes().trigger).toBeGreaterThanOrEqual(2);
+		expect(replyGuardTestHooks.sizes().trigger).toBeGreaterThanOrEqual(2);
 
 		vi.advanceTimersByTime(11 * 60 * 1000);
 		await respond("evict-c");
 
-		expect(messageCreateTestHooks.cooldownSizes().trigger).toBe(1);
-		expect(messageCreateTestHooks.cooldownSizes().user).toBe(1);
+		expect(replyGuardTestHooks.sizes().trigger).toBe(1);
+		expect(replyGuardTestHooks.sizes().user).toBe(1);
 	});
 });

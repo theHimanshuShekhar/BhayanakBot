@@ -3,10 +3,6 @@ import type { Message, PartialMessage } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import { markArchivedChannelMessageEdited } from "../../db/queries/archivedChannelMessages.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import {
-	removeConversationHistoryMessage,
-	replaceConversationHistoryMessage,
-} from "../../lib/autoresponder/conversationHistory.js";
 import type { BhayanakClient } from "../../lib/BhayanakClient.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 
@@ -16,13 +12,6 @@ export class MessageUpdateListener extends Listener {
 	}
 
 	public override async run(oldMessage: Message | PartialMessage, newMessage: Message | PartialMessage) {
-		// A partial edit has no trustworthy content, so the stale text must not stay in the AI context.
-		if (newMessage.partial || newMessage.content === null) {
-			removeConversationHistoryMessage(newMessage.channelId, newMessage.id);
-		} else {
-			replaceConversationHistoryMessage(newMessage.channelId, newMessage, this.container.logger);
-		}
-
 		if (newMessage.channelId === GUESS_WHO_CHANNEL_ID && newMessage.partial) {
 			const fetched = await newMessage.fetch().catch(() => null);
 			if (fetched?.guild && !fetched.author?.bot) {
