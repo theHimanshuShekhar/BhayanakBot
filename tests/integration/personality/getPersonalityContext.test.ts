@@ -13,8 +13,6 @@ const USER_ID = "context-user";
 function createClient(): BhayanakClient {
 	return {
 		logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-		personalityCache: new Map(),
-		guildPersonalityCache: new Map(),
 	} as unknown as BhayanakClient;
 }
 
@@ -103,6 +101,20 @@ describe("getPersonalityContext", () => {
 		await setGuildProfile("Disabled guild profile.");
 
 		await expect(getPersonalityContext(createClient(), USER_ID, GUILD_ID)).resolves.toBe("");
+	});
+
+	it("injects whole profiles, with no cut at 800 characters", async () => {
+		const userProfile = `${"User writes long, winding, affectionate messages. ".repeat(30).trim()} END-OF-USER`;
+		const guildProfile = `${"Server banter is fast and layered. ".repeat(40).trim()} END-OF-GUILD`;
+		expect(userProfile.length).toBeGreaterThan(1000);
+		await setUserProfile(userProfile);
+		await setGuildProfile(guildProfile);
+
+		const context = await getPersonalityContext(createClient(), USER_ID, GUILD_ID);
+
+		expect(context).toContain(userProfile);
+		expect(context).toContain(guildProfile);
+		expect(context).not.toContain("…");
 	});
 
 	it("loads a guild profile that appears after an earlier context lookup", async () => {

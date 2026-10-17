@@ -297,7 +297,6 @@ export const userPersonalityProfiles = pgTable(
 		userId: varchar("user_id", { length: 20 }).notNull(),
 		guildId: varchar("guild_id", { length: 20 }).notNull(),
 		profile: text("profile"),
-		newMessageCount: integer("new_message_count").default(0).notNull(),
 		lastRefreshedAt: timestamp("last_refreshed_at"),
 		lastTrainingMessageAt: timestamp("last_training_message_at"),
 		lastTrainingMessageId: varchar("last_training_message_id", { length: 20 }),
@@ -308,7 +307,6 @@ export const userPersonalityProfiles = pgTable(
 export const guildPersonalityProfiles = pgTable("guild_personality_profiles", {
 	guildId: varchar("guild_id", { length: 20 }).primaryKey(),
 	profile: text("profile"),
-	messageCount: integer("message_count").default(0).notNull(),
 	lastRefreshedAt: timestamp("last_refreshed_at"),
 	lastTrainingMessageAt: timestamp("last_training_message_at"),
 	lastTrainingMessageId: varchar("last_training_message_id", { length: 20 }),

@@ -7,7 +7,7 @@ import {
 	markArchivedChannelMessagesDeleted,
 	upsertArchivedChannelMessage,
 } from "../../../src/db/queries/archivedChannelMessages.js";
-import { getEligibleGuildTrainingMessages } from "../../../src/db/queries/personalityTraining.js";
+import { getEligibleGuildTrainingMessageWindow } from "../../../src/db/queries/personalityTraining.js";
 import { archivedChannelMessages } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
@@ -68,11 +68,10 @@ describe("guess who archive", () => {
 
 			vi.spyOn(Math, "random").mockReturnValue(0);
 			expect((await pick())?.messageId).toBe("gw-kept");
-			const training = await getEligibleGuildTrainingMessages({
+			const training = await getEligibleGuildTrainingMessageWindow({
 				guildId: GUILD_ID,
 				afterMessageCreatedAt: null,
 				limit: 50,
-				maxPerAuthor: 50,
 			});
 			expect(training.map((m) => m.messageId)).toEqual(["gw-kept"]);
 		});

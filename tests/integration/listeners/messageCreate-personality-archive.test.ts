@@ -1,6 +1,6 @@
 import { container } from "@sapphire/framework";
 import { and, eq, sql } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	archivedChannelMessageTestHooks,
 	markArchivedChannelMessageDeleted,
@@ -10,20 +10,8 @@ import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfi
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
-import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
-import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
-import { settleInlineBuilds } from "../../../src/lib/personality/inlineBuilds.js";
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
-
-const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
-
-vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
-	...(await importOriginal<typeof import("../../../src/lib/features.js")>()),
-	get PERSONALITY_GENERATION_ENABLED() {
-		return featureFlags.personalityGeneration;
-	},
-}));
 
 vi.mock("../../../src/lib/constants.js", () => ({
 	GUESS_WHO_CHANNEL_ID: "guess-general",
@@ -71,8 +59,8 @@ const RANDOM_CHANNEL_ID = "listener-chat";
 const USER_ID = "listener-user";
 const OTHER_USER_ID = "listener-other";
 
-// Archiving 100-200 messages through the listener is several DB round trips per message, so these
-// tests are genuinely slow under CPU load; the default 5s timeout is only right for single-message tests.
+// Archiving 100 messages through the listener is several DB round trips per message, so that test is
+// genuinely slow under CPU load; the default 5s timeout is only right for single-message tests.
 const SLOW_SEED_TIMEOUT_MS = 30_000;
 
 const mockedCallBackgroundLlm = vi.mocked(callBackgroundLlm);
@@ -202,7 +190,6 @@ async function countArchivedRows(): Promise<number> {
 
 describe("messageCreate personality archive flow", () => {
 	beforeEach(async () => {
-		featureFlags.personalityGeneration = true;
 		await cleanupRows();
 		archivedChannelMessageTestHooks.afterPendingDeleteRead = undefined;
 		mockedCallBackgroundLlm.mockClear();
@@ -213,18 +200,11 @@ describe("messageCreate personality archive flow", () => {
 		container.client = {
 			guilds: { cache: new Map() },
 			users: { cache: new Map() },
-			personalityCache: new Map(),
-			guildPersonalityCache: new Map(),
 			logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 		} as unknown as typeof container.client;
 	});
 
-	afterEach(async () => {
-		// Threshold crossings start fire-and-forget profile builds; none may outlive its test.
-		await settleInlineBuilds();
-	});
-
-	it("archives eligible human messages from the Guess Who general channel and increments personality counters", async () => {
+	it("archives human messages from the Guess Who general channel", async () => {
 		await createListener().run(createMessage({ messageId: "live-eligible" }) as never);
 
 		expect(await getArchiveRow("live-eligible")).toMatchObject({
@@ -232,27 +212,29 @@ describe("messageCreate personality archive flow", () => {
 			authorUserId: USER_ID,
 			content: "Listener archived personality message live-eligible with enough context.",
 		});
-		expect((await getUserProfile())?.newMessageCount).toBe(1);
-		expect((await getGuildProfile())?.messageCount).toBe(1);
 	});
 
-	it("does not archive or increment personality evidence outside the Guess Who general channel", async () => {
+	it("keeps no personality evidence counters: archiving writes no profile rows", async () => {
+		await createListener().run(createMessage({ messageId: "no-counter" }) as never);
+
+		expect(await getArchiveRow("no-counter")).toBeDefined();
+		expect(await getUserProfile()).toBeUndefined();
+		expect(await getGuildProfile()).toBeUndefined();
+	});
+
+	it("does not archive messages outside the Guess Who general channel", async () => {
 		await createListener().run(createMessage({ messageId: "legacy-channel", channelId: RANDOM_CHANNEL_ID }) as never);
 
 		expect(await getArchiveRow("legacy-channel")).toBeUndefined();
-		expect(await getUserProfile()).toBeUndefined();
-		expect(await getGuildProfile()).toBeUndefined();
 	});
 
-	it("does not archive or increment bot messages in the Guess Who general channel", async () => {
+	it("does not archive bot messages in the Guess Who general channel", async () => {
 		await createListener().run(createMessage({ messageId: "bot-message", bot: true }) as never);
 
 		expect(await getArchiveRow("bot-message")).toBeUndefined();
-		expect(await getUserProfile()).toBeUndefined();
-		expect(await getGuildProfile()).toBeUndefined();
 	});
 
-	it("does not increment personality evidence twice for duplicate listener delivery", async () => {
+	it("archives a duplicate listener delivery once", async () => {
 		const listener = createListener();
 		const message = createMessage({ messageId: "duplicate-live" });
 
@@ -260,11 +242,9 @@ describe("messageCreate personality archive flow", () => {
 		await listener.run(message as never);
 
 		expect(await countArchivedRows()).toBe(1);
-		expect((await getUserProfile())?.newMessageCount).toBe(1);
-		expect((await getGuildProfile())?.messageCount).toBe(1);
 	});
 
-	it("does not increment personality evidence when create arrives after a pending delete", async () => {
+	it("keeps the deleted mark when create arrives after a pending delete", async () => {
 		await markArchivedChannelMessageDeleted("delete-before-create", new Date("2026-05-28T11:59:00.000Z"));
 
 		await createListener().run(createMessage({ messageId: "delete-before-create" }) as never);
@@ -273,11 +253,9 @@ describe("messageCreate personality archive flow", () => {
 			messageId: "delete-before-create",
 			deletedAt: new Date("2026-05-28T11:59:00.000Z"),
 		});
-		expect(await getUserProfile()).toBeUndefined();
-		expect(await getGuildProfile()).toBeUndefined();
 	});
 
-	it("does not increment personality evidence when delete arrives during archive upsert", async () => {
+	it("keeps the deleted mark when delete arrives during archive upsert", async () => {
 		archivedChannelMessageTestHooks.afterPendingDeleteRead = async () => {
 			archivedChannelMessageTestHooks.afterPendingDeleteRead = undefined;
 			await markArchivedChannelMessageDeleted("delete-during-create", new Date("2026-05-28T11:59:30.000Z"));
@@ -289,161 +267,31 @@ describe("messageCreate personality archive flow", () => {
 			messageId: "delete-during-create",
 			deletedAt: new Date("2026-05-28T11:59:30.000Z"),
 		});
-		expect(await getUserProfile()).toBeUndefined();
-		expect(await getGuildProfile()).toBeUndefined();
 	});
 
-	it("archives mass-mention messages without incrementing personality evidence", async () => {
+	it("archives mass-mention messages; training eligibility is decided later by the archive queries", async () => {
 		await createListener().run(
 			createMessage({
 				messageId: "mass-mention",
 				content: "This message has enough alphabetic content but calls @everyone into chat.",
 			}) as never,
 		);
-		await createListener().run(
-			createMessage({
-				messageId: "here-mention",
-				content: "This message has enough alphabetic content but calls @here into chat.",
-			}) as never,
-		);
 
 		expect(await getArchiveRow("mass-mention")).toBeDefined();
-		expect(await getArchiveRow("here-mention")).toBeDefined();
-		expect(await getUserProfile()).toBeUndefined();
-		expect(await getGuildProfile()).toBeUndefined();
 	});
 
-	it("archives user mass-mention messages without incrementing personality evidence", async () => {
-		await createListener().run(
-			createMessage({
-				messageId: "user-mass-mention",
-				mentionCount: 5,
-				content: "This message pings many users but has enough alphabetic context for filters.",
-			}) as never,
-		);
-		await createListener().run(
-			createMessage({
-				messageId: "repeat-mention",
-				mentionCount: 1,
-				content:
-					"This repeats <@100000000000000001> <@100000000000000001> <@100000000000000001> <@100000000000000001> <@100000000000000001> enough times.",
-			}) as never,
-		);
-
-		expect(await getArchiveRow("user-mass-mention")).toBeDefined();
-		expect(await getArchiveRow("repeat-mention")).toBeDefined();
-		expect(await getUserProfile()).toBeUndefined();
-		expect(await getGuildProfile()).toBeUndefined();
-	});
-
-	it("builds a user profile from messages inserted through the listener archive flow", {
+	it("never builds a profile from the message path, however many messages arrive", {
 		timeout: SLOW_SEED_TIMEOUT_MS,
 	}, async () => {
-		await db.insert(userPersonalityProfiles).values({ userId: USER_ID, guildId: GUILD_ID, newMessageCount: -100 });
 		await archiveListenerMessages({ count: 100 });
-
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
-
-		expect(await countArchivedRows()).toBe(100);
-		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
-		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
-	});
-
-	it("listener-triggered threshold build sees the triggering archived message", {
-		timeout: SLOW_SEED_TIMEOUT_MS,
-	}, async () => {
-		await archiveListenerMessages({ count: 99 });
-		mockedCallBackgroundLlm.mockClear();
-
 		await createListener().run(
-			createMessage({
-				messageId: "threshold-live",
-				createdAt: new Date("2026-05-28T12:02:00.000Z"),
-				content: "Threshold triggering archived message must be visible to builder.",
-			}) as never,
+			createMessage({ messageId: "past-user-threshold", createdAt: new Date("2026-05-28T12:10:00.000Z") }) as never,
 		);
 
-		await settleInlineBuilds();
-		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
-		expect(mockedCallBackgroundLlm.mock.calls[0]?.[1]).toContain(
-			"Threshold triggering archived message must be visible to builder.",
-		);
-		expect((await getUserProfile())?.profile).toBe("Profile summary from listener archived messages.");
-	});
-
-	it("keeps archiving and counting but starts no user build at the 100-message threshold while generation is disabled", {
-		timeout: SLOW_SEED_TIMEOUT_MS,
-	}, async () => {
-		featureFlags.personalityGeneration = false;
-		await archiveListenerMessages({ count: 99 });
-
-		await createListener().run(
-			createMessage({ messageId: "off-user-threshold", createdAt: new Date("2026-05-28T12:02:00.000Z") }) as never,
-		);
-		// Inline builds are fire-and-forget; wait for any (wrongly) started build to reach the LLM.
-		await settleInlineBuilds();
-
-		expect(await countArchivedRows()).toBe(100);
-		expect((await getUserProfile())?.newMessageCount).toBe(100);
+		expect(await countArchivedRows()).toBe(101);
 		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
-		expect((await getUserProfile())?.profile).toBeNull();
-	});
-
-	it("keeps archiving and counting but starts no guild build at the 200-message threshold while generation is disabled", {
-		timeout: SLOW_SEED_TIMEOUT_MS,
-	}, async () => {
-		featureFlags.personalityGeneration = false;
-		await archiveListenerMessages({ count: 199, authorCount: 20 });
-
-		await createListener().run(
-			createMessage({
-				messageId: "off-guild-threshold",
-				createdAt: new Date("2026-05-28T12:10:00.000Z"),
-			}) as never,
-		);
-		await settleInlineBuilds();
-
-		expect(await countArchivedRows()).toBe(200);
-		expect((await getGuildProfile())?.messageCount).toBe(200);
-		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
-		expect((await getGuildProfile())?.profile).toBeNull();
-	});
-
-	it("builds a guild profile from messages inserted through the listener archive flow", {
-		timeout: SLOW_SEED_TIMEOUT_MS,
-	}, async () => {
-		await db.insert(guildPersonalityProfiles).values({ guildId: GUILD_ID, messageCount: -200 });
-		await archiveListenerMessages({ count: 200, authorCount: 20 });
-
-		await buildGuildPersonalityProfile(GUILD_ID);
-
-		expect(await countArchivedRows()).toBe(200);
-		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
-		expect((await getGuildProfile())?.profile).toBe("Profile summary from listener archived messages.");
-	});
-
-	it("does not train on listener-archived messages that are too short or later deleted", {
-		timeout: SLOW_SEED_TIMEOUT_MS,
-	}, async () => {
-		await db.insert(userPersonalityProfiles).values({ userId: USER_ID, guildId: GUILD_ID, newMessageCount: -100 });
-		const listener = createListener();
-		await listener.run(createMessage({ messageId: "short-row", content: "too short" }) as never);
-		for (let index = 0; index < 100; index++) {
-			await listener.run(
-				createMessage({
-					messageId: `ld${String(index).padStart(3, "0")}`,
-					createdAt: new Date(new Date("2026-05-28T13:00:00.000Z").getTime() + index * 1000),
-				}) as never,
-			);
-		}
-		await markArchivedChannelMessageDeleted("ld099", new Date("2026-05-28T14:00:00.000Z"));
-		mockedCallBackgroundLlm.mockClear();
-
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
-
-		expect(await getArchiveRow("short-row")).toBeDefined();
-		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
-		expect((await getUserProfile())?.profile).toBeNull();
+		expect(await getUserProfile()).toBeUndefined();
+		expect(await getGuildProfile()).toBeUndefined();
 	});
 
 	it("gives a Random Reply the guild culture profile only", async () => {

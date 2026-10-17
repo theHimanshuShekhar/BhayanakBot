@@ -1,68 +1,18 @@
 import { Listener } from "@sapphire/framework";
 import { type Message, PermissionFlagsBits, type TextChannel } from "discord.js";
-import { eq, sql } from "drizzle-orm";
 import { clearAfk, getAfk } from "../../db/queries/afk.js";
 import { upsertArchivedChannelMessage } from "../../db/queries/archivedChannelMessages.js";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { createCase } from "../../db/queries/modCases.js";
 import { addXp } from "../../db/queries/users.js";
-import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../db/schema.js";
 import { answerMessage } from "../../lib/ai/replyPipeline.js";
 import { notifyOnly } from "../../lib/allowedMentions.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
-import { db } from "../../lib/database.js";
-import { buildGuildPersonalityProfile } from "../../lib/personality/buildGuildProfile.js";
-import { buildPersonalityProfile } from "../../lib/personality/buildProfile.js";
-import { trackInlineBuild } from "../../lib/personality/inlineBuilds.js";
 
 // Spam tracking: Map<guildId:userId, { count, resetAt }>
 const spamTracker = new Map<string, { count: number; resetAt: number }>();
 
-const PERSONALITY_MAX_USER_MENTIONS = 5;
-const USER_MENTION_PATTERN = /<@!?\d+>/g;
-
 const BAD_LINK_PATTERN = /https?:\/\/(discord\.gg|discordapp\.com\/invite|bit\.ly|tinyurl\.com)\//i;
-const URL_PATTERN = /https?:\/\/\S+/g;
-
-async function recordPersonalityEvidenceIfArchiveLive(input: {
-	messageId: string;
-	userId: string;
-	guildId: string;
-}): Promise<{ userCount: number; guildCount: number } | null> {
-	return db.transaction(async (tx) => {
-		const [archiveRow] = await tx
-			.select({ deletedAt: archivedChannelMessages.deletedAt })
-			.from(archivedChannelMessages)
-			.where(eq(archivedChannelMessages.messageId, input.messageId))
-			.for("update");
-
-		if (!archiveRow || archiveRow.deletedAt) return null;
-
-		const [userProfile] = await tx
-			.insert(userPersonalityProfiles)
-			.values({ userId: input.userId, guildId: input.guildId, newMessageCount: 1 })
-			.onConflictDoUpdate({
-				target: [userPersonalityProfiles.userId, userPersonalityProfiles.guildId],
-				set: { newMessageCount: sql`${userPersonalityProfiles.newMessageCount} + 1` },
-			})
-			.returning({ newMessageCount: userPersonalityProfiles.newMessageCount });
-
-		const [guildProfile] = await tx
-			.insert(guildPersonalityProfiles)
-			.values({ guildId: input.guildId, messageCount: 1 })
-			.onConflictDoUpdate({
-				target: guildPersonalityProfiles.guildId,
-				set: { messageCount: sql`${guildPersonalityProfiles.messageCount} + 1` },
-			})
-			.returning({ messageCount: guildPersonalityProfiles.messageCount });
-
-		if (!userProfile || !guildProfile) {
-			throw new Error(`recordPersonalityEvidence: empty returning for ${input.userId}/${input.guildId}`);
-		}
-
-		return { userCount: userProfile.newMessageCount, guildCount: guildProfile.messageCount };
-	});
-}
 
 export class MessageCreateListener extends Listener {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -79,7 +29,7 @@ export class MessageCreateListener extends Listener {
 		if (await this.runAutoMod(guildMessage, settings)) return;
 
 		// Each remaining stage is isolated: one failing stage never skips the others.
-		await this.runStage("archive", () => this.ingestArchive(guildMessage, settings));
+		await this.runStage("archive", () => this.ingestArchive(guildMessage));
 		await this.runStage("afk", () => this.handleAfk(guildMessage));
 		await this.runStage("xp", () => this.awardXp(guildMessage, settings));
 
@@ -150,111 +100,21 @@ export class MessageCreateListener extends Listener {
 		return reason;
 	}
 
-	private async ingestArchive(
-		message: Message<true>,
-		settings: Awaited<ReturnType<typeof getOrCreateSettings>>,
-	): Promise<void> {
-		const isGuessWhoChannel = message.channelId === GUESS_WHO_CHANNEL_ID;
-		let didInsertArchiveMessage = false;
-		let didArchiveDeletedMessage = false;
-		if (isGuessWhoChannel) {
-			const archiveResult = await upsertArchivedChannelMessage({
-				messageId: message.id,
-				guildId: message.guild.id,
-				channelId: message.channelId,
-				authorUserId: message.author.id,
-				authorUsername: message.author.username,
-				authorDisplayName: message.member?.displayName ?? message.author.globalName ?? message.author.username,
-				content: message.content,
-				messageCreatedAt: message.createdAt,
-			}).catch((err) => {
-				this.container.logger.error("[guess-who] Failed to archive message:", err);
-				return null;
-			});
-			didInsertArchiveMessage = archiveResult?.inserted ?? false;
-			didArchiveDeletedMessage = archiveResult?.deleted ?? false;
-		}
-
-		// --- Personality features: store message + trigger rebuild when threshold hit ---
-		// Filter: skip commands, very short/long messages, URL-only posts, and spam
-		const trimmedContent = message.content.trim();
-		const contentWithoutUrls = trimmedContent.replace(URL_PATTERN, "");
-		const alphaCount = (contentWithoutUrls.match(/[A-Za-z]/g) ?? []).length;
-		const userMentionCount = trimmedContent.match(USER_MENTION_PATTERN)?.length ?? 0;
-		const personalitySkipReason = !isGuessWhoChannel
-			? "not-guess-who-channel"
-			: !didInsertArchiveMessage
-				? "archive-not-inserted"
-				: didArchiveDeletedMessage
-					? "archive-marked-deleted"
-					: !settings.personalityEnabled
-						? "personality-disabled"
-						: trimmedContent.length < 15
-							? "too-short"
-							: trimmedContent.length > 1000
-								? "too-long"
-								: trimmedContent.startsWith("/") || trimmedContent.startsWith("!")
-									? "bot-command-prefix"
-									: trimmedContent.includes("@everyone") || trimmedContent.includes("@here")
-										? "broadcast-mention"
-										: message.mentions.users.size >= PERSONALITY_MAX_USER_MENTIONS ||
-												userMentionCount >= PERSONALITY_MAX_USER_MENTIONS
-											? "too-many-user-mentions"
-											: alphaCount < 5
-												? "low-alpha-content"
-												: contentWithoutUrls.length < 10
-													? "url-only-or-low-signal"
-													: null;
-		const isMeaningfulForPersonality = personalitySkipReason === null;
-		this.container.logger.debug(
-			`[personality-ingest] evaluate guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id} contentLength=${trimmedContent.length} alphaCount=${alphaCount} mentionCount=${message.mentions.users.size} archiveInserted=${didInsertArchiveMessage} archiveDeleted=${didArchiveDeletedMessage} enabled=${settings.personalityEnabled} eligible=${isMeaningfulForPersonality} reason=${personalitySkipReason ?? "eligible"}`,
-		);
-		if (
-			isGuessWhoChannel &&
-			didInsertArchiveMessage &&
-			!didArchiveDeletedMessage &&
-			settings.personalityEnabled &&
-			isMeaningfulForPersonality
-		) {
-			this.container.logger.debug(
-				`[personality-ingest] storage start guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id}`,
-			);
-			const evidence = await recordPersonalityEvidenceIfArchiveLive({
-				messageId: message.id,
-				userId: message.author.id,
-				guildId: message.guild.id,
-			});
-			this.container.logger.debug(
-				`[personality-ingest] storage result guild=${message.guild.id} channel=${message.channel.id} message=${message.id} user=${message.author.id} stored=${evidence ? "yes" : "no"} userCount=${evidence?.userCount ?? "none"} guildCount=${evidence?.guildCount ?? "none"}`,
-			);
-			if (evidence?.userCount && evidence.userCount >= 100) {
-				// buildPersonalityProfile serialises concurrent calls per user internally.
-				const guildId = message.guild.id;
-				this.container.logger.debug(
-					`[personality-ingest] trigger-user-build userId=${message.author.id} guildId=${guildId} newMessageCount=${evidence.userCount}`,
-				);
-				void trackInlineBuild(
-					buildPersonalityProfile(message.author.id, guildId).catch((err) =>
-						this.container.logger.error(
-							`[personality] Inline build failed for userId=${message.author.id} guildId=${guildId}:`,
-							err,
-						),
-					),
-				);
-			}
-			// Also increment guild message count for server-wide personality features
-			const guildId = message.guild.id;
-			if (evidence?.guildCount && evidence.guildCount >= 200) {
-				this.container.logger.debug(
-					`[personality-ingest] trigger-guild-build guildId=${guildId} messageCount=${evidence.guildCount}`,
-				);
-				void trackInlineBuild(
-					buildGuildPersonalityProfile(guildId).catch((err) =>
-						this.container.logger.error(`[guild-personality] Inline build failed for guildId=${guildId}:`, err),
-					),
-				);
-			}
-		}
+	/** Archives Guess Who channel messages; personality profiles are built later from the archive by a scheduled task. */
+	private async ingestArchive(message: Message<true>): Promise<void> {
+		if (message.channelId !== GUESS_WHO_CHANNEL_ID) return;
+		await upsertArchivedChannelMessage({
+			messageId: message.id,
+			guildId: message.guild.id,
+			channelId: message.channelId,
+			authorUserId: message.author.id,
+			authorUsername: message.author.username,
+			authorDisplayName: message.member?.displayName ?? message.author.globalName ?? message.author.username,
+			content: message.content,
+			messageCreatedAt: message.createdAt,
+		}).catch((err) => {
+			this.container.logger.error("[guess-who] Failed to archive message:", err);
+		});
 	}
 
 	private async handleAfk(message: Message<true>): Promise<void> {

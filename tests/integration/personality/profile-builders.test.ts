@@ -7,16 +7,10 @@ import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm } from "../../../src/lib/llmProvider.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
+import { MAX_PROFILE_CHARS } from "../../../src/lib/personality/profileSize.js";
 import { seedArchivedMessages } from "../../helpers/archive.js";
 
-const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
-
-vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
-	...(await importOriginal<typeof import("../../../src/lib/features.js")>()),
-	get PERSONALITY_GENERATION_ENABLED() {
-		return featureFlags.personalityGeneration;
-	},
-}));
+const DEFAULT_PROFILE = "Profile summary without direct quotes.";
 
 vi.mock("../../../src/lib/llmProvider.js", () => ({
 	callBackgroundLlm: vi.fn(async () => "Profile summary without direct quotes."),
@@ -160,9 +154,9 @@ function authorLabelForPromptContent(userPrompt: string, content: string): strin
 
 describe("personality profile builders", () => {
 	beforeEach(async () => {
-		featureFlags.personalityGeneration = true;
 		await cleanupBuilderRows();
-		mockedCallBackgroundLlm.mockClear();
+		mockedCallBackgroundLlm.mockReset();
+		mockedCallBackgroundLlm.mockImplementation(async () => DEFAULT_PROFILE);
 		container.logger = {
 			debug: vi.fn(),
 			warn: vi.fn(),
@@ -170,8 +164,6 @@ describe("personality profile builders", () => {
 		container.client = {
 			guilds: { cache: new Map() },
 			users: { cache: new Map() },
-			personalityCache: new Map(),
-			guildPersonalityCache: new Map(),
 		} as unknown as typeof container.client;
 	});
 
@@ -294,16 +286,6 @@ describe("personality profile builders", () => {
 		expect(profileAfterFailure?.lastTrainingMessageAt).toBeNull();
 		expect(profileAfterFailure?.lastTrainingMessageId).toBeNull();
 		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
-	});
-
-	it("does not reduce newMessageCount to the capped fetched batch size after a null model result", async () => {
-		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
-		await db.insert(userPersonalityProfiles).values({ userId: USER_ID, guildId: GUILD_ID, newMessageCount: 125 });
-		mockedCallBackgroundLlm.mockResolvedValueOnce(null);
-
-		await buildPersonalityProfile(USER_ID, GUILD_ID);
-
-		expect((await getBuilderProfile())?.newMessageCount).toBe(125);
 	});
 
 	it("does not build an initial guild profile below the archive message threshold", async () => {
@@ -539,14 +521,13 @@ describe("personality profile builders", () => {
 		expect((await getGuildBuilderProfile())?.lastTrainingMessageId).toBe("gy029");
 	});
 
-	it("sets guild cooldown after a null model result without advancing cursor or reducing messageCount", async () => {
+	it("sets guild cooldown after a null model result without advancing the cursor", async () => {
 		await archiveGuildMessages({
 			count: 200,
 			idPrefix: "gb",
 			start: new Date("2026-05-01T00:00:00.000Z"),
 			authorCount: 20,
 		});
-		await db.insert(guildPersonalityProfiles).values({ guildId: GUILD_ID, messageCount: 250 });
 		mockedCallBackgroundLlm.mockResolvedValueOnce(null);
 
 		await buildGuildPersonalityProfile(GUILD_ID);
@@ -557,7 +538,6 @@ describe("personality profile builders", () => {
 		expect(profileAfterFailure?.lastRefreshedAt).toBeInstanceOf(Date);
 		expect(profileAfterFailure?.lastTrainingMessageAt).toBeNull();
 		expect(profileAfterFailure?.lastTrainingMessageId).toBeNull();
-		expect(profileAfterFailure?.messageCount).toBe(250);
 		expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
 	});
 
@@ -571,7 +551,6 @@ describe("personality profile builders", () => {
 				userId: USER_ID,
 				guildId: GUILD_ID,
 				profile: "Previous user profile.",
-				newMessageCount: 30,
 				lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z"),
 				lastTrainingMessageAt: START,
 				lastTrainingMessageId: "seed000",
@@ -596,7 +575,7 @@ describe("personality profile builders", () => {
 			expect((await getBuilderProfile())?.profile).toBe("A paraphrased profile.");
 		});
 
-		it("keeps the previous user profile, cursor, and counter when the retry still quotes", async () => {
+		it("keeps the previous user profile and cursor when the retry still quotes", async () => {
 			await seedExistingUserProfile();
 			mockedCallBackgroundLlm.mockResolvedValue(
 				"Quote: Archived eligible message pq 000 with enough personality context!",
@@ -609,7 +588,6 @@ describe("personality profile builders", () => {
 			expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(2);
 			expect(profile?.profile).toBe("Previous user profile.");
 			expect(profile?.lastTrainingMessageId).toBe("seed000");
-			expect(profile?.newMessageCount).toBe(30);
 			expect(profile?.lastRefreshedAt?.getTime()).toBeGreaterThan(Date.now() - 60_000);
 			expect(container.logger.warn).toHaveBeenCalledWith(
 				expect.stringContaining("profile rejected: quoted source text"),
@@ -686,7 +664,7 @@ describe("personality profile builders", () => {
 
 			const userPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
 			expect(userPrompt.match(/<\/messages>/g)).toHaveLength(1);
-			expect(userPrompt.trimEnd()).toContain("</messages>\n\nBuild a detailed personality profile");
+			expect(userPrompt.trimEnd()).toContain("</messages>\n\nWrite the personality profile");
 		});
 
 		it("retries a quoting guild profile and stores the clean retry", async () => {
@@ -711,11 +689,10 @@ describe("personality profile builders", () => {
 			expect((await getGuildBuilderProfile())?.profile).toBe("A paraphrased culture profile.");
 		});
 
-		it("keeps the previous guild profile, cursor, and counter when the retry still quotes", async () => {
+		it("keeps the previous guild profile and cursor when the retry still quotes", async () => {
 			await db.insert(guildPersonalityProfiles).values({
 				guildId: GUILD_ID,
 				profile: "Previous guild profile.",
-				messageCount: 70,
 				lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z"),
 				lastTrainingMessageAt: START,
 				lastTrainingMessageId: "seed000",
@@ -739,7 +716,6 @@ describe("personality profile builders", () => {
 			expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(2);
 			expect(profile?.profile).toBe("Previous guild profile.");
 			expect(profile?.lastTrainingMessageId).toBe("seed000");
-			expect(profile?.messageCount).toBe(70);
 			expect(container.logger.warn).toHaveBeenCalledWith(
 				expect.stringContaining("profile rejected: quoted source text"),
 			);
@@ -757,30 +733,148 @@ describe("personality profile builders", () => {
 		});
 	});
 
-	it("builds no user profile and makes no LLM call while personality generation is disabled", async () => {
-		featureFlags.personalityGeneration = false;
-		await archiveUserMessages({ count: 100, idPrefix: "pb", start: new Date("2026-05-01T00:00:00.000Z") });
+	it("absorbs only what fits the 8,000-character budget and picks the rest up in the next refresh", async () => {
+		const START = new Date("2026-05-01T00:00:00.000Z");
+		const content = (index: number) => `Long fixture ${String(index).padStart(3, "0")} ${"word ".repeat(28)}end.`;
+		await seedArchivedMessages(
+			Array.from({ length: 100 }, (_, index) => ({
+				guildId: GUILD_ID,
+				channelId: CHANNEL_ID,
+				authorUserId: USER_ID,
+				authorUsername: USER_ID,
+				authorDisplayName: USER_ID,
+				messageId: `chunk-${String(index).padStart(3, "0")}`,
+				content: content(index),
+				messageCreatedAt: new Date(START.getTime() + index * 1000),
+			})),
+		);
+		// Messages join with newlines until the next one would pass 8,000 characters.
+		let used = 0;
+		let fitting = 0;
+		while (fitting < 100 && used + content(fitting).length <= 8_000) {
+			used += content(fitting).length + 1;
+			fitting++;
+		}
+		expect(fitting).toBeLessThan(100);
 
-		const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
+		expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+		const firstCursor = (await getBuilderProfile())?.lastTrainingMessageId;
+		expect(firstCursor).toBe(`chunk-${String(fitting - 1).padStart(3, "0")}`);
 
-		expect(result.status).toBe("skipped_generation_disabled");
-		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
-		expect(await getBuilderProfile()).toBeUndefined();
+		await db
+			.update(userPersonalityProfiles)
+			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
+			.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
+		mockedCallBackgroundLlm.mockClear();
+
+		expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+		const secondPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
+		expect(secondPrompt).toContain(content(fitting));
+		expect(secondPrompt).not.toContain(content(fitting - 1));
+		const secondCursor = (await getBuilderProfile())?.lastTrainingMessageId ?? "";
+		expect(secondCursor > (firstCursor ?? "")).toBe(true);
 	});
 
-	it("builds no guild profile and makes no LLM call while personality generation is disabled", async () => {
-		featureFlags.personalityGeneration = false;
-		await archiveGuildMessages({
-			count: 200,
-			idPrefix: "gb",
-			start: new Date("2026-05-01T00:00:00.000Z"),
-			authorCount: 20,
+	describe("fixed-size profile", () => {
+		const START = new Date("2026-05-01T00:00:00.000Z");
+		const LONG_PROFILE = Array.from({ length: 80 }, (_, index) => `Sentence number ${index} is about rain.`).join(" ");
+
+		async function seedExistingUserProfile(profile: string): Promise<void> {
+			await db.insert(userPersonalityProfiles).values({
+				userId: USER_ID,
+				guildId: GUILD_ID,
+				profile,
+				lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z"),
+				lastTrainingMessageAt: START,
+				lastTrainingMessageId: "seed000",
+			});
+		}
+
+		it("asks for a first user profile of at most 1,500 characters", async () => {
+			await archiveUserMessages({ count: 100, idPrefix: "pb", start: START });
+
+			await buildPersonalityProfile(USER_ID, GUILD_ID);
+
+			const [systemPrompt, userPrompt] = mockedCallBackgroundLlm.mock.calls[0] ?? [];
+			expect(systemPrompt).toContain("at most 1,500 characters");
+			expect(userPrompt).toContain("at most 1,500 characters");
 		});
 
-		const result = await buildGuildPersonalityProfile(GUILD_ID);
+		it("asks a refresh to rewrite the profile in place and hands over an Ollama-era profile in full", async () => {
+			const ollamaEraProfile = `${"Writes long meandering messages full of tangents. ".repeat(60).trim()} END-OF-OLD-PROFILE`;
+			expect(ollamaEraProfile.length).toBeGreaterThan(MAX_PROFILE_CHARS);
+			await seedExistingUserProfile(ollamaEraProfile);
+			await archiveUserMessages({ count: 20, idPrefix: "pr", start: new Date(START.getTime() + 1000) });
 
-		expect(result.status).toBe("skipped_generation_disabled");
-		expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
-		expect(await getGuildBuilderProfile()).toBeUndefined();
+			const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
+
+			expect(result.status).toBe("built");
+			const [, userPrompt] = mockedCallBackgroundLlm.mock.calls[0] ?? [];
+			expect(userPrompt).toContain(ollamaEraProfile);
+			expect(userPrompt).toContain("Rewrite the profile in place");
+			expect(userPrompt).toContain("at most 1,500 characters");
+			expect(userPrompt).not.toContain("Keep all previous observations");
+			expect((await getBuilderProfile())?.profile).toBe(DEFAULT_PROFILE);
+		});
+
+		it("cuts an overlong user profile after the last complete sentence within the cap", async () => {
+			await archiveUserMessages({ count: 100, idPrefix: "pb", start: START });
+			expect(LONG_PROFILE.length).toBeGreaterThan(MAX_PROFILE_CHARS);
+			mockedCallBackgroundLlm.mockResolvedValueOnce(LONG_PROFILE);
+
+			const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
+
+			const stored = (await getBuilderProfile())?.profile ?? "";
+			expect(result.status).toBe("built");
+			expect(stored.length).toBeLessThanOrEqual(MAX_PROFILE_CHARS);
+			expect(stored.length).toBeGreaterThan(MAX_PROFILE_CHARS - 40);
+			expect(stored.endsWith("is about rain.")).toBe(true);
+			expect(LONG_PROFILE.startsWith(stored)).toBe(true);
+			expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+		});
+
+		it("cuts an overlong guild profile the same way", async () => {
+			await archiveGuildMessages({ count: 200, idPrefix: "gb", start: START, authorCount: 20 });
+			mockedCallBackgroundLlm.mockResolvedValueOnce(LONG_PROFILE);
+
+			const result = await buildGuildPersonalityProfile(GUILD_ID);
+
+			const stored = (await getGuildBuilderProfile())?.profile ?? "";
+			expect(result.status).toBe("built");
+			expect(stored.length).toBeLessThanOrEqual(MAX_PROFILE_CHARS);
+			expect(stored.endsWith("is about rain.")).toBe(true);
+		});
+
+		it("keeps the previous profile and cursor when the reply is one unbroken run-on past the cap", async () => {
+			await seedExistingUserProfile("Previous user profile.");
+			await archiveUserMessages({ count: 20, idPrefix: "pr", start: new Date(START.getTime() + 1000) });
+			mockedCallBackgroundLlm.mockResolvedValueOnce("and then they ramble ".repeat(100));
+
+			const result = await buildPersonalityProfile(USER_ID, GUILD_ID);
+
+			const profile = await getBuilderProfile();
+			expect(result.status).toBe("skipped_model_empty");
+			expect(profile?.profile).toBe("Previous user profile.");
+			expect(profile?.lastTrainingMessageId).toBe("seed000");
+			expect(profile?.lastRefreshedAt?.getTime()).toBeGreaterThan(Date.now() - 60_000);
+			expect(mockedCallBackgroundLlm).toHaveBeenCalledTimes(1);
+		});
+
+		it("refreshes a user profile at exactly 20 new messages and not at 19", async () => {
+			await seedExistingUserProfile("Previous user profile.");
+			await archiveUserMessages({ count: 19, idPrefix: "pr", start: new Date(START.getTime() + 1000) });
+
+			expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("skipped_insufficient_evidence");
+			expect(mockedCallBackgroundLlm).not.toHaveBeenCalled();
+
+			await archiveUserMessages({ count: 1, idPrefix: "ps", start: new Date(START.getTime() + 60_000) });
+			await db
+				.update(userPersonalityProfiles)
+				.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
+				.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
+
+			expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+			expect((await getBuilderProfile())?.lastTrainingMessageId).toBe("ps-000");
+		});
 	});
 });

@@ -2,18 +2,18 @@
 name: "/personality"
 cat: "AI · personality"
 tags: ["AI", "ARCHIVE"]
-summary: "View user personality profiles or this server culture profile."
+summary: "View your personality profile or this server's culture profile; administrators can view anyone's and force a refresh."
 syntax:
   cmd: "/personality view user"
   args:
-    - { n: "user", d: "User profile to view; defaults to yourself", req: false, t: "@user" }
+    - { n: "user", d: "Administrators only: another member's profile; defaults to yourself", req: false, t: "@user" }
 examples:
   - label: "user profile"
     tag: "VIBE"
     tagBg: "#a78bfa"
     user: "parth"
     userColor: "#a78bfa"
-    input: "/personality view user user:@parth"
+    input: "/personality view user"
     time: "19:14"
     botSays: "user personality profile from archived training evidence. regrettably accurate."
     embedAccent: "#a78bfa"
@@ -40,8 +40,21 @@ related:
   - { n: "/userinfo", d: "Account info" }
 ---
 
-This command is only available in the Bhayanak server.
+This command is only available in the Bhayanak server, and every reply is visible only to you.
 
-Use `/personality view user` to see your own user personality profile, or `/personality view user user:@someone` for another member. Use `/personality view guild` to see this server's culture profile.
+## Viewing
 
-Profile generation is currently disabled, so profiles reflect previously generated data only. The `refresh` subcommands are registered but currently only answer that generation is disabled. The `/config` personality setting remains an operational feature toggle for these bot features.
+- `/personality view user` shows your own user personality profile. Administrators can add `user:@someone` to view another member's profile; anyone else asking for another member gets a refusal.
+- `/personality view guild` shows this server's culture profile. Any member can use it.
+
+## How profiles are written
+
+Profiles come from the messages archived in the Guess Who channel. A scheduled job builds them at bot startup and every 6 hours, so a profile appears within about 6 hours of enough eligible messages existing: 100 for a member, 200 for the server. After that a profile is refreshed once 20 new messages (member) or 40 (server) have arrived.
+
+Each refresh rewrites the profile in place instead of adding to it, so a profile stays within about 1,500 characters. The bot uses the whole profile when it replies, which means what you see here is exactly what shapes its answers.
+
+## Administrators
+
+`/personality refresh user` and `/personality refresh guild` are for server administrators. They rewrite a profile now rather than waiting for the next scheduled run, as long as enough new messages have arrived and the profile was not refreshed in the last 5 minutes.
+
+The `/config` personality setting is an operational feature toggle: when it is off, no profiles are built for the server, the commands say so, and the bot does not use profiles in replies.

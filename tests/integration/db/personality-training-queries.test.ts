@@ -6,10 +6,8 @@ import {
 	upsertArchivedChannelMessage,
 } from "../../../src/db/queries/archivedChannelMessages.js";
 import {
-	getEligibleGuildTrainingMessages,
 	getEligibleGuildTrainingMessageWindow,
 	getEligibleUserTrainingMessages,
-	getUsersEligibleForInitialPersonalityBuild,
 } from "../../../src/db/queries/personalityTraining.js";
 import { archivedChannelMessages, guildSettings, userPersonalityProfiles } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
@@ -259,16 +257,9 @@ describe("personality training database queries", () => {
 			afterMessageCreatedAt: null,
 			limit: 10,
 		});
-		const balancedGuildMessages = await getEligibleGuildTrainingMessages({
-			guildId: GUILD_ID,
-			afterMessageCreatedAt: null,
-			limit: 10,
-			maxPerAuthor: 10,
-		});
 
 		expect(userMessages.map((message) => message.messageId)).toEqual(["pt-general-user"]);
 		expect(guildWindow.map((message) => message.messageId)).toEqual(["pt-general-user"]);
-		expect(balancedGuildMessages.map((message) => message.messageId)).toEqual(["pt-general-user"]);
 	});
 
 	it("uses message id as an optional cursor tiebreaker for same-timestamp rows", async () => {
@@ -293,126 +284,5 @@ describe("personality training database queries", () => {
 		});
 
 		expect(messages.map((message) => message.messageId)).toEqual(["pt-cursor-b"]);
-	});
-
-	it("finds users eligible for initial personality builds from archived training messages", async () => {
-		const start = new Date("2026-05-27T12:00:00.000Z");
-		for (let index = 0; index < 3; index++) {
-			await archiveMessage({
-				messageId: `pt-i-a-${index}`,
-				authorUserId: USER_A,
-				content: `Author A initial training message ${index}.`,
-				messageCreatedAt: new Date(start.getTime() + index * 1000),
-			});
-		}
-		for (let index = 0; index < 2; index++) {
-			await archiveMessage({
-				messageId: `pt-i-b-${index}`,
-				authorUserId: USER_B,
-				content: `Author B insufficient training message ${index}.`,
-				messageCreatedAt: new Date(start.getTime() + (index + 10) * 1000),
-			});
-		}
-
-		const users = await getUsersEligibleForInitialPersonalityBuild({ minimumMessageCount: 3 });
-
-		expect(users.filter((user) => user.guildId === GUILD_ID)).toEqual([{ userId: USER_A, guildId: GUILD_ID }]);
-	});
-
-	it("does not find users with existing profiles or disabled personality settings for initial startup builds", async () => {
-		const start = new Date("2026-05-27T12:00:00.000Z");
-		for (let index = 0; index < 3; index++) {
-			await archiveMessage({
-				messageId: `pt-p-a-${index}`,
-				authorUserId: USER_A,
-				content: `Author A already profiled training message ${index}.`,
-				messageCreatedAt: new Date(start.getTime() + index * 1000),
-			});
-		}
-		await db.insert(userPersonalityProfiles).values({
-			userId: USER_A,
-			guildId: GUILD_ID,
-			profile: "Existing profile.",
-		});
-
-		let users = await getUsersEligibleForInitialPersonalityBuild({ minimumMessageCount: 3 });
-		expect(users.filter((user) => user.guildId === GUILD_ID)).toEqual([]);
-
-		await db.delete(userPersonalityProfiles).where(eq(userPersonalityProfiles.guildId, GUILD_ID));
-		await db.insert(guildSettings).values({ guildId: GUILD_ID, personalityEnabled: false });
-
-		users = await getUsersEligibleForInitialPersonalityBuild({ minimumMessageCount: 3 });
-		expect(users.filter((user) => user.guildId === GUILD_ID)).toEqual([]);
-	});
-
-	it("caps guild training messages per author while including other authors", async () => {
-		await archiveMessage({
-			messageId: "pt-guild-a-1",
-			authorUserId: USER_A,
-			content: "Author A training message number one.",
-			messageCreatedAt: new Date("2026-05-27T12:01:00.000Z"),
-		});
-		await archiveMessage({
-			messageId: "pt-guild-a-2",
-			authorUserId: USER_A,
-			content: "Author A training message number two.",
-			messageCreatedAt: new Date("2026-05-27T12:02:00.000Z"),
-		});
-		await archiveMessage({
-			messageId: "pt-guild-a-3",
-			authorUserId: USER_A,
-			content: "Author A training message number three.",
-			messageCreatedAt: new Date("2026-05-27T12:03:00.000Z"),
-		});
-		await archiveMessage({
-			messageId: "pt-guild-b-1",
-			authorUserId: USER_B,
-			content: "Author B training message number one.",
-			messageCreatedAt: new Date("2026-05-27T12:04:00.000Z"),
-		});
-
-		const messages = await getEligibleGuildTrainingMessages({
-			guildId: GUILD_ID,
-			afterMessageCreatedAt: null,
-			limit: 4,
-			maxPerAuthor: 2,
-		});
-
-		expect(messages.map((message) => message.messageId)).toEqual(["pt-guild-a-1", "pt-guild-a-2", "pt-guild-b-1"]);
-		expect(messages.filter((message) => message.authorUserId === USER_A)).toHaveLength(2);
-		expect(messages.filter((message) => message.authorUserId === USER_B)).toHaveLength(1);
-	});
-
-	it("does not starve later authors when early guild rows are dominated by one capped author", async () => {
-		const start = new Date("2026-05-27T12:00:00.000Z");
-		for (let index = 0; index < 81; index++) {
-			await archiveMessage({
-				messageId: `pt-a-${String(index).padStart(2, "0")}`,
-				authorUserId: USER_A,
-				content: `Author A dominant training message ${index}.`,
-				messageCreatedAt: new Date(start.getTime() + index * 1000),
-			});
-		}
-		await archiveMessage({
-			messageId: "pt-b-late-1",
-			authorUserId: USER_B,
-			content: "Author B later training message number one.",
-			messageCreatedAt: new Date("2026-05-27T12:02:00.000Z"),
-		});
-		await archiveMessage({
-			messageId: "pt-b-late-2",
-			authorUserId: USER_B,
-			content: "Author B later training message number two.",
-			messageCreatedAt: new Date("2026-05-27T12:02:01.000Z"),
-		});
-
-		const messages = await getEligibleGuildTrainingMessages({
-			guildId: GUILD_ID,
-			afterMessageCreatedAt: null,
-			limit: 4,
-			maxPerAuthor: 2,
-		});
-
-		expect(messages.map((message) => message.messageId)).toEqual(["pt-a-00", "pt-a-01", "pt-b-late-1", "pt-b-late-2"]);
 	});
 });

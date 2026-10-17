@@ -1,5 +1,5 @@
 import { Command, container } from "@sapphire/framework";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, PermissionFlagsBits } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { getOrCreateSettings } from "../../db/queries/guildSettings.js";
 import { getPersonalityProfile } from "../../db/queries/personality.js";
@@ -8,12 +8,11 @@ import {
 	getEligibleUserTrainingMessages,
 } from "../../db/queries/personalityTraining.js";
 import { guildPersonalityProfiles, userPersonalityProfiles } from "../../db/schema.js";
+import { BOT_OWNER_ID } from "../../lib/constants.js";
 import { db } from "../../lib/database.js";
-import { PERSONALITY_GENERATION_ENABLED } from "../../lib/features.js";
 import { HOME_SERVER_REGISTRATION } from "../../lib/homeServer.js";
 import {
 	buildGuildPersonalityProfile,
-	type GuildPersonalityBuildResult,
 	INITIAL_GUILD_PROFILE_THRESHOLD,
 	REFRESH_GUILD_PROFILE_THRESHOLD,
 } from "../../lib/personality/buildGuildProfile.js";
@@ -38,16 +37,20 @@ function formatTimeAgo(date: Date | null): string {
 	return `${days}d ago`;
 }
 
-function formatRefreshResult(
-	result: PersonalityBuildResult | GuildPersonalityBuildResult,
-	evidenceCount: number,
-): string {
+/** Same rule as the `IsAdmin` precondition: the bot owner, or the Administrator permission. */
+async function isAdministrator(interaction: Command.ChatInputCommandInteraction): Promise<boolean> {
+	if (interaction.user.id === BOT_OWNER_ID) return true;
+	if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) return true;
+	const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null);
+	return member?.permissions.has(PermissionFlagsBits.Administrator) ?? false;
+}
+
+function formatRefreshResult(result: PersonalityBuildResult, evidenceCount: number): string {
 	if (result.status === "built") {
 		return `Incremental refresh completed from **${evidenceCount}** eligible archived message(s).`;
 	}
 
 	const reasons: Record<Exclude<typeof result.status, "built">, string> = {
-		skipped_generation_disabled: "personality generation is disabled",
 		skipped_cooldown: "the profile is still in the refresh cooldown",
 		skipped_in_progress: "another refresh is already running",
 		skipped_insufficient_evidence: "there is not enough archived training evidence",
@@ -127,17 +130,6 @@ export class PersonalityCommand extends Command {
 		const target = interaction.options.getUser("user") ?? interaction.user;
 		const guildId = interaction.guildId!;
 
-		if (group === "refresh" && !PERSONALITY_GENERATION_ENABLED) {
-			return interaction.editReply({
-				embeds: [
-					new EmbedBuilder()
-						.setColor(0xfee75c)
-						.setTitle("Profile Generation Disabled")
-						.setDescription("Personality profile generation is currently disabled."),
-				],
-			});
-		}
-
 		const settings = await getOrCreateSettings(guildId);
 		if (!settings.personalityEnabled) {
 			return interaction.editReply({
@@ -153,10 +145,7 @@ export class PersonalityCommand extends Command {
 		}
 
 		if (group === "refresh") {
-			// Admin check
-			const member = await interaction.guild!.members.fetch(interaction.user.id);
-			const isAdmin = member.permissions.has("Administrator");
-			if (!isAdmin) {
+			if (!(await isAdministrator(interaction))) {
 				return interaction.editReply({
 					embeds: [
 						new EmbedBuilder()
@@ -176,6 +165,18 @@ export class PersonalityCommand extends Command {
 
 		if (subcommand === "guild") {
 			return this.viewGuildProfile(interaction, guildId);
+		}
+
+		// Members see only their own profile; administrators can look up anyone.
+		if (target.id !== interaction.user.id && !(await isAdministrator(interaction))) {
+			return interaction.editReply({
+				embeds: [
+					new EmbedBuilder()
+						.setColor(0xed4245)
+						.setTitle("Permission Denied")
+						.setDescription("You can only view your own personality profile. Server administrators can view anyone's."),
+				],
+			});
 		}
 
 		return this.viewUserProfile(interaction, target, guildId);
@@ -282,7 +283,7 @@ export class PersonalityCommand extends Command {
 						.setColor(0xfee75c)
 						.setTitle(`User Personality Profile — ${target.displayName}`)
 						.setDescription(
-							`No user profile exists yet. It builds automatically once at least ${INITIAL_USER_PROFILE_THRESHOLD} eligible archived message(s) are available.`,
+							`No user profile exists yet. One appears within about 6 hours once at least ${INITIAL_USER_PROFILE_THRESHOLD} eligible archived message(s) are available.`,
 						),
 				],
 			});
@@ -368,7 +369,7 @@ export class PersonalityCommand extends Command {
 						.setColor(0xfee75c)
 						.setTitle("Server Culture Profile")
 						.setDescription(
-							`No server culture profile exists yet. It builds automatically once at least ${INITIAL_GUILD_PROFILE_THRESHOLD} eligible archived message(s) are available.`,
+							`No server culture profile exists yet. One appears within about 6 hours once at least ${INITIAL_GUILD_PROFILE_THRESHOLD} eligible archived message(s) are available.`,
 						),
 				],
 			});

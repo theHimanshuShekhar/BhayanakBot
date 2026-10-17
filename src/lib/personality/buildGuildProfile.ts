@@ -1,237 +1,103 @@
-import { container } from "@sapphire/framework";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { getEligibleGuildTrainingMessageWindow, type TrainingMessage } from "../../db/queries/personalityTraining.js";
 import { guildPersonalityProfiles } from "../../db/schema.js";
-import type { BhayanakClient } from "../BhayanakClient.js";
 import { db } from "../database.js";
-import { PERSONALITY_GENERATION_ENABLED } from "../features.js";
-import { callBackgroundLlm } from "../llmProvider.js";
-import { quotesSource } from "./quoteGuard.js";
-import { NO_QUOTE_RETRY_INSTRUCTION, SOURCE_DATA_NOTICE, wrapSourceMessages } from "./sourcePrompt.js";
+import {
+	buildProfile,
+	type PersonalityBuildResult,
+	PROFILE_SIZE_INSTRUCTION,
+	type ProfileKind,
+} from "./profileBuilder.js";
+import { MAX_PROFILE_CHARS } from "./profileSize.js";
+import { SOURCE_DATA_NOTICE } from "./sourcePrompt.js";
 
 const MAX_MESSAGES_PER_BUILD = 200;
+const MAX_MESSAGES_PER_AUTHOR = 10;
 const MAX_CHARS_PER_BUILD = 8_000;
 export const INITIAL_GUILD_PROFILE_THRESHOLD = 200;
 export const REFRESH_GUILD_PROFILE_THRESHOLD = 40;
-const MIN_BUILD_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-export type GuildPersonalityBuildStatus =
-	| "built"
-	| "skipped_generation_disabled"
-	| "skipped_cooldown"
-	| "skipped_in_progress"
-	| "skipped_insufficient_evidence"
-	| "skipped_model_empty"
-	| "skipped_quoted_source";
-export interface GuildPersonalityBuildResult {
-	status: GuildPersonalityBuildStatus;
-}
-
-const rebuildInProgress = new Set<string>();
 
 const SYSTEM_PROMPT = [
-	"You are a cultural anthropologist analyzing the personality, culture, and vibe of a Discord server based on its messages.",
-	"Analyze and describe the following dimensions:",
-	"1. Overall tone — formal, casual, chaotic, wholesome, edgy, supportive, competitive?",
-	"2. Humor style — what kinds of jokes land here, meme culture, inside jokes",
-	"3. Shared interests — games, topics, hobbies that dominate conversation",
-	"4. Social dynamics — how members interact, power structures, friend groups",
-	"5. Notable phrases and slang — recurring expressions, emojis, abbreviations",
-	"6. Conflict style — how disagreements are handled, drama levels",
-	"7. What makes this server unique — distinct characteristics vs generic Discord servers",
-	"Write in flowing prose, not bullet points. Be specific and detailed.",
+	"You are a cultural anthropologist writing a compact profile of the personality, culture, and vibe of a Discord server based on its messages.",
+	"Cover the dimensions that stand out most: overall tone, humor style and inside jokes, shared interests, social dynamics, notable phrases and slang, how conflict is handled, and what makes this server distinct.",
+	`The whole profile is at most ${MAX_PROFILE_CHARS.toLocaleString("en-US")} characters of flowing prose, not bullet points. Choose the most distinctive observations; do not try to cover everything.`,
 	"Do not be generic. Ground every observation in evidence from the messages.",
 	"Do not quote source messages directly.",
 	"Each message line starts with an anonymized author label.",
 	SOURCE_DATA_NOTICE,
 ].join(" ");
 
-export async function buildGuildPersonalityProfile(guildId: string): Promise<GuildPersonalityBuildResult> {
-	if (!PERSONALITY_GENERATION_ENABLED) return { status: "skipped_generation_disabled" };
-	container.logger.debug(`[guild-personality] build requested guildId=${guildId}`);
-	if (rebuildInProgress.has(guildId)) {
-		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=in-progress`);
-		return { status: "skipped_in_progress" };
-	}
-	rebuildInProgress.add(guildId);
-	const startedAt = Date.now();
-	try {
-		const result = await buildGuildPersonalityProfileUnguarded(guildId);
-		container.logger.debug(
-			`[guild-personality] build finished guildId=${guildId} status=${result.status} durationMs=${Date.now() - startedAt}`,
-		);
-		return result;
-	} finally {
-		rebuildInProgress.delete(guildId);
-		container.logger.debug(`[guild-personality] build lock released guildId=${guildId}`);
-	}
+function guildProfileKind(guildId: string): ProfileKind {
+	return {
+		kind: "guild",
+		lockKey: guildId,
+		subject: `guildId=${guildId}`,
+		session: `profile:guild:${guildId}`,
+		initialThreshold: INITIAL_GUILD_PROFILE_THRESHOLD,
+		refreshThreshold: REFRESH_GUILD_PROFILE_THRESHOLD,
+		systemPrompt: SYSTEM_PROMPT,
+		initialHeading: "Messages from this Discord server:",
+		initialInstruction: `Write the culture profile of this server. ${PROFILE_SIZE_INSTRUCTION}`,
+		existingHeading: "Current server culture profile:",
+		newMessagesHeading: "New messages from this server since the last profile update:",
+		async loadState() {
+			const row = await db.query.guildPersonalityProfiles.findFirst({
+				where: eq(guildPersonalityProfiles.guildId, guildId),
+				columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
+			});
+			return {
+				profile: row?.profile ?? null,
+				lastRefreshedAt: row?.lastRefreshedAt ?? null,
+				cursorAt: row?.lastTrainingMessageAt ?? null,
+				cursorId: row?.lastTrainingMessageId ?? null,
+			};
+		},
+		fetchMessages(state, threshold) {
+			return getEligibleGuildTrainingMessageWindow({
+				guildId,
+				afterMessageCreatedAt: state.cursorAt,
+				afterMessageId: state.cursorId,
+				limit: threshold,
+			});
+		},
+		selectSource(messages) {
+			// The prompt shows a balanced, anonymised sample, but the cursor moves past the whole fetched window.
+			const sampled = selectBalancedGuildPromptMessages(messages);
+			const authorLabels = buildAuthorLabels(messages);
+			let block = "";
+			const sources: string[] = [];
+			for (const m of sampled) {
+				const line = `${authorLabels.get(m.authorUserId)}: ${m.content}`;
+				if (block.length + line.length > MAX_CHARS_PER_BUILD) break;
+				block += (block ? "\n" : "") + line;
+				sources.push(m.content);
+			}
+			return block.length === 0 ? null : { block, sources, absorbed: messages };
+		},
+		async touchLastRefreshed(refreshedAt) {
+			await db
+				.insert(guildPersonalityProfiles)
+				.values({ guildId, lastRefreshedAt: refreshedAt })
+				.onConflictDoUpdate({ target: guildPersonalityProfiles.guildId, set: { lastRefreshedAt: refreshedAt } });
+		},
+		async save(profile, refreshedAt, cursor) {
+			const cursorFields = {
+				lastRefreshedAt: refreshedAt,
+				lastTrainingMessageAt: cursor.messageCreatedAt,
+				lastTrainingMessageId: cursor.messageId,
+			};
+			await db
+				.insert(guildPersonalityProfiles)
+				.values({ guildId, profile, ...cursorFields })
+				.onConflictDoUpdate({ target: guildPersonalityProfiles.guildId, set: { profile, ...cursorFields } });
+		},
+	};
 }
 
-async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<GuildPersonalityBuildResult> {
-	const row = await db.query.guildPersonalityProfiles.findFirst({
-		where: eq(guildPersonalityProfiles.guildId, guildId),
-		columns: { profile: true, lastRefreshedAt: true, lastTrainingMessageAt: true, lastTrainingMessageId: true },
-	});
+export type GuildPersonalityBuildResult = PersonalityBuildResult;
 
-	container.logger.debug(
-		`[guild-personality] profile-row guildId=${guildId} exists=${row ? "yes" : "no"} hasProfile=${row?.profile ? "yes" : "no"} lastRefreshedAt=${row?.lastRefreshedAt?.toISOString() ?? "none"} cursorAt=${row?.lastTrainingMessageAt?.toISOString() ?? "none"} cursorId=${row?.lastTrainingMessageId ?? "none"}`,
-	);
-
-	const existingProfile = row?.profile ?? null;
-	const threshold = existingProfile ? REFRESH_GUILD_PROFILE_THRESHOLD : INITIAL_GUILD_PROFILE_THRESHOLD;
-	container.logger.debug(
-		`[guild-personality] threshold guildId=${guildId} mode=${existingProfile ? "refresh" : "initial"} threshold=${threshold}`,
-	);
-	const messages = await getEligibleGuildTrainingMessageWindow({
-		guildId,
-		afterMessageCreatedAt: row?.lastTrainingMessageAt ?? null,
-		afterMessageId: row?.lastTrainingMessageId ?? null,
-		limit: threshold,
-	});
-	container.logger.debug(
-		`[guild-personality] evidence-window guildId=${guildId} fetched=${messages.length} threshold=${threshold} firstMessageAt=${messages[0]?.messageCreatedAt.toISOString() ?? "none"} lastMessageAt=${messages.at(-1)?.messageCreatedAt.toISOString() ?? "none"}`,
-	);
-	if (messages.length === 0) {
-		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=no-eligible-messages`);
-		return { status: "skipped_insufficient_evidence" };
-	}
-
-	if (messages.length < threshold) {
-		container.logger.debug(
-			`[guild-personality] build skip guildId=${guildId} reason=insufficient-evidence fetched=${messages.length} threshold=${threshold}`,
-		);
-		return { status: "skipped_insufficient_evidence" };
-	}
-
-	// Cooldown: don't hammer the LLM provider if builds fail or server is extremely active
-	if (row?.lastRefreshedAt && Date.now() - row.lastRefreshedAt.getTime() < MIN_BUILD_INTERVAL_MS) {
-		container.logger.debug(
-			`[guild-personality] build skip guildId=${guildId} reason=cooldown remainingMs=${MIN_BUILD_INTERVAL_MS - (Date.now() - row.lastRefreshedAt.getTime())}`,
-		);
-		return { status: "skipped_cooldown" };
-	}
-
-	const sampledMessages = selectBalancedGuildPromptMessages(messages);
-	const authorLabels = buildAuthorLabels(messages);
-	container.logger.debug(
-		`[guild-personality] sampling guildId=${guildId} fetched=${messages.length} sampled=${sampledMessages.length} uniqueAuthors=${authorLabels.size} maxMessages=${MAX_MESSAGES_PER_BUILD}`,
-	);
-	let messageBlock = "";
-	const sources: string[] = [];
-	for (const m of sampledMessages) {
-		const line = `${authorLabels.get(m.authorUserId)}: ${m.content}`;
-		if (messageBlock.length + line.length > MAX_CHARS_PER_BUILD) break;
-		messageBlock += (messageBlock ? "\n" : "") + line;
-		sources.push(m.content);
-	}
-	if (messageBlock.length === 0) {
-		container.logger.debug(
-			`[guild-personality] build skip guildId=${guildId} reason=message-block-empty sampled=${sampledMessages.length} maxChars=${MAX_CHARS_PER_BUILD}`,
-		);
-		return { status: "skipped_insufficient_evidence" };
-	}
-	container.logger.debug(
-		`[guild-personality] prompt-evidence guildId=${guildId} messageBlockLines=${sources.length} messageBlockLength=${messageBlock.length} maxChars=${MAX_CHARS_PER_BUILD}`,
-	);
-
-	const userPrompt = existingProfile
-		? [
-				"Current server culture profile:",
-				existingProfile,
-				"",
-				"New messages from this server:",
-				wrapSourceMessages(messageBlock),
-				"",
-				"Refine and expand the server culture profile. Keep previous observations that still hold true and deepen them.",
-			].join("\n")
-		: [
-				"Messages from this Discord server:",
-				wrapSourceMessages(messageBlock),
-				"",
-				"Build a detailed culture profile of this server.",
-			].join("\n");
-
-	const client = container.client as BhayanakClient;
-	const session = `profile:guild:${guildId}`;
-
-	container.logger.debug(
-		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length}`,
-	);
-	const llmStartedAt = Date.now();
-	let result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", {
-		session,
-		label: "personality:guild",
-	});
-	container.logger.debug(
-		`[guild-personality] llm-result guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
-	);
-	if (!result) {
-		container.logger.warn(`[guild-personality] LLM returned null for guildId=${guildId}, skipping profile update`);
-		container.logger.debug(`[guild-personality] storage-empty-result guildId=${guildId} action=touch-lastRefreshedAt`);
-		await touchLastRefreshed(guildId);
-		return { status: "skipped_model_empty" };
-	}
-
-	if (quotesSource(result, sources)) {
-		container.logger.warn(
-			`[guild-personality] profile quoted source text, retrying once guildId=${guildId} sources=${sources.length}`,
-		);
-		result = await callBackgroundLlm(SYSTEM_PROMPT, `${userPrompt}\n\n${NO_QUOTE_RETRY_INSTRUCTION}`, "personality", {
-			session,
-			label: "personality:guild:retry",
-		});
-		if (!result || quotesSource(result, sources)) {
-			// Keep the previous profile and leave the cursor and counter alone so the same messages are
-			// reconsidered once the cooldown passes; lastRefreshedAt stops an immediate repeat.
-			container.logger.warn(
-				`[guild-personality] profile rejected: quoted source text guildId=${guildId} sources=${sources.length} retry=${result ? "quoted" : "no-result"}`,
-			);
-			await touchLastRefreshed(guildId);
-			return { status: "skipped_quoted_source" };
-		}
-	}
-
-	const newestProcessedMessage = messages[messages.length - 1];
-	if (!newestProcessedMessage) {
-		container.logger.debug(`[guild-personality] build skip guildId=${guildId} reason=no-newest-processed-message`);
-		return { status: "skipped_insufficient_evidence" };
-	}
-	const refreshedAt = new Date();
-	container.logger.debug(
-		`[guild-personality] storage-upsert start guildId=${guildId} absorbed=${messages.length} sampled=${sampledMessages.length} profileLength=${result.length} cursorAt=${newestProcessedMessage.messageCreatedAt.toISOString()} cursorId=${newestProcessedMessage.messageId}`,
-	);
-
-	await db.transaction(async (tx) => {
-		await tx
-			.insert(guildPersonalityProfiles)
-			.values({
-				guildId,
-				profile: result,
-				messageCount: 0,
-				lastRefreshedAt: refreshedAt,
-				lastTrainingMessageAt: newestProcessedMessage.messageCreatedAt,
-				lastTrainingMessageId: newestProcessedMessage.messageId,
-			})
-			.onConflictDoUpdate({
-				target: guildPersonalityProfiles.guildId,
-				set: {
-					profile: result,
-					messageCount: sql`GREATEST(0, ${guildPersonalityProfiles.messageCount} - ${messages.length})`,
-					lastRefreshedAt: refreshedAt,
-					lastTrainingMessageAt: newestProcessedMessage.messageCreatedAt,
-					lastTrainingMessageId: newestProcessedMessage.messageId,
-				},
-			});
-	});
-	container.logger.debug(`[guild-personality] storage-upsert complete guildId=${guildId}`);
-
-	// Invalidate cache
-	const hadCacheEntry = client.guildPersonalityCache.delete(guildId);
-	container.logger.debug(`[guild-personality] cache invalidate guildId=${guildId} hadEntry=${hadCacheEntry}`);
-
-	container.logger.debug(
-		`[guild-personality] Profile updated for guildId=${guildId} (${sampledMessages.length}/${messages.length} messages sampled)`,
-	);
-	return { status: "built" };
+export function buildGuildPersonalityProfile(guildId: string): Promise<PersonalityBuildResult> {
+	return buildProfile(guildProfileKind(guildId));
 }
 
 function selectBalancedGuildPromptMessages(messages: TrainingMessage[]): TrainingMessage[] {
@@ -239,7 +105,7 @@ function selectBalancedGuildPromptMessages(messages: TrainingMessage[]): Trainin
 	const sampled: TrainingMessage[] = [];
 	for (const message of messages) {
 		const authorCount = authorCounts.get(message.authorUserId) ?? 0;
-		if (authorCount >= 10) continue;
+		if (authorCount >= MAX_MESSAGES_PER_AUTHOR) continue;
 		authorCounts.set(message.authorUserId, authorCount + 1);
 		sampled.push(message);
 		if (sampled.length >= MAX_MESSAGES_PER_BUILD) break;
@@ -269,14 +135,4 @@ function stableAuthorNumber(authorId: string): number {
 		hash = Math.imul(hash, 16777619);
 	}
 	return (hash >>> 0) % 1_000_000;
-}
-
-async function touchLastRefreshed(guildId: string): Promise<void> {
-	await db
-		.insert(guildPersonalityProfiles)
-		.values({ guildId, lastRefreshedAt: new Date() })
-		.onConflictDoUpdate({
-			target: guildPersonalityProfiles.guildId,
-			set: { lastRefreshedAt: new Date() },
-		});
 }

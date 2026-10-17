@@ -248,17 +248,31 @@ export const RAW_COMMANDS: Command[] = [
 	},
 	{
 		name: "/personality",
-		description: "View user personality profiles or this server culture profile.",
-		examples: ["/personality view user user:@someone", "/personality view guild"],
+		description:
+			"View your user personality profile, or this server culture profile; administrators can view anyone's and force refreshes.",
+		examples: ["/personality view user", "/personality view guild", "/personality refresh guild"],
 		category: "utility",
 		usageNotes:
-			"Only available in the Bhayanak server. Profile generation is currently disabled, so profiles only reflect previously generated data. Server administrators can disable personality features entirely with /config. The refresh subcommands are registered but only answer that generation is disabled.",
+			"Only available in the Bhayanak server. Every reply is visible only to you. Profiles are written from the archived Guess Who channel messages by a scheduled job at startup and every 6 hours (no profile appears until 100 eligible messages for a member or 200 for the server exist; a refresh needs 20 or 40 new ones), each kept to about 1,500 characters and rewritten in place rather than growing. The bot uses the whole profile when it replies. Members can view only their own profile; administrators can view anyone's and force a refresh. Server administrators can turn personality features off for the server with /config.",
 		subcommands: {
 			"view user": {
-				summary: "View your own user personality profile or another member's profile.",
+				summary:
+					"View your own user personality profile. Administrators can pass user to view another member's profile.",
 				examples: ["/personality view user", "/personality view user user:@someone"],
 			},
-			"view guild": { summary: "View this server's culture profile.", examples: ["/personality view guild"] },
+			"view guild": {
+				summary: "View this server's culture profile (any member).",
+				examples: ["/personality view guild"],
+			},
+			"refresh user": {
+				summary:
+					"Administrators only: rewrite a member's profile now from the new archive messages, if enough have arrived.",
+				examples: ["/personality refresh user user:@someone"],
+			},
+			"refresh guild": {
+				summary: "Administrators only: rewrite the server culture profile now, if enough new messages have arrived.",
+				examples: ["/personality refresh guild"],
+			},
 		},
 	},
 	{

@@ -49,10 +49,6 @@ export class BhayanakClient extends SapphireClient {
 	);
 	// Anti-raid: track recent joins per guild — bounded to avoid unbounded growth
 	public readonly recentJoins = new BoundedMap<string, number[]>(1000);
-	// Personality profile cache keyed by "userId:guildId"
-	public readonly personalityCache = new BoundedMap<string, string>(500);
-	// Guild personality/culture profile cache keyed by guildId
-	public readonly guildPersonalityCache = new BoundedMap<string, string>(100);
 
 	public constructor() {
 		const entrypoint = process.argv[1] ?? "";
@@ -88,7 +84,5 @@ declare module "@sapphire/framework" {
 		snipeCache: ExpiringBoundedMap<string, SnipedMessage>;
 		editSnipeCache: ExpiringBoundedMap<string, EditSnipedMessage>;
 		recentJoins: Map<string, number[]>;
-		personalityCache: BoundedMap<string, string>;
-		guildPersonalityCache: BoundedMap<string, string>;
 	}
 }
