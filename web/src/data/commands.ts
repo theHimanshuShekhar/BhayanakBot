@@ -244,7 +244,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
 		category: "utility",
 		usageNotes:
-			"Only available in the Bhayanak server. Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes the newest 200 non-bot text messages at most (oldest dropped first if the conversation is too long for the model), and the reply states how many messages and since when were covered. A summary that is produced applies a 10-minute cooldown to the member and the channel; a failed or empty one does not.",
+			"Only available in the Bhayanak server. Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes the newest 200 non-bot text messages at most (oldest dropped first if the conversation is too long for the model; the chat is sent as data, never as instructions), and the reply states how many messages and since when were covered. A summary that is produced applies a 10-minute cooldown to the member and the channel; a failed or empty one does not.",
 	},
 	{
 		name: "/personality",
@@ -376,7 +376,7 @@ export const RAW_COMMANDS: Command[] = [
 			view: { summary: "View current server configuration.", examples: ["/config view"] },
 			set: {
 				summary:
-					"Set a channel, role, XP, message, personality, or random response setting. Channel settings accept text and announcement channels only; random-response-chance accepts 0 to 100 (0 disables).",
+					"Set a channel, role, XP, message, personality, or random response setting. Channel settings accept text and announcement channels only; random-response-chance accepts 0 to 100 (0 disables). The random-response channel and chance alone decide random replies: one roll at exactly that chance, Home Server only, 45-second cooldown per channel.",
 				examples: ["/config set setting:log-channel channel:#mod-log"],
 			},
 			reset: {
@@ -407,7 +407,7 @@ export const RAW_COMMANDS: Command[] = [
 		subcommands: {
 			add: {
 				summary:
-					"Add a static or LLM-backed auto-response trigger. LLM replies (use-llm) are a Home Server feature: they use recent channel context, only fire in the Home Server's AI chat channel, and are refused in other servers. Regex triggers use RE2 syntax (no lookarounds or backreferences, 100 characters max).",
+					"Add a static or LLM-backed auto-response trigger. LLM replies (use-llm) are a Home Server feature: they use the channel's last 20 messages and the personality profiles, fire in any Home Server channel the rule's channel filter allows, and are refused in other servers. A message gets at most one bot reply, and a matching autoresponse answers first. Regex triggers use RE2 syntax (no lookarounds or backreferences, 100 characters max).",
 				examples: [
 					'/autorespond add trigger:"hello" response:"Hi there!"',
 					'/autorespond add trigger:"bug" response:"Please file a bug report!" require-mention:true',
