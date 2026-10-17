@@ -338,12 +338,12 @@ describe("LLM provider", () => {
 
 			expect(sentBody(0).max_tokens).toBe(1500);
 			expect(sentBody(1).max_tokens).toBe(4000);
-			expect(sentBody(2).max_tokens).toBe(4000);
+			expect(sentBody(2).max_tokens).toBe(8000);
 			expect(sentBody(3).max_tokens).toBe(1500);
 			expect(LLM_BUDGETS).toEqual({
 				chat: { maxTokens: 1500, timeoutMs: 30_000 },
 				summary: { maxTokens: 4000, timeoutMs: 120_000 },
-				personality: { maxTokens: 4000, timeoutMs: 180_000 },
+				personality: { maxTokens: 8000, timeoutMs: 180_000 },
 			});
 		});
 

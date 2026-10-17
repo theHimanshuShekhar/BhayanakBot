@@ -15,7 +15,7 @@ const MAX_QUEUED_ZEN_REQUESTS = 6;
 export const LLM_BUDGETS = {
 	chat: { maxTokens: 1500, timeoutMs: 30_000 },
 	summary: { maxTokens: 4000, timeoutMs: 120_000 },
-	personality: { maxTokens: 4000, timeoutMs: 180_000 },
+	personality: { maxTokens: 8000, timeoutMs: 180_000 },
 } as const;
 
 export type LlmMode = keyof typeof LLM_BUDGETS;
