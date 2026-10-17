@@ -21,11 +21,11 @@ A fully custom Discord bot built for the Bhayanak server. Features a moderation 
 
 ### AI Personality System
 
-The bot can build personality profiles from archived server conversation to generate contextual responses. Profile generation is currently disabled (`PERSONALITY_GENERATION_ENABLED = false` in `src/lib/features.ts`) — profiles reflect previously generated data only.
+The bot builds personality profiles from archived server conversation to generate contextual responses.
 
-- **User Profiles**: Per-user personality profiles built from eligible archived messages. View with `/personality view user`
-- **Guild Profiles**: Server culture profiles built from eligible archived messages. View with `/personality view guild`
-- **Generation disabled**: startup backfill builds, the 6-hour refresh task, and `/personality refresh` subcommands are inactive until re-enabled
+- **User Profiles**: Per-member profiles written from eligible archived messages (100 to start, then 20 new messages per refresh). A member views their own with `/personality view user`; administrators can view anyone's
+- **Guild Profiles**: Server culture profiles written from eligible archived messages (200 to start, then 40 per refresh). Anyone views it with `/personality view guild`
+- **Scheduled, fixed-size**: a task builds and refreshes due profiles at startup and every 6 hours, never inline on a message. Each refresh rewrites the profile in place to stay within about 1,500 characters, and replies use the whole profile. Administrators can force a refresh with `/personality refresh user|guild`
 - **Mention Replies**: When @mentioned in any Home Server channel, the bot answers in its Bot Voice (a witty, playful roast, never genuinely hostile) using the server and member profiles and the channel's last 20 messages, fetched live from Discord (the bot's own earlier replies included). A bare `@bot` replies to the recent conversation. 10-second cooldown per member, started only after a reply is sent. Works whether or not the personality toggle is on; the toggle only controls whether profiles are used
 - **Random Replies**: A chance-based reply in the Bot Voice, using the server profile only, decided solely by `/config` `random-response-channel` and `random-response-chance` (one roll at exactly that chance), with a 45-second per-channel cooldown started only after a reply is sent
 - **AI autoresponses**: `/autorespond add use-llm` rules fire in any Home Server channel their own channel filter allows, following the administrator's prompt plus the server and member profiles
@@ -78,7 +78,7 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
 POSTGRES_PASSWORD=postgres
 # WEB_DATABASE_URL=postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot   # optional read-only web login; see Docker below
-ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries (and personality builds, currently switched off)
+ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries (and personality profile builds)
 ZEN_ALLOW_DISCORD_CONTENT=false      # must be true before Discord content is sent to Zen, the only provider
 ZEN_BASE_URL=https://opencode.ai/inference/go/openai/v1
 ZEN_MODEL=deepseek-v4.1-flash
