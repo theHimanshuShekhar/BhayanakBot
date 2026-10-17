@@ -87,7 +87,10 @@ export class RandomResponderListener extends Listener<typeof Events.MessageCreat
 
 			await channel.sendTyping().catch(() => null);
 
-			const response = await callBackgroundLlm(system, prompt, "chat", "random-responder");
+			const response = await callBackgroundLlm(system, prompt, "chat", {
+				session: `random:${message.channelId}`,
+				label: "random-responder",
+			});
 			// A direct reply (autoresponse or mention) may have taken the message over while the LLM ran
 			if (!response || !ticket.stillOwned()) return;
 

@@ -113,8 +113,9 @@ Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `en
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password; also the password in Compose's default `DATABASE_URL` for the bot and web services |
 | `ZEN_API_KEY` | unset | opencode Zen API key; every AI call (responders, summaries, personality builds) requires it plus `ZEN_ALLOW_DISCORD_CONTENT=true`, and none are made without both. Personality builds are also off while `PERSONALITY_GENERATION_ENABLED` is `false` |
 | `ZEN_ALLOW_DISCORD_CONTENT` | `false` | Must be `true` before Discord message content is sent to Zen; Zen is the only provider, so otherwise AI features stay silent |
-| `ZEN_BASE_URL` | `https://opencode.ai/zen/go/v1` | OpenAI-compatible Zen API base URL |
-| `ZEN_MODEL` | `deepseek-v4-flash` | Zen model for autoresponder, summaries, and user/guild personality generation |
+| `ZEN_BASE_URL` | `https://opencode.ai/inference/go/openai/v1` | OpenAI-compatible Zen Go chat-completions base URL |
+| `ZEN_MODEL` | `deepseek-v4.1-flash` | Primary Model for autoresponder, summaries, and user/guild personality generation |
+| `ZEN_BACKUP_MODEL` | `glm-5.3-flash` | Backup Model: one retry when the Primary Model fails or refuses. Set equal to `ZEN_MODEL` to never try a backup |
 | `ZEN_TIMEOUT_MS` | `30000` | Timeout for Zen chat replies only (minimum 1000); summaries (120s) and personality builds (180s) keep their own timeouts |
 | `WEB_PORT` | `3000` in `.env.example`, `4321` Compose fallback | Host port for the web service |
 | `PUBLIC_BOT_INVITE_URL` | Discord OAuth URL | Public invite link shown by the web app |
@@ -146,7 +147,9 @@ Personality profile builders read eligible archived messages in bounded cursor w
 
 Responder and summarize LLM calls use `src/lib/llmProvider.ts`: Zen only, and only when `ZEN_API_KEY` is configured and `ZEN_ALLOW_DISCORD_CONTENT=true`; otherwise calls return `null` and features degrade gracefully. There is no fallback provider; the Zen LLM Provider is the only one (ADR 0006).
 
-Every Zen call picks a budget mode (`LLM_BUDGETS`): `chat` (1500 output tokens, 30s), `summary` (4000, 120s), `personality` (4000, 180s); the token limit is sent as `max_tokens`. The limits are generous because `ZEN_MODEL` may be a reasoning model (production uses `minimax-m2.5`) whose reasoning tokens count toward `max_tokens`; a tight cap would truncate most replies. At most 3 Zen requests run at once with a 6-entry queue; when it is full, background calls (`callBackgroundLlm`: random replies, personality builds) are dropped first and return `null`. A response cut off by the token limit (`finish_reason: "length"`) is treated as no reply.
+Every call passes a required `session` (`callInteractiveLlm(system, prompt, mode, { session, label? })`, same for `callBackgroundLlm`), sent as the `x-opencode-session` header; Zen Go rejects requests without it (HTTP 400 `MissingSessionID`). A session names one conversation: `mention:<channelId>`, `random:<channelId>`, `autoresponse:<channelId>`, `summary:<channelId>`, `profile:user:<guildId>:<userId>`, `profile:guild:<guildId>`. Requests also send `User-Agent: bhayanakbot/1.0.0` (a constant in `llmProvider.ts`; the runtime image has no `package.json`). When the Primary Model (`ZEN_MODEL`) returns an HTTP error, a network error or timeout, an empty reply, a truncated reply, or a whole-message short refusal ("I can't help with that."; a longer reply that merely starts that way is posted), the Backup Model (`ZEN_BACKUP_MODEL`) gets exactly one attempt in the same concurrency slot, with the mode's full timeout. It is never tried for not configured, privacy disabled, or queue full, nor when it equals the primary. Each request logs one `event=start` line, then one line per attempt with `attempt=primary|backup model=<model>` and the outcome; never message content.
+
+Every Zen call picks a budget mode (`LLM_BUDGETS`): `chat` (1500 output tokens, 30s), `summary` (4000, 120s), `personality` (4000, 180s); the token limit is sent as `max_tokens`. The limits are generous because `ZEN_MODEL` may be a reasoning model whose reasoning tokens count toward `max_tokens`; a tight cap would truncate most replies. At most 3 Zen requests run at once with a 6-entry queue; when it is full, background calls (`callBackgroundLlm`: random replies, personality builds) are dropped first and return `null`. A response cut off by the token limit (`finish_reason: "length"`) is treated as no reply.
 
 ## Scheduled Tasks
 

@@ -34,7 +34,7 @@ function createInteraction(history: string[], options: Options = {}) {
 	return {
 		user: { id: options.userId ?? "u1" },
 		channelId: options.channelId ?? "c1",
-		channel: { isTextBased: () => true, messages: { fetch } },
+		channel: { id: options.channelId ?? "c1", isTextBased: () => true, messages: { fetch } },
 		options: {
 			getString: () => options.time ?? null,
 			getInteger: () => options.count ?? null,
@@ -70,6 +70,7 @@ describe("/summarize", () => {
 		expect(reply.content).toMatch(/^Summarized the last 3 messages \(since <t:\d+:t>\)$/);
 		expect(reply.embeds[0].data.description).toBe("- they talked");
 		expect(llm.mock.calls[0][1]).toBe("ann: one\nann: two\nann: three");
+		expect(llm.mock.calls[0][3]).toEqual({ session: "summary:c1", label: "summarize" });
 	});
 
 	it("sends more than 100 messages to the model oldest first", async () => {

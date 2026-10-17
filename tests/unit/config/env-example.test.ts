@@ -14,6 +14,7 @@ describe(".env.example", () => {
 			"ZEN_ALLOW_DISCORD_CONTENT",
 			"ZEN_BASE_URL",
 			"ZEN_MODEL",
+			"ZEN_BACKUP_MODEL",
 			"ZEN_TIMEOUT_MS",
 			"WEB_PORT",
 			"PUBLIC_BOT_INVITE_URL",

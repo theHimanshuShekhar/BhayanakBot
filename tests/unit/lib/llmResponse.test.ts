@@ -14,22 +14,28 @@ describe("LLM response prompts", () => {
 	});
 
 	it("asks mention replies for jokes or playful roasts without hostile no-mercy wording", async () => {
-		await generateMentionReply("", "<@1>: hello", "<@2>", "say something");
+		await generateMentionReply("", "<@1>: hello", "<@2>", "say something", "mention:c1");
 
 		const prompt = mockedCallInteractiveLlm.mock.calls[0]?.[1] ?? "";
 		expect(prompt).toContain("joke or playful roast");
 		expect(prompt).toContain("Avoid genuine hostility");
 		expect(prompt).not.toMatch(/No mercy|Reply savagely/i);
-		expect(mockedCallInteractiveLlm.mock.calls[0]?.[3]).toBe("autoresponder:mention-reply");
+		expect(mockedCallInteractiveLlm.mock.calls[0]?.[3]).toEqual({
+			session: "mention:c1",
+			label: "autoresponder:mention-reply",
+		});
 	});
 
 	it("asks chat replies for jokes or playful roasts without hostile no-mercy wording", async () => {
-		await generateChatResponse("", "<@1>: hello", "<@2>", "say something");
+		await generateChatResponse("", "<@1>: hello", "<@2>", "say something", "random:c1");
 
 		const prompt = mockedCallInteractiveLlm.mock.calls[0]?.[1] ?? "";
 		expect(prompt).toContain("joke or playful roast");
 		expect(prompt).toContain("Keep it funny, not hostile");
 		expect(prompt).not.toMatch(/No mercy|Reply savagely/i);
-		expect(mockedCallInteractiveLlm.mock.calls[0]?.[3]).toBe("autoresponder:chat-response");
+		expect(mockedCallInteractiveLlm.mock.calls[0]?.[3]).toEqual({
+			session: "random:c1",
+			label: "autoresponder:chat-response",
+		});
 	});
 });

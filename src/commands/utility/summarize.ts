@@ -157,7 +157,12 @@ export class SummarizeCommand extends Command {
 		}
 
 		const { messages, prompt } = trimToBudget(fetched);
-		const summary = (await callInteractiveLlm(SYSTEM_PROMPT, prompt, "summary", "summarize"))?.trim();
+		const summary = (
+			await callInteractiveLlm(SYSTEM_PROMPT, prompt, "summary", {
+				session: `summary:${channel.id}`,
+				label: "summarize",
+			})
+		)?.trim();
 
 		if (!summary) {
 			return interaction.editReply({

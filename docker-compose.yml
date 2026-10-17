@@ -49,8 +49,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/bhayanakbot}
       ZEN_API_KEY: ${ZEN_API_KEY}
       ZEN_ALLOW_DISCORD_CONTENT: ${ZEN_ALLOW_DISCORD_CONTENT:-false}
-      ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/zen/go/v1}
-      ZEN_MODEL: ${ZEN_MODEL:-deepseek-v4-flash}
+      ZEN_BASE_URL: ${ZEN_BASE_URL:-https://opencode.ai/inference/go/openai/v1}
+      ZEN_MODEL: ${ZEN_MODEL:-deepseek-v4.1-flash}
+      ZEN_BACKUP_MODEL: ${ZEN_BACKUP_MODEL:-glm-5.3-flash}
       ZEN_TIMEOUT_MS: ${ZEN_TIMEOUT_MS:-30000}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       BOT_OWNER_ID: ${BOT_OWNER_ID:-}

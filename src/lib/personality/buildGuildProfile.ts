@@ -151,12 +151,16 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 			].join("\n");
 
 	const client = container.client as BhayanakClient;
+	const session = `profile:guild:${guildId}`;
 
 	container.logger.debug(
 		`[guild-personality] llm-call guildId=${guildId} promptLength=${userPrompt.length} systemLength=${SYSTEM_PROMPT.length}`,
 	);
 	const llmStartedAt = Date.now();
-	let result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", "personality:guild");
+	let result = await callBackgroundLlm(SYSTEM_PROMPT, userPrompt, "personality", {
+		session,
+		label: "personality:guild",
+	});
 	container.logger.debug(
 		`[guild-personality] llm-result guildId=${guildId} result=${result ? `present length=${result.length}` : "null"} durationMs=${Date.now() - llmStartedAt}`,
 	);
@@ -171,12 +175,10 @@ async function buildGuildPersonalityProfileUnguarded(guildId: string): Promise<G
 		container.logger.warn(
 			`[guild-personality] profile quoted source text, retrying once guildId=${guildId} sources=${sources.length}`,
 		);
-		result = await callBackgroundLlm(
-			SYSTEM_PROMPT,
-			`${userPrompt}\n\n${NO_QUOTE_RETRY_INSTRUCTION}`,
-			"personality",
-			"personality:guild:retry",
-		);
+		result = await callBackgroundLlm(SYSTEM_PROMPT, `${userPrompt}\n\n${NO_QUOTE_RETRY_INSTRUCTION}`, "personality", {
+			session,
+			label: "personality:guild:retry",
+		});
 		if (!result || quotesSource(result, sources)) {
 			// Keep the previous profile and leave the cursor and counter alone so the same messages are
 			// reconsidered once the cooldown passes; lastRefreshedAt stops an immediate repeat.
