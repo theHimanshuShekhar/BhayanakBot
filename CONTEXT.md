@@ -80,9 +80,23 @@ A database-stored set of public marketing-site metrics written by the running bo
 
 ## Zen LLM Provider
 
-The opencode Zen hosted model endpoint, and the bot's only language model provider. It serves AI replies, summaries, and personality profile generation. When Zen is unconfigured, not permitted to receive Discord content, or returns an unusable response, the feature degrades silently; there is no fallback model.
+The opencode Zen Go hosted model service, and the bot's only language model provider. It serves AI replies, summaries, and personality profile generation. When Zen is unconfigured, not permitted to receive Discord content, or neither the Primary Model nor the Backup Model gives a usable response, the feature degrades silently.
 
 _Avoid_: Ollama, local model, fallback provider
+
+## Primary Model
+
+The Zen model every AI request goes to first.
+
+## Backup Model
+
+A second Zen model, from the same provider, that gets one try when the Primary Model fails or refuses. It is not a fallback provider: there is still only one provider.
+
+_Avoid_: Fallback model, secondary provider
+
+## Zen Session
+
+The stable identifier Zen uses to group requests that belong to one conversation. For the bot, a conversation is one AI feature in one channel, or one profile being generated.
 
 ## Personality Training Message
 
@@ -100,7 +114,7 @@ A generated description of one Discord user's communication style within a speci
 
 User personality profiles may use backfilled personality training messages from the same guild.
 
-User personality profiles may be viewed by guild members for users in the same guild. Discord responses that show profile content should remain ephemeral rather than posting the profile directly into the channel.
+A user personality profile may be viewed only by the member it describes and by the guild's administrators. Discord responses that show profile content are ephemeral, never posted into the channel.
 
 Generated personality profiles describe communication patterns and should not reproduce direct quotes from source messages.
 
@@ -118,7 +132,7 @@ Guild personality profiles may use historical eligible messages from users who a
 
 ## Personality Profile Command Surface
 
-The Discord-facing commands for viewing and rebuilding personality profiles. The command surface includes both user personality profiles and guild personality profiles; command names and web documentation should make that distinction explicit.
+The Discord-facing commands for viewing and rebuilding personality profiles. The command surface includes both user personality profiles and guild personality profiles; command names and web documentation should make that distinction explicit. Any member may view the guild personality profile; a member may view their own user profile, and administrators may view anyone's. Only administrators may force a refresh.
 
 Normal AI replies may be shaped by personality profiles without announcing that profile context was used. The `/personality` command surface is the explicit way to inspect profile content.
 
@@ -128,7 +142,7 @@ A guild-level administrative switch that enables or disables personality collect
 
 ## Incremental Personality Profile Update
 
-A profile generation pass that preserves the existing personality profile and refines it with newly eligible personality training messages. Incremental updates are the default behavior for both user and guild personality profiles.
+A profile generation pass that rewrites the existing personality profile in light of newly eligible personality training messages, keeping it within a fixed size. The whole profile shapes AI replies, so what `/personality view` shows is exactly what the bot uses. Incremental updates are the default behavior for both user and guild personality profiles.
 
 Incremental updates may process personality training messages in bounded chunks. Chunking limits each prompt size, but eligible messages that do not fit in one pass remain available for later refreshes rather than being ignored.
 
@@ -201,6 +215,32 @@ _Avoid_: Main guild, target server, primary guild
 ## Home-Server Feature
 
 A feature locked to the Home Server: Guess Who, personality profiles, AI replies and summaries that send Discord content to an external model, the game-server trackers, and the dashboard presence snapshot.
+
+## Mention Reply
+
+An AI reply to a message that mentions the bot, in any channel of the Home Server. Mentioning the bot is an explicit request for a reply.
+
+## Random Reply
+
+An AI reply the bot posts without being asked, only in the guild's configured random-reply channel and at exactly the configured chance. It speaks in the Bot Voice.
+
+## Bot Voice
+
+The one personality every Mention Reply and Random Reply speaks with: a witty, playful roast in a few sentences, never genuinely hostile. The Guild Personality Profile shapes it, and so does the User Personality Profile of the member being answered. The bot sees its own earlier replies as part of the conversation.
+
+_Avoid_: Persona, character
+
+## AI Autoresponse
+
+An autoresponse whose reply the model writes, following an administrator's prompt, instead of fixed text. It is a Home-Server Feature: it fires in any Home Server channel its own channel filter allows, and nowhere else. The Guild Personality Profile and the triggering member's User Personality Profile shape its tone alongside the administrator's prompt.
+
+## One Reply Rule
+
+A message gets at most one reply from the bot. A matching autoresponse (static or AI) answers first. Otherwise a Mention Reply answers. A Random Reply is posted only when nothing else answered.
+
+## AI Outage
+
+A run of consecutive AI requests where both the Primary Model and the Backup Model failed. Members still see nothing. The Home Server's moderation log channel gets one notice when an outage starts and one when a request succeeds again.
 
 ## Generic Feature
 
