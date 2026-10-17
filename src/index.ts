@@ -7,6 +7,7 @@ import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
 import { getGuildAutoResponses } from "./db/queries/autoResponses.js";
 import { getOrCreateSettings } from "./db/queries/guildSettings.js";
 import { getUsersEligibleForInitialPersonalityBuild } from "./db/queries/personalityTraining.js";
+import { recordLlmOutcome } from "./lib/aiOutage.js";
 import { preloadConversationHistoryForChannels } from "./lib/autoresponder/conversationHistory.js";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
@@ -16,6 +17,7 @@ import { optionalEnv } from "./lib/env.js";
 import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { removeGlobalHomeServerCommands } from "./lib/homeServer.js";
+import { setLlmOutcomeObserver } from "./lib/llmProvider.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
 import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
 import { createShutdown, FORCE_EXIT_MS } from "./lib/shutdown.js";
@@ -23,6 +25,7 @@ import { getTasks } from "./tasks/index.js";
 import { createTaskScheduler, type TaskScheduler } from "./tasks/scheduler.js";
 
 validateRuntimeConfig();
+setLlmOutcomeObserver(recordLlmOutcome);
 
 const client = new BhayanakClient();
 let scheduler: TaskScheduler | undefined;

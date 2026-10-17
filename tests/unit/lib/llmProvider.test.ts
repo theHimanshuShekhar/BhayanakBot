@@ -587,4 +587,74 @@ describe("LLM provider", () => {
 			await Promise.all([...running, background, interactive]);
 		});
 	});
+
+	describe("outcome observer", () => {
+		const call = (p: Awaited<ReturnType<typeof importProvider>>) =>
+			p.callInteractiveLlm("S", "P", "chat", { session: "test:1" });
+
+		it("reports success once, however many attempts it took", async () => {
+			vi.spyOn(console, "log").mockImplementation(() => undefined);
+			delete process.env.ZEN_BACKUP_MODEL;
+			mockedFetch.mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValueOnce(okReply("backup reply"));
+			const provider = await importProvider();
+			const observer = vi.fn();
+			provider.setLlmOutcomeObserver(observer);
+
+			await call(provider);
+
+			expect(observer).toHaveBeenCalledOnce();
+			expect(observer).toHaveBeenCalledWith({ ok: true });
+		});
+
+		it("reports the backup's failure reason, not the primary's, when both fail", async () => {
+			vi.spyOn(console, "log").mockImplementation(() => undefined);
+			delete process.env.ZEN_BACKUP_MODEL;
+			mockedFetch
+				.mockResolvedValueOnce({ ok: false, status: 503 })
+				.mockResolvedValueOnce(okReply("I can't help with that."));
+			const provider = await importProvider();
+			const observer = vi.fn();
+			provider.setLlmOutcomeObserver(observer);
+
+			expect(await call(provider)).toBeNull();
+
+			expect(observer).toHaveBeenCalledOnce();
+			expect(observer).toHaveBeenCalledWith({ ok: false, reason: "refusal" });
+		});
+
+		it("reports the primary's failure when the backup equals the primary and is skipped", async () => {
+			vi.spyOn(console, "log").mockImplementation(() => undefined);
+			mockedFetch.mockResolvedValueOnce(okReply("cut off", "length"));
+			const provider = await importProvider();
+			const observer = vi.fn();
+			provider.setLlmOutcomeObserver(observer);
+
+			await call(provider);
+
+			expect(observer).toHaveBeenCalledWith({ ok: false, reason: "truncated" });
+			expect(mockedFetch).toHaveBeenCalledOnce();
+		});
+
+		it("reports skipped requests with their reason", async () => {
+			vi.spyOn(console, "log").mockImplementation(() => undefined);
+			delete process.env.ZEN_ALLOW_DISCORD_CONTENT;
+			const provider = await importProvider();
+			const observer = vi.fn();
+			provider.setLlmOutcomeObserver(observer);
+
+			await call(provider);
+
+			expect(observer).toHaveBeenCalledWith({ ok: false, reason: "privacy_disabled" });
+		});
+
+		it("still returns the reply when the observer throws", async () => {
+			mockedFetch.mockResolvedValueOnce(okReply("fine"));
+			const provider = await importProvider();
+			provider.setLlmOutcomeObserver(() => {
+				throw new Error("boom");
+			});
+
+			expect(await call(provider)).toBe("fine");
+		});
+	});
 });

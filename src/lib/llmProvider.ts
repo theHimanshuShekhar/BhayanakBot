@@ -25,7 +25,7 @@ type ZenChatResponse = {
 	choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
 };
 
-type ZenFailureReason =
+export type ZenFailureReason =
 	| "not_configured"
 	| "privacy_disabled"
 	| "queue_full"
@@ -43,6 +43,16 @@ type ZenResult = {
 	elapsedMs: number;
 	reason?: ZenFailureReason;
 };
+
+/** A request's final outcome: success, or the reason of the last attempt (the Backup Model's when it was tried). */
+export type LlmOutcome = { ok: true } | { ok: false; reason: ZenFailureReason };
+
+let outcomeObserver: ((outcome: LlmOutcome) => void) | null = null;
+
+/** Registers the one observer told about every request's final outcome (AI Outage alerting). Null removes it. */
+export function setLlmOutcomeObserver(observer: ((outcome: LlmOutcome) => void) | null): void {
+	outcomeObserver = observer;
+}
 
 let nextRequestId = 1;
 
@@ -262,5 +272,10 @@ async function callLlm(
 		`request=${requestId} mode=${mode} priority=${priority} label=${options.label ?? "none"} session=${options.session} event=start`,
 	);
 	const zenResult = await callZenChat(requestId, mode, priority, options, system, prompt);
+	try {
+		outcomeObserver?.(zenResult.content !== null ? { ok: true } : { ok: false, reason: zenResult.reason ?? "empty" });
+	} catch {
+		// An observer must never break the caller's reply.
+	}
 	return zenResult.content;
 }
