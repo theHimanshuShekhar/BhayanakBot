@@ -733,6 +733,48 @@ describe("personality profile builders", () => {
 		});
 	});
 
+	it("absorbs only what fits the 8,000-character budget and picks the rest up in the next refresh", async () => {
+		const START = new Date("2026-05-01T00:00:00.000Z");
+		const content = (index: number) => `Long fixture ${String(index).padStart(3, "0")} ${"word ".repeat(28)}end.`;
+		await seedArchivedMessages(
+			Array.from({ length: 100 }, (_, index) => ({
+				guildId: GUILD_ID,
+				channelId: CHANNEL_ID,
+				authorUserId: USER_ID,
+				authorUsername: USER_ID,
+				authorDisplayName: USER_ID,
+				messageId: `chunk-${String(index).padStart(3, "0")}`,
+				content: content(index),
+				messageCreatedAt: new Date(START.getTime() + index * 1000),
+			})),
+		);
+		// Messages join with newlines until the next one would pass 8,000 characters.
+		let used = 0;
+		let fitting = 0;
+		while (fitting < 100 && used + content(fitting).length <= 8_000) {
+			used += content(fitting).length + 1;
+			fitting++;
+		}
+		expect(fitting).toBeLessThan(100);
+
+		expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+		const firstCursor = (await getBuilderProfile())?.lastTrainingMessageId;
+		expect(firstCursor).toBe(`chunk-${String(fitting - 1).padStart(3, "0")}`);
+
+		await db
+			.update(userPersonalityProfiles)
+			.set({ lastRefreshedAt: new Date("2026-05-01T00:00:00.000Z") })
+			.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
+		mockedCallBackgroundLlm.mockClear();
+
+		expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+		const secondPrompt = mockedCallBackgroundLlm.mock.calls[0]?.[1] ?? "";
+		expect(secondPrompt).toContain(content(fitting));
+		expect(secondPrompt).not.toContain(content(fitting - 1));
+		const secondCursor = (await getBuilderProfile())?.lastTrainingMessageId ?? "";
+		expect(secondCursor > (firstCursor ?? "")).toBe(true);
+	});
+
 	describe("fixed-size profile", () => {
 		const START = new Date("2026-05-01T00:00:00.000Z");
 		const LONG_PROFILE = Array.from({ length: 80 }, (_, index) => `Sentence number ${index} is about rain.`).join(" ");

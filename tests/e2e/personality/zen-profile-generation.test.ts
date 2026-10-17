@@ -74,6 +74,10 @@ async function archiveGuildMessages(count: number, offset = 0): Promise<string[]
 	return messages.map((message) => message.content);
 }
 
+function seededIds(prefix: string, from: number, to: number): string[] {
+	return Array.from({ length: to - from }, (_, i) => `${prefix}-${String(from + i).padStart(3, "0")}`);
+}
+
 async function getProfiles() {
 	const [userProfile, guildProfile] = await Promise.all([
 		db.query.userPersonalityProfiles.findFirst({
@@ -121,6 +125,12 @@ describeZenE2e("real Zen personality profile generation", () => {
 		const first = await getProfiles();
 		expectGeneratedProfile(first.userProfile?.profile, userSourceMessages);
 		expectGeneratedProfile(first.guildProfile?.profile, guildSourceMessages);
+		const firstUserCursor = first.userProfile?.lastTrainingMessageId;
+		const firstGuildCursor = first.guildProfile?.lastTrainingMessageId;
+		// A build absorbs only what fits its budget (8,000 characters for a member), so the cursor may stop
+		// short of the newest seeded message; it must still be one of the seeded messages.
+		expect(seededIds("zen-u", 0, 100)).toContain(firstUserCursor);
+		expect(seededIds("zen-g", 0, 200)).toContain(firstGuildCursor);
 
 		// A refresh rewrites the profile in place: the new profile replaces the old one and stays within the cap.
 		const moreUserMessages = await archiveUserMessages(20, 100);
@@ -140,7 +150,13 @@ describeZenE2e("real Zen personality profile generation", () => {
 		const second = await getProfiles();
 		expectGeneratedProfile(second.userProfile?.profile, [...userSourceMessages, ...moreUserMessages]);
 		expectGeneratedProfile(second.guildProfile?.profile, [...guildSourceMessages, ...moreGuildMessages]);
-		expect(second.userProfile?.lastTrainingMessageId).toBe("zen-u-119");
-		expect(second.guildProfile?.lastTrainingMessageId).toBe("zen-g-239");
+		// The refresh moves each cursor strictly forward, to another seeded message. Ids are zero-padded, so they
+		// compare in archive order.
+		const secondUserCursor = second.userProfile?.lastTrainingMessageId ?? "";
+		const secondGuildCursor = second.guildProfile?.lastTrainingMessageId ?? "";
+		expect(seededIds("zen-u", 0, 120)).toContain(secondUserCursor);
+		expect(seededIds("zen-g", 0, 240)).toContain(secondGuildCursor);
+		expect(secondUserCursor > (firstUserCursor ?? "")).toBe(true);
+		expect(secondGuildCursor > (firstGuildCursor ?? "")).toBe(true);
 	}, 480_000);
 });
