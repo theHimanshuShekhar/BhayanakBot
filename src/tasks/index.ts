@@ -1,4 +1,3 @@
-import { PERSONALITY_GENERATION_ENABLED } from "../lib/features.js";
 import { createDashboardPresence } from "./dashboardPresence.js";
 import { endGiveaways } from "./endGiveaways.js";
 import { endPolls } from "./endPolls.js";
@@ -25,6 +24,6 @@ export function getTasks(): TaskDefinition[] {
 		createSyncMinecraftTracker(),
 		createPublicStats(),
 		createDashboardPresence(),
-		...(PERSONALITY_GENERATION_ENABLED ? [refreshPersonalityProfiles] : []),
+		refreshPersonalityProfiles,
 	];
 }

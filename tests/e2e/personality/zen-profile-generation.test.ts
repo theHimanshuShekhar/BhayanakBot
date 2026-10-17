@@ -1,12 +1,13 @@
 import { container } from "@sapphire/framework";
 import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { upsertArchivedChannelMessage } from "../../../src/db/queries/archivedChannelMessages.js";
 import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
 import { buildGuildPersonalityProfile } from "../../../src/lib/personality/buildGuildProfile.js";
 import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfile.js";
+import { MAX_PROFILE_CHARS } from "../../../src/lib/personality/profileSize.js";
+import { seedArchivedMessages } from "../../helpers/archive.js";
 
 // Opt in with:
 //   RUN_ZEN_E2E=1 ZEN_API_KEY=<key> ZEN_ALLOW_DISCORD_CONTENT=true \
@@ -15,16 +16,6 @@ import { buildPersonalityProfile } from "../../../src/lib/personality/buildProfi
 const runZenE2e =
 	process.env.RUN_ZEN_E2E === "1" && !!process.env.ZEN_API_KEY && process.env.ZEN_ALLOW_DISCORD_CONTENT === "true";
 const describeZenE2e = runZenE2e ? describe : describe.skip;
-
-// Profile generation is switched off by default; the real LLM path under test needs it on.
-const featureFlags = vi.hoisted(() => ({ personalityGeneration: true }));
-
-vi.mock("../../../src/lib/features.js", async (importOriginal) => ({
-	...(await importOriginal<typeof import("../../../src/lib/features.js")>()),
-	get PERSONALITY_GENERATION_ENABLED() {
-		return featureFlags.personalityGeneration;
-	},
-}));
 
 const GUILD_ID = "zen-guild";
 const USER_ID = "zen-user";
@@ -47,49 +38,57 @@ function guildMessage(index: number): string {
 	return `Guild archive fixture ${index} compares cozy puzzle nights, tactical banter, snack logistics, and supportive chaos across the server.`;
 }
 
-async function archiveUserMessages(count: number): Promise<string[]> {
-	const sourceMessages: string[] = [];
-	for (let index = 0; index < count; index++) {
-		const content = userMessage(index);
-		sourceMessages.push(content);
-		await upsertArchivedChannelMessage({
+async function archiveUserMessages(count: number, offset = 0): Promise<string[]> {
+	const messages = Array.from({ length: count }, (_, i) => {
+		const index = offset + i;
+		return {
 			guildId: GUILD_ID,
 			channelId: CHANNEL_ID,
 			authorUserId: USER_ID,
 			authorUsername: "ZenE2EUser",
 			authorDisplayName: "Zen E2E User",
 			messageId: `zen-u-${String(index).padStart(3, "0")}`,
-			content,
+			content: userMessage(index),
 			messageCreatedAt: new Date(START_DATE.getTime() + index * 1000),
-		});
-	}
-	return sourceMessages;
+		};
+	});
+	await seedArchivedMessages(messages);
+	return messages.map((message) => message.content);
 }
 
-async function archiveGuildMessages(count: number): Promise<string[]> {
-	const sourceMessages: string[] = [];
-	for (let index = 0; index < count; index++) {
-		const content = guildMessage(index);
-		sourceMessages.push(content);
-		await upsertArchivedChannelMessage({
+async function archiveGuildMessages(count: number, offset = 0): Promise<string[]> {
+	const messages = Array.from({ length: count }, (_, i) => {
+		const index = offset + i;
+		return {
 			guildId: GUILD_ID,
 			channelId: CHANNEL_ID,
 			authorUserId: `zen-a-${String(index % 20).padStart(2, "0")}`,
 			authorUsername: `ZenE2EAuthor${index % 20}`,
 			authorDisplayName: `Zen E2E Author ${index % 20}`,
 			messageId: `zen-g-${String(index).padStart(3, "0")}`,
-			content,
+			content: guildMessage(index),
 			messageCreatedAt: new Date(START_DATE.getTime() + 200_000 + index * 1000),
-		});
-	}
-	return sourceMessages;
+		};
+	});
+	await seedArchivedMessages(messages);
+	return messages.map((message) => message.content);
+}
+
+async function getProfiles() {
+	const [userProfile, guildProfile] = await Promise.all([
+		db.query.userPersonalityProfiles.findFirst({
+			where: and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)),
+		}),
+		db.query.guildPersonalityProfiles.findFirst({ where: eq(guildPersonalityProfiles.guildId, GUILD_ID) }),
+	]);
+	return { userProfile, guildProfile };
 }
 
 function expectGeneratedProfile(profile: string | null | undefined, sourceMessages: string[]): void {
 	expect(profile).toBeTypeOf("string");
 	const text = profile?.trim() ?? "";
 	expect(text.length).toBeGreaterThan(40);
-	expect(text.length).toBeLessThan(8_000);
+	expect(text.length).toBeLessThanOrEqual(MAX_PROFILE_CHARS);
 	expect(text).not.toMatch(/Messages from (this person|this Discord server)|Build a detailed/i);
 	for (const sourceMessage of sourceMessages) {
 		expect(text).not.toContain(sourceMessage);
@@ -106,8 +105,6 @@ describeZenE2e("real Zen personality profile generation", () => {
 		container.client = {
 			guilds: { cache: new Map() },
 			users: { cache: new Map() },
-			personalityCache: new Map(),
-			guildPersonalityCache: new Map(),
 		} as unknown as typeof container.client;
 	});
 
@@ -115,23 +112,35 @@ describeZenE2e("real Zen personality profile generation", () => {
 		await cleanupRows();
 	});
 
-	it("builds user and guild profiles from archived training messages through the real Zen provider", async () => {
+	it("builds, then rewrites, user and guild profiles within the size cap through the real Zen provider", async () => {
 		const userSourceMessages = await archiveUserMessages(100);
 		const guildSourceMessages = await archiveGuildMessages(200);
 
-		const userResult = await buildPersonalityProfile(USER_ID, GUILD_ID);
-		const guildResult = await buildGuildPersonalityProfile(GUILD_ID);
+		expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+		expect((await buildGuildPersonalityProfile(GUILD_ID)).status).toBe("built");
+		const first = await getProfiles();
+		expectGeneratedProfile(first.userProfile?.profile, userSourceMessages);
+		expectGeneratedProfile(first.guildProfile?.profile, guildSourceMessages);
 
-		expect(userResult.status).toBe("built");
-		expect(guildResult.status).toBe("built");
-		const userProfile = await db.query.userPersonalityProfiles.findFirst({
-			where: and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)),
-		});
-		const guildProfile = await db.query.guildPersonalityProfiles.findFirst({
-			where: eq(guildPersonalityProfiles.guildId, GUILD_ID),
-		});
+		// A refresh rewrites the profile in place: the new profile replaces the old one and stays within the cap.
+		const moreUserMessages = await archiveUserMessages(20, 100);
+		const moreGuildMessages = await archiveGuildMessages(40, 200);
+		const pastCooldown = new Date(Date.now() - 60 * 60 * 1000);
+		await db
+			.update(userPersonalityProfiles)
+			.set({ lastRefreshedAt: pastCooldown })
+			.where(and(eq(userPersonalityProfiles.userId, USER_ID), eq(userPersonalityProfiles.guildId, GUILD_ID)));
+		await db
+			.update(guildPersonalityProfiles)
+			.set({ lastRefreshedAt: pastCooldown })
+			.where(eq(guildPersonalityProfiles.guildId, GUILD_ID));
 
-		expectGeneratedProfile(userProfile?.profile, userSourceMessages);
-		expectGeneratedProfile(guildProfile?.profile, guildSourceMessages);
-	}, 240_000);
+		expect((await buildPersonalityProfile(USER_ID, GUILD_ID)).status).toBe("built");
+		expect((await buildGuildPersonalityProfile(GUILD_ID)).status).toBe("built");
+		const second = await getProfiles();
+		expectGeneratedProfile(second.userProfile?.profile, [...userSourceMessages, ...moreUserMessages]);
+		expectGeneratedProfile(second.guildProfile?.profile, [...guildSourceMessages, ...moreGuildMessages]);
+		expect(second.userProfile?.lastTrainingMessageId).toBe("zen-u-119");
+		expect(second.guildProfile?.lastTrainingMessageId).toBe("zen-g-239");
+	}, 480_000);
 });

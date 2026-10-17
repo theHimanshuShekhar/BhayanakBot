@@ -4,18 +4,15 @@ import "@sapphire/plugin-subcommands/register";
 
 import { DefaultExtractors } from "@discord-player/extractor";
 import { YoutubeExtractor, Log as YTLog } from "discord-player-youtubei";
-import { getUsersEligibleForInitialPersonalityBuild } from "./db/queries/personalityTraining.js";
 import { recordLlmOutcome } from "./lib/aiOutage.js";
 import { BhayanakClient } from "./lib/BhayanakClient.js";
 import { validateRuntimeConfig } from "./lib/config.js";
 import { closeDatabase } from "./lib/database.js";
 import { optionalEnv } from "./lib/env.js";
-import { PERSONALITY_GENERATION_ENABLED } from "./lib/features.js";
 import { backfillGuessWhoMessages } from "./lib/guessWho/backfill.js";
 import { removeGlobalHomeServerCommands } from "./lib/homeServer.js";
 import { setLlmOutcomeObserver } from "./lib/llmProvider.js";
 import { registerPlayerEvents } from "./lib/music/events.js";
-import { buildPersonalityProfile, INITIAL_USER_PROFILE_THRESHOLD } from "./lib/personality/buildProfile.js";
 import { createShutdown, FORCE_EXIT_MS } from "./lib/shutdown.js";
 import { getTasks } from "./tasks/index.js";
 import { createTaskScheduler, type TaskScheduler } from "./tasks/scheduler.js";
@@ -55,31 +52,6 @@ function formatDuration(ms: number): string {
 	return `${seconds}s`;
 }
 
-async function buildEligibleBackfilledPersonalityProfiles(): Promise<void> {
-	const users = await getUsersEligibleForInitialPersonalityBuild({
-		minimumMessageCount: INITIAL_USER_PROFILE_THRESHOLD,
-	});
-	if (users.length === 0) return;
-
-	client.logger.info(`[personality] Building initial profiles for ${users.length} backfilled user(s)`);
-
-	for (const { userId, guildId } of users) {
-		try {
-			const result = await buildPersonalityProfile(userId, guildId);
-			if (result.status !== "built") {
-				client.logger.debug(
-					`[personality] Backfilled initial build skipped for userId=${userId} guildId=${guildId}: ${result.status}`,
-				);
-			}
-		} catch (err) {
-			client.logger.error(
-				`[personality] Backfilled initial build failed for userId=${userId} guildId=${guildId}:`,
-				err,
-			);
-		}
-	}
-}
-
 async function main() {
 	try {
 		await client.player.extractors.loadMulti(DefaultExtractors);
@@ -101,10 +73,7 @@ async function main() {
 			if (client.application) void removeGlobalHomeServerCommands(client.application.commands, client.logger);
 
 			void backfillGuessWhoMessages(client)
-				.then(async (count) => {
-					client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`);
-					if (PERSONALITY_GENERATION_ENABLED) await buildEligibleBackfilledPersonalityProfiles();
-				})
+				.then((count) => client.logger.info(`[guess-who] Backfilled ${count} archived message(s)`))
 				.catch((err) => client.logger.error("[guess-who] Backfill failed:", err));
 		});
 		await client.login(process.env.DISCORD_TOKEN);

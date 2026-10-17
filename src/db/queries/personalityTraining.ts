@@ -1,7 +1,13 @@
 import { and, asc, eq, gt, isNull, or, type SQL, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 import { db } from "../../lib/database.js";
-import { archivedChannelMessages, guildSettings, userPersonalityProfiles } from "../schema.js";
+import {
+	archivedChannelMessages,
+	guildPersonalityProfiles,
+	guildSettings,
+	userPersonalityProfiles,
+} from "../schema.js";
 
 export interface TrainingMessage {
 	messageId: string;
@@ -19,15 +25,6 @@ interface UserTrainingMessagesInput {
 	limit: number;
 }
 
-interface GuildTrainingMessagesInput {
-	guildId: string;
-	afterMessageCreatedAt: Date | null;
-	/** Optional tiebreaker for rows sharing afterMessageCreatedAt. */
-	afterMessageId?: string | null;
-	limit: number;
-	maxPerAuthor: number;
-}
-
 interface GuildTrainingMessageWindowInput {
 	guildId: string;
 	afterMessageCreatedAt: Date | null;
@@ -36,8 +33,10 @@ interface GuildTrainingMessageWindowInput {
 	limit: number;
 }
 
-interface UsersEligibleForInitialPersonalityBuildInput {
-	minimumMessageCount: number;
+/** Evidence a profile needs before it is built (no profile yet) or refreshed (one exists). */
+export interface DueProfileThresholds {
+	initial: number;
+	refresh: number;
 }
 
 const trimPattern = String.raw`^\s+|\s+$`;
@@ -106,8 +105,21 @@ export async function getEligibleUserTrainingMessages(input: UserTrainingMessage
 	);
 }
 
-export async function getUsersEligibleForInitialPersonalityBuild(
-	input: UsersEligibleForInitialPersonalityBuildInput,
+/** Messages after a profile's archive cursor; a profile without a cursor counts every eligible message. */
+function afterProfileCursor(cursorAt: AnyPgColumn, cursorId: AnyPgColumn): SQL {
+	return sql`(${cursorAt} is null or ${archivedChannelMessages.messageCreatedAt} > ${cursorAt} or (${cursorId} is not null and ${archivedChannelMessages.messageCreatedAt} = ${cursorAt} and ${archivedChannelMessages.messageId} > ${cursorId}))`;
+}
+
+/** Guilds whose personality features are on; a guild with no settings row defaults to on. */
+const personalityEnabledGuild = or(isNull(guildSettings.guildId), eq(guildSettings.personalityEnabled, true));
+
+/**
+ * Members whose profile is due: eligible archive messages after their cursor meet the threshold (initial when
+ * they have no profile yet, refresh otherwise). Guilds with personality features off are left out. Most
+ * evidence first.
+ */
+export async function getUsersDueForPersonalityBuild(
+	thresholds: DueProfileThresholds,
 ): Promise<{ userId: string; guildId: string }[]> {
 	return db
 		.select({
@@ -126,13 +138,43 @@ export async function getUsersEligibleForInitialPersonalityBuild(
 		.where(
 			and(
 				...baseTrainingEligibilityConditions(null),
-				isNull(userPersonalityProfiles.profile),
-				or(isNull(guildSettings.guildId), eq(guildSettings.personalityEnabled, true)),
+				afterProfileCursor(
+					userPersonalityProfiles.lastTrainingMessageAt,
+					userPersonalityProfiles.lastTrainingMessageId,
+				),
+				personalityEnabledGuild,
 			),
 		)
 		.groupBy(archivedChannelMessages.guildId, archivedChannelMessages.authorUserId)
-		.having(sql`count(*) >= ${input.minimumMessageCount}`)
+		.having(
+			sql`count(*) >= case when bool_or(${userPersonalityProfiles.profile} is not null) then ${thresholds.refresh}::int else ${thresholds.initial}::int end`,
+		)
 		.orderBy(sql`count(*) desc`, asc(archivedChannelMessages.guildId), asc(archivedChannelMessages.authorUserId));
+}
+
+/** Guilds whose server profile is due, by the same rule as `getUsersDueForPersonalityBuild`. */
+export async function getGuildsDueForPersonalityBuild(thresholds: DueProfileThresholds): Promise<string[]> {
+	const rows = await db
+		.select({ guildId: archivedChannelMessages.guildId })
+		.from(archivedChannelMessages)
+		.leftJoin(guildPersonalityProfiles, eq(guildPersonalityProfiles.guildId, archivedChannelMessages.guildId))
+		.leftJoin(guildSettings, eq(guildSettings.guildId, archivedChannelMessages.guildId))
+		.where(
+			and(
+				...baseTrainingEligibilityConditions(null),
+				afterProfileCursor(
+					guildPersonalityProfiles.lastTrainingMessageAt,
+					guildPersonalityProfiles.lastTrainingMessageId,
+				),
+				personalityEnabledGuild,
+			),
+		)
+		.groupBy(archivedChannelMessages.guildId)
+		.having(
+			sql`count(*) >= case when bool_or(${guildPersonalityProfiles.profile} is not null) then ${thresholds.refresh}::int else ${thresholds.initial}::int end`,
+		)
+		.orderBy(sql`count(*) desc`, asc(archivedChannelMessages.guildId));
+	return rows.map((row) => row.guildId);
 }
 
 export async function getEligibleGuildTrainingMessageWindow(
@@ -142,33 +184,4 @@ export async function getEligibleGuildTrainingMessageWindow(
 		and(...trainingEligibilityConditions(input.guildId, input.afterMessageCreatedAt, input.afterMessageId)),
 		input.limit,
 	);
-}
-
-export async function getEligibleGuildTrainingMessages(input: GuildTrainingMessagesInput): Promise<TrainingMessage[]> {
-	const rankedMessages = db
-		.select({
-			messageId: archivedChannelMessages.messageId,
-			authorUserId: archivedChannelMessages.authorUserId,
-			content: archivedChannelMessages.content,
-			messageCreatedAt: archivedChannelMessages.messageCreatedAt,
-			authorRank:
-				sql<number>`row_number() over (partition by ${archivedChannelMessages.authorUserId} order by ${archivedChannelMessages.messageCreatedAt}, ${archivedChannelMessages.messageId})`.as(
-					"author_rank",
-				),
-		})
-		.from(archivedChannelMessages)
-		.where(and(...trainingEligibilityConditions(input.guildId, input.afterMessageCreatedAt, input.afterMessageId)))
-		.as("ranked_training_messages");
-
-	return db
-		.select({
-			messageId: rankedMessages.messageId,
-			authorUserId: rankedMessages.authorUserId,
-			content: rankedMessages.content,
-			messageCreatedAt: rankedMessages.messageCreatedAt,
-		})
-		.from(rankedMessages)
-		.where(sql`${rankedMessages.authorRank} <= ${input.maxPerAuthor}`)
-		.orderBy(asc(rankedMessages.messageCreatedAt), asc(rankedMessages.messageId))
-		.limit(input.limit);
 }

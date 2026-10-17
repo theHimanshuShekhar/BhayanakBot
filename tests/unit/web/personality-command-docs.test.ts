@@ -3,24 +3,35 @@ import { describe, expect, it } from "vitest";
 import { RAW_COMMANDS } from "../../../web/src/data/commands.js";
 
 describe("personality command web docs", () => {
-	it("catalog lists view subcommands and omits disabled refresh actions", () => {
+	it("catalog lists the view and refresh subcommands and who may use them", () => {
 		const command = RAW_COMMANDS.find((entry) => entry.name === "/personality");
 
-		expect(command?.description).toContain("user");
+		expect(command?.description).toContain("user personality profile");
 		expect(command?.description).toContain("server culture");
-		expect(command?.examples).toContain("/personality view user user:@someone");
 		expect(command?.examples).toContain("/personality view guild");
-		expect(command?.usageNotes).toContain("generation is currently disabled");
-		expect(Object.keys(command?.subcommands ?? {})).toEqual(["view user", "view guild"]);
+		expect(command?.examples).toContain("/personality refresh guild");
+		expect(command?.usageNotes).toContain("every 6 hours");
+		expect(command?.usageNotes).toContain("1,500 characters");
+		expect(command?.usageNotes).toContain("Members can view only their own profile");
+		expect(command?.usageNotes).not.toContain("currently disabled");
+		expect(Object.keys(command?.subcommands ?? {})).toEqual([
+			"view user",
+			"view guild",
+			"refresh user",
+			"refresh guild",
+		]);
 	});
 
-	it("content documents disabled generation and avoids opt-in wording", async () => {
+	it("content documents scheduled fixed-size generation and access, and avoids opt-in wording", async () => {
 		const content = await readFile("web/src/content/commands/personality.mdx", "utf8");
 
 		expect(content).toContain("/personality view user");
 		expect(content).toContain("/personality view guild");
-		expect(content).toContain("Profile generation is currently disabled");
-		expect(content).not.toContain("/personality refresh");
+		expect(content).toContain("/personality refresh user");
+		expect(content).toContain("/personality refresh guild");
+		expect(content).toContain("within about 6 hours");
+		expect(content).toContain("1,500 characters");
+		expect(content).not.toContain("currently disabled");
 		expect(content).not.toMatch(/opt\s*-?in|consent/i);
 	});
 
