@@ -62,7 +62,7 @@ export const guildSettings = pgTable("guild_settings", {
 	personalityEnabled: boolean("personality_enabled").default(true).notNull(),
 	// Random chat responder
 	randomResponseChannelId: varchar("random_response_channel_id", { length: 20 }),
-	randomResponseChance: integer("random_response_chance").default(0).notNull(),
+	randomResponseChance: integer("random_response_chance").default(3).notNull(),
 });
 
 export const botCommandCounters = pgTable("bot_command_counters", {

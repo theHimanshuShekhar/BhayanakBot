@@ -390,7 +390,7 @@ export const RAW_COMMANDS: Command[] = [
 			view: { summary: "View current server configuration.", examples: ["/config view"] },
 			set: {
 				summary:
-					"Set a channel, role, XP, message, personality, or random response setting. Channel settings accept text and announcement channels only; random-response-chance accepts 0 to 100 (0 disables). The random-response channel and chance alone decide random replies: one roll at exactly that chance, Home Server only, 45-second cooldown per channel.",
+					"Set a channel, role, XP, message, personality, or random response setting. Channel settings accept text and announcement channels only; random-response-chance accepts 0 to 100 (0 disables). The random-response channel and chance alone decide random replies: one roll at exactly that chance, Home Server only, 45-second cooldown per channel. Random replies are on by default in the Guess Who channel (#general) at 3%.",
 				examples: ["/config set setting:log-channel channel:#mod-log"],
 			},
 			reset: {

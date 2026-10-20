@@ -65,9 +65,15 @@ describe("guild settings queries", () => {
 			starThreshold: 3,
 			xpRate: 15,
 			xpCooldownSeconds: 60,
-			randomResponseChance: 0,
+			randomResponseChance: 3,
 			personalityEnabled: true,
 		});
+	});
+
+	it("a fresh settings row has Random Replies on at 3% with no channel set", async () => {
+		const settings = await getOrCreateSettings(GUILD_ID);
+		expect(settings.randomResponseChance).toBe(3);
+		expect(settings.randomResponseChannelId).toBeNull();
 	});
 
 	it("concurrent first lookups for a new guild all succeed and share one row", async () => {

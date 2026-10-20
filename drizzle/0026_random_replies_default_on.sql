@@ -1,0 +1,1 @@
+ALTER TABLE "guild_settings" ALTER COLUMN "random_response_chance" SET DEFAULT 3;

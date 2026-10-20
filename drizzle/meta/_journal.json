@@ -183,6 +183,13 @@
       "when": 1792243474958,
       "tag": "0025_drop_personality_evidence_counters",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792479137868,
+      "tag": "0026_random_replies_default_on",
+      "breakpoints": true
     }
   ]
 }

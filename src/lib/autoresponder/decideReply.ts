@@ -1,5 +1,6 @@
 import type { Message } from "discord.js";
 import type { MatchResult } from "../../db/queries/autoResponses.js";
+import { GUESS_WHO_CHANNEL_ID } from "../constants.js";
 
 export type ReplyDecision =
 	| { kind: "autoresponse"; match: MatchResult }
@@ -40,11 +41,16 @@ interface RandomReplySettings {
 }
 
 /**
- * Rolls the configured Random Reply chance once. Only the guild's `random-response-channel` and
- * `random-response-chance` decide it: a channel that is not configured, or a chance of 0, never fires.
+ * Rolls the Random Reply chance once. Only the guild's `random-response-channel` and `random-response-chance`
+ * decide it. A channel that is not configured falls back to the Guess Who Channel (#general); a chance of 0 or
+ * less never fires.
  */
-export function rollRandomReply(settings: RandomReplySettings, channelId: string): boolean {
-	if (!settings.randomResponseChannelId || settings.randomResponseChance <= 0) return false;
-	if (channelId !== settings.randomResponseChannelId) return false;
+export function rollRandomReply(
+	settings: RandomReplySettings,
+	channelId: string,
+	defaultChannelId: string = GUESS_WHO_CHANNEL_ID,
+): boolean {
+	if (settings.randomResponseChance <= 0) return false;
+	if (channelId !== (settings.randomResponseChannelId ?? defaultChannelId)) return false;
 	return Math.random() * 100 < settings.randomResponseChance;
 }
