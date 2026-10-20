@@ -1,7 +1,8 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { antiRaidChange, autoModChange, resetValue } from "../../../src/commands/config/config.js";
-import { updateSettings } from "../../../src/db/queries/guildSettings.js";
+import { getOrCreateSettings, updateSettings } from "../../../src/db/queries/guildSettings.js";
+import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { createCommandContext, loadCommandClass, setupSapphireContainer } from "../../helpers/sapphireMocks.js";
 
 vi.mock("../../../src/db/queries/guildSettings.js", () => ({
@@ -78,6 +79,48 @@ describe("/config command shape", () => {
 	});
 });
 
+describe("/config view", () => {
+	async function aiPersonalityField(overrides: Record<string, unknown>) {
+		vi.mocked(getOrCreateSettings).mockResolvedValue({
+			guildId: "g1",
+			randomResponseChannelId: null,
+			randomResponseChance: 3,
+			personalityEnabled: true,
+			xpRate: 15,
+			xpCooldownSeconds: 60,
+			starThreshold: 3,
+			autoModEnabled: false,
+			autoModSpamThreshold: 5,
+			autoModBadLinks: false,
+			autoModMaxMentions: 5,
+			antiRaidEnabled: false,
+			antiRaidJoinThreshold: 5,
+			antiRaidJoinWindow: 10,
+			...overrides,
+		} as never);
+		const interaction = interactionWith({});
+		await (await loadConfig()).chatInputView(interaction);
+		const embed = (interaction.editReply.mock.calls.at(-1)![0] as { embeds: { toJSON(): any }[] }).embeds[0]!;
+		return embed.toJSON().fields.find((f: { name: string }) => f.name === "AI Personality").value as string;
+	}
+
+	it("shows the Guess Who channel as the default when no random reply channel is set", async () => {
+		const value = await aiPersonalityField({});
+		expect(value).toContain(`Response Channel: <#${GUESS_WHO_CHANNEL_ID}> (default)`);
+		expect(value).toContain("Random Response: 3%");
+	});
+
+	it("shows the configured channel without the default marker", async () => {
+		const value = await aiPersonalityField({ randomResponseChannelId: "42" });
+		expect(value).toContain("Response Channel: <#42>");
+		expect(value).not.toContain("(default)");
+	});
+
+	it("shows Disabled at chance 0", async () => {
+		expect(await aiPersonalityField({ randomResponseChance: 0 })).toContain("Random Response: Disabled");
+	});
+});
+
 describe("/config reset", () => {
 	const resets: [string, unknown][] = [
 		["welcomeChannelId", null],
@@ -97,7 +140,7 @@ describe("/config reset", () => {
 		["starThreshold", 3],
 		["xpRate", 15],
 		["xpCooldownSeconds", 60],
-		["randomResponseChance", 0],
+		["randomResponseChance", 3],
 		["personalityEnabled", true],
 	];
 
@@ -106,6 +149,26 @@ describe("/config reset", () => {
 		await (await loadConfig()).chatInputReset(interaction);
 		expect(updateSettings).toHaveBeenCalledWith("g1", { [setting]: expected });
 		expect(resetValue(setting as never)).toBe(expected);
+	});
+
+	it("says resetting the random reply channel returns to the Guess Who channel", async () => {
+		const interaction = interactionWith({ setting: "randomResponseChannelId" });
+		await (await loadConfig()).chatInputReset(interaction);
+		expect(reply(interaction)).toBe(
+			`✅ Setting **randomResponseChannelId** reset to its default (<#${GUESS_WHO_CHANNEL_ID}>, the Guess Who channel).`,
+		);
+	});
+
+	it("reports the default 3 when the random reply chance is reset", async () => {
+		const interaction = interactionWith({ setting: "randomResponseChance" });
+		await (await loadConfig()).chatInputReset(interaction);
+		expect(reply(interaction)).toBe("✅ Setting **randomResponseChance** reset to its default (3).");
+	});
+
+	it("still says cleared for a setting that defaults to unset", async () => {
+		const interaction = interactionWith({ setting: "logChannelId" });
+		await (await loadConfig()).chatInputReset(interaction);
+		expect(reply(interaction)).toBe("✅ Setting **logChannelId** cleared.");
 	});
 
 	it.each([

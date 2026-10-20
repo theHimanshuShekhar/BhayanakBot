@@ -8,6 +8,7 @@ import {
 	updateSettings,
 } from "../../db/queries/guildSettings.js";
 import { guildSettings } from "../../db/schema.js";
+import { GUESS_WHO_CHANNEL_ID } from "../../lib/constants.js";
 import { isTextChannelType, TEXT_CHANNEL_TYPES } from "../../lib/textChannels.js";
 
 type SettingSpec =
@@ -310,7 +311,11 @@ export class ConfigCommand extends Subcommand {
 					value: [
 						`Profiling: ${settings.personalityEnabled ? "✅" : "❌"}`,
 						`Random Response: ${settings.randomResponseChance > 0 ? `${settings.randomResponseChance}%` : "Disabled"}`,
-						`Response Channel: ${settings.randomResponseChannelId ? `<#${settings.randomResponseChannelId}>` : "Not set"}`,
+						`Response Channel: ${
+							settings.randomResponseChannelId
+								? `<#${settings.randomResponseChannelId}>`
+								: `<#${GUESS_WHO_CHANNEL_ID}> (default)`
+						}`,
 					].join("\n"),
 				},
 			)
@@ -364,6 +369,11 @@ export class ConfigCommand extends Subcommand {
 
 		const value = resetValue(setting as ConfigurableSetting);
 		await updateSettings(interaction.guildId!, { [setting]: value });
+		if (setting === "randomResponseChannelId") {
+			return interaction.editReply(
+				`✅ Setting **${setting}** reset to its default (<#${GUESS_WHO_CHANNEL_ID}>, the Guess Who channel).`,
+			);
+		}
 		return interaction.editReply(
 			value === null
 				? `✅ Setting **${setting}** cleared.`

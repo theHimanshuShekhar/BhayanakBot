@@ -552,7 +552,10 @@ describe("Random Reply", () => {
 
 	it.each([
 		["chance is 0", { randomResponseChannelId: "chat", randomResponseChance: 0 }],
-		["no channel is configured", { randomResponseChannelId: null, randomResponseChance: 100 }],
+		[
+			"no channel is configured and the message is outside #general",
+			{ randomResponseChannelId: null, randomResponseChance: 100 },
+		],
 		["another channel is configured", { randomResponseChannelId: "somewhere-else", randomResponseChance: 100 }],
 	])("stays quiet when %s", async (_label, overrides) => {
 		mockedGetOrCreateSettings.mockResolvedValue(createSettings(overrides));
@@ -562,6 +565,20 @@ describe("Random Reply", () => {
 
 		expect(background).not.toHaveBeenCalled();
 		expect(sentAnything(message)).toBe(false);
+	});
+
+	it("replies in #general with no channel configured, at the default chance", async () => {
+		mockedGetOrCreateSettings.mockResolvedValue(
+			createSettings({ randomResponseChannelId: null, randomResponseChance: 3 }),
+		);
+		const hit = createMessage({ channelId: "guess-who" });
+		const miss = createMessage({ channelId: "guess-who" });
+
+		await withRoll(0.029, () => run(hit));
+		await withRoll(0.03, () => run(miss));
+
+		expect(hit.channel.send).toHaveBeenCalledWith("random quip");
+		expect(sentAnything(miss)).toBe(false);
 	});
 
 	it("never replies outside the Home Server", async () => {

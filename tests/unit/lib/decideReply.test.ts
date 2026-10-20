@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MatchResult } from "../../../src/db/queries/autoResponses.js";
 import { decideReply, isBotMentioned, rollRandomReply } from "../../../src/lib/autoresponder/decideReply.js";
+import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 
 const match = { response: { id: 1 } } as unknown as MatchResult;
 
@@ -72,11 +73,41 @@ describe("rollRandomReply", () => {
 		expect(random).toHaveBeenCalledTimes(1);
 	});
 
-	it("never fires without a configured channel or in another channel, and does not roll", () => {
+	it("never fires in a channel other than the configured one, and does not roll", () => {
 		const random = vi.spyOn(Math, "random").mockReturnValue(0);
 
-		expect(rollRandomReply({ ...settings, randomResponseChannelId: null }, "chan")).toBe(false);
 		expect(rollRandomReply(settings, "elsewhere")).toBe(false);
+		expect(rollRandomReply(settings, "general", "general")).toBe(false);
+		expect(random).not.toHaveBeenCalled();
+	});
+
+	it("falls back to the default channel when none is configured", () => {
+		const random = vi.spyOn(Math, "random").mockReturnValue(0);
+		const unset = { ...settings, randomResponseChannelId: null };
+
+		expect(rollRandomReply(unset, "general", "general")).toBe(true);
+		expect(rollRandomReply(unset, "elsewhere", "general")).toBe(false);
+		expect(random).toHaveBeenCalledTimes(1);
+	});
+
+	it("uses the Guess Who Channel as the default channel", () => {
+		vi.spyOn(Math, "random").mockReturnValue(0);
+
+		expect(rollRandomReply({ ...settings, randomResponseChannelId: null }, GUESS_WHO_CHANNEL_ID)).toBe(true);
+	});
+
+	it("lets a configured channel override the default", () => {
+		vi.spyOn(Math, "random").mockReturnValue(0);
+
+		expect(rollRandomReply(settings, "chan", "general")).toBe(true);
+	});
+
+	it("is off at chance 0 even in the default channel, and does not roll", () => {
+		const random = vi.spyOn(Math, "random").mockReturnValue(0);
+
+		expect(rollRandomReply({ randomResponseChannelId: null, randomResponseChance: 0 }, "general", "general")).toBe(
+			false,
+		);
 		expect(random).not.toHaveBeenCalled();
 	});
 });
