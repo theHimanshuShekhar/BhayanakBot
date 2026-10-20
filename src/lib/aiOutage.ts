@@ -7,7 +7,8 @@ import { isPostableTextChannel } from "./textChannels.js";
 /** Consecutive failed requests that make an AI Outage (CONTEXT.md). */
 export const OUTAGE_THRESHOLD = 5;
 
-// Provider failures only. A refusal is the model's answer, and the other reasons say nothing about Zen's health.
+// Provider failures only. A refusal and a content_filter are the model's or its filter's answer to one prompt, and the
+// other reasons say nothing about Zen's health.
 const COUNTED_REASONS: ReadonlySet<ZenFailureReason> = new Set(["http_error", "fetch_error", "empty", "truncated"]);
 
 // In memory by design: a restart starts with a clean run.

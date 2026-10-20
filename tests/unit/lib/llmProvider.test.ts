@@ -223,6 +223,7 @@ describe("LLM provider", () => {
 				() => mockedFetch.mockRejectedValueOnce(new TypeError("fetch failed")),
 				() => mockedFetch.mockResolvedValueOnce(okReply("")),
 				() => mockedFetch.mockResolvedValueOnce(okReply("This stops mid-", "length")),
+				() => mockedFetch.mockResolvedValueOnce(okReply("", "content_filter")),
 				() => mockedFetch.mockResolvedValueOnce(okReply("I can't help with that.")),
 			];
 			const { callInteractiveLlm } = await importProvider();
@@ -343,7 +344,48 @@ describe("LLM provider", () => {
 			expect(LLM_BUDGETS).toEqual({
 				chat: { maxTokens: 1500, timeoutMs: 30_000 },
 				summary: { maxTokens: 4000, timeoutMs: 120_000 },
-				personality: { maxTokens: 8000, timeoutMs: 180_000 },
+				personality: { maxTokens: 8000, backupMaxTokens: 16_000, timeoutMs: 180_000 },
+			});
+		});
+
+		describe("backup attempt", () => {
+			beforeEach(() => {
+				delete process.env.ZEN_BACKUP_MODEL;
+				vi.spyOn(console, "log").mockImplementation(() => undefined);
+			});
+
+			it("gives the backup request a larger token limit in personality mode only", async () => {
+				mockedFetch.mockResolvedValue({ ok: false, status: 503 });
+				const { callBackgroundLlm } = await importProvider();
+
+				await callBackgroundLlm("S", "P", "personality", { session: "test:1" });
+
+				expect(sentBody(0).model).toBe("deepseek-v4.1-flash");
+				expect(sentBody(0).max_tokens).toBe(8000);
+				expect(sentBody(1).model).toBe("glm-5.3-flash");
+				expect(sentBody(1).max_tokens).toBe(16_000);
+			});
+
+			it("logs the backup attempt's own token limit", async () => {
+				const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+				mockedFetch.mockResolvedValue({ ok: false, status: 503 });
+				const { callBackgroundLlm } = await importProvider();
+
+				await callBackgroundLlm("S", "P", "personality", { session: "test:1" });
+
+				const lines = logSpy.mock.calls.map(([line]) => String(line));
+				expect(lines).toContainEqual(expect.stringMatching(/attempt=primary .*maxTokens=8000/));
+				expect(lines).toContainEqual(expect.stringMatching(/attempt=backup .*maxTokens=16000/));
+			});
+
+			it("sends the same token limit on both attempts in chat and summary mode", async () => {
+				mockedFetch.mockResolvedValue({ ok: false, status: 503 });
+				const { callInteractiveLlm } = await importProvider();
+
+				await callInteractiveLlm("S", "P", "chat", { session: "test:1" });
+				await callInteractiveLlm("S", "P", "summary", { session: "test:1" });
+
+				expect([0, 1, 2, 3].map((i) => sentBody(i).max_tokens)).toEqual([1500, 1500, 4000, 4000]);
 			});
 		});
 
@@ -446,6 +488,33 @@ describe("LLM provider", () => {
 			const { callInteractiveLlm } = await importProvider();
 
 			expect(await callInteractiveLlm("S", "P", "chat", { session: "test:1" })).toBe("All done.");
+		});
+	});
+
+	describe("content filter", () => {
+		it("classifies a filtered response as content_filter, not empty, and never logs content", async () => {
+			const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+			mockedFetch.mockResolvedValueOnce(okReply("filtered text", "content_filter"));
+			const { callInteractiveLlm } = await importProvider();
+
+			expect(await callInteractiveLlm("S", "P", "chat", { session: "test:1" })).toBeNull();
+			expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("reason=content_filter"));
+			expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("reason=empty"));
+			expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining("filtered text"));
+		});
+
+		it("tries the backup after a filtered primary and returns its reply", async () => {
+			const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+			delete process.env.ZEN_BACKUP_MODEL;
+			mockedFetch.mockResolvedValueOnce(okReply("", "content_filter")).mockResolvedValueOnce(okReply("backup reply"));
+			const { callBackgroundLlm } = await importProvider();
+
+			expect(await callBackgroundLlm("S", "P", "personality", { session: "test:1" })).toBe("backup reply");
+			expect(sentBody(0).model).toBe("deepseek-v4.1-flash");
+			expect(sentBody(1).model).toBe("glm-5.3-flash");
+			const lines = logSpy.mock.calls.map(([line]) => String(line));
+			expect(lines).toContainEqual(expect.stringMatching(/attempt=primary .*reason=content_filter/));
+			expect(lines).toContainEqual(expect.stringMatching(/attempt=backup .*result=success/));
 		});
 	});
 
@@ -632,6 +701,19 @@ describe("LLM provider", () => {
 			await call(provider);
 
 			expect(observer).toHaveBeenCalledWith({ ok: false, reason: "truncated" });
+			expect(mockedFetch).toHaveBeenCalledOnce();
+		});
+
+		it("reports content_filter when the backup equals the primary and is skipped", async () => {
+			vi.spyOn(console, "log").mockImplementation(() => undefined);
+			mockedFetch.mockResolvedValueOnce(okReply("", "content_filter"));
+			const provider = await importProvider();
+			const observer = vi.fn();
+			provider.setLlmOutcomeObserver(observer);
+
+			await call(provider);
+
+			expect(observer).toHaveBeenCalledWith({ ok: false, reason: "content_filter" });
 			expect(mockedFetch).toHaveBeenCalledOnce();
 		});
 

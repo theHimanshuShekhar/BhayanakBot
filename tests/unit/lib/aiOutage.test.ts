@@ -104,6 +104,7 @@ describe("AI Outage alert", () => {
 
 	it.each([
 		"refusal",
+		"content_filter",
 		"not_configured",
 		"privacy_disabled",
 		"queue_full",
