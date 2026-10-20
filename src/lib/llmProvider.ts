@@ -12,11 +12,16 @@ const MAX_QUEUED_ZEN_REQUESTS = 6;
 // What each kind of Zen call may cost. Callers pick a mode; they never pass raw numbers.
 // ZEN_MODEL may be a reasoning model, whose reasoning tokens count toward max_tokens on OpenAI-compatible endpoints.
 // The limits leave headroom for that reasoning; a tighter cap would truncate most replies, which are dropped as no reply.
+// backupMaxTokens, when set, replaces maxTokens for the Backup Model's attempt: personality builds that the Primary
+// Model's content filter rejects fall to the Backup Model, which can spend all of 8,000 tokens on reasoning alone.
+// The timeout applies to each attempt.
+type LlmBudget = { maxTokens: number; backupMaxTokens?: number; timeoutMs: number };
+
 export const LLM_BUDGETS = {
 	chat: { maxTokens: 1500, timeoutMs: 30_000 },
 	summary: { maxTokens: 4000, timeoutMs: 120_000 },
-	personality: { maxTokens: 8000, timeoutMs: 180_000 },
-} as const;
+	personality: { maxTokens: 8000, backupMaxTokens: 16_000, timeoutMs: 180_000 },
+} as const satisfies Record<string, LlmBudget>;
 
 export type LlmMode = keyof typeof LLM_BUDGETS;
 type LlmPriority = "interactive" | "background";
@@ -33,6 +38,7 @@ export type ZenFailureReason =
 	| "fetch_error"
 	| "empty"
 	| "truncated"
+	| "content_filter"
 	| "refusal";
 
 // `session` names one conversation and is sent as x-opencode-session (Zen Go rejects requests without it).
@@ -135,7 +141,8 @@ async function attemptZenChat(
 	prompt: string,
 ): Promise<ZenResult> {
 	const startedAt = Date.now();
-	const { maxTokens } = LLM_BUDGETS[mode];
+	const budget: LlmBudget = LLM_BUDGETS[mode];
+	const maxTokens = attempt === "backup" ? (budget.backupMaxTokens ?? budget.maxTokens) : budget.maxTokens;
 	const zenTimeoutMs = resolveZenTimeoutMs(mode);
 	const prefix = `request=${requestId} attempt=${attempt} model=${model} mode=${mode} provider=zen host=${safeUrlHost(baseUrl)} timeoutMs=${zenTimeoutMs} maxTokens=${maxTokens}`;
 	const fail = (reason: ZenFailureReason, extra = ""): ZenResult => {
@@ -171,6 +178,9 @@ async function attemptZenChat(
 		const data = (await res.json()) as ZenChatResponse;
 		const choice = data.choices?.[0];
 		const content = choice?.message?.content?.trim() ?? "";
+		// Zen's provider-side content filter answers 200 with finish_reason "content_filter" and no content. Checked
+		// first so it is never logged as "empty"; the Backup Model, which filters differently, gets its attempt.
+		if (choice?.finish_reason === "content_filter") return fail("content_filter");
 		// Cut off by the token limit: the text ends mid-thought (or reasoning used every token and left none), so it is
 		// never posted or stored. Checked before "empty" so the two failures stay distinguishable in the logs.
 		if (choice?.finish_reason === "length") return fail("truncated", ` outputLength=${content.length}`);
@@ -223,7 +233,8 @@ async function callZenChat(
 			attemptZenChat(requestId, attempt, model, apiKey, baseUrl, mode, options.session, system, prompt);
 
 		const primary = await run("primary", primaryModel);
-		// Every failure that reaches this point (HTTP, network or timeout, empty, truncated, refusal) earns the Backup
+		// Every failure that reaches this point (HTTP, network or timeout, empty, truncated, content
+		// filtered, refusal) earns the Backup
 		// Model one attempt in the same slot. A backup equal to the primary would only repeat the failure.
 		if (primary.content !== null || backupModel === primaryModel) return primary;
 		return await run("backup", backupModel);
