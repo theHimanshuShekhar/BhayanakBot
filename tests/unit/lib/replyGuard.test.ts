@@ -6,7 +6,12 @@ import {
 	beginMention,
 	beginRandom,
 	MENTION_COOLDOWN_MS,
+	RANDOM_REPLY_ACTIVITY_WINDOW_MS,
 	RANDOM_REPLY_COOLDOWN_MS,
+	RANDOM_REPLY_MIN_MESSAGES,
+	RANDOM_REPLY_MIN_SPACING,
+	randomReplySkipReason,
+	recordChannelMessage,
 	replyGuardTestHooks,
 } from "../../../src/lib/autoresponder/replyGuard.js";
 
@@ -128,5 +133,102 @@ describe("replyGuard cooldowns", () => {
 		expect(next.ok).toBe(true);
 		if (next.ok) next.finish(false);
 		expect(beginRandom("channel-1").ok).toBe(true);
+	});
+});
+
+describe("Random Reply channel activity", () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2026-01-01T12:00:00.000Z"));
+		replyGuardTestHooks.reset();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function chat(channelId: string, authors: string[]) {
+		let last = recordChannelMessage(channelId, "first");
+		for (const author of authors) last = recordChannelMessage(channelId, author);
+		return last;
+	}
+
+	it("is quiet below 5 messages or with fewer than 2 members", () => {
+		expect(randomReplySkipReason(chat("c", ["b", "a", "b"]))).toBe("quiet");
+		expect(randomReplySkipReason(recordChannelMessage("c", "b"))).toBeNull();
+
+		replyGuardTestHooks.reset();
+		let last = recordChannelMessage("solo", "a");
+		for (let i = 1; i < RANDOM_REPLY_MIN_MESSAGES + 3; i++) last = recordChannelMessage("solo", "a");
+		expect(last).toMatchObject({ messages: RANDOM_REPLY_MIN_MESSAGES + 3, members: 1 });
+		expect(randomReplySkipReason(last)).toBe("quiet");
+	});
+
+	it("drops messages older than the window", () => {
+		chat("c", ["b", "a", "b"]);
+		vi.advanceTimersByTime(RANDOM_REPLY_ACTIVITY_WINDOW_MS - 1);
+		expect(recordChannelMessage("c", "a")).toMatchObject({ messages: 5, members: 3 });
+
+		vi.advanceTimersByTime(2);
+		const later = recordChannelMessage("c", "a");
+		expect(later).toMatchObject({ messages: 2, members: 1 });
+		expect(randomReplySkipReason(later)).toBe("quiet");
+	});
+
+	it("counts each channel on its own", () => {
+		chat("c", ["b", "a"]);
+		expect(recordChannelMessage("other", "a")).toMatchObject({ messages: 1, members: 1 });
+	});
+
+	it("passes spacing with no previous reply, then blocks until 30 messages follow a sent reply", () => {
+		expect(recordChannelMessage("c", "a").sinceLastReply).toBe(RANDOM_REPLY_MIN_SPACING);
+
+		const gate = beginRandom("c");
+		if (gate.ok) gate.finish(true);
+
+		let last = recordChannelMessage("c", "a");
+		for (let i = 1; i < RANDOM_REPLY_MIN_SPACING - 1; i++) last = recordChannelMessage("c", "b");
+		expect(last.sinceLastReply).toBe(RANDOM_REPLY_MIN_SPACING - 1);
+		expect(randomReplySkipReason(last)).toBe("spacing");
+		expect(randomReplySkipReason(recordChannelMessage("c", "a"))).toBeNull();
+	});
+
+	it("restarts the spacing count only for a sent reply", () => {
+		recordChannelMessage("c", "a");
+		const sent = beginRandom("c");
+		if (sent.ok) sent.finish(true);
+		for (let i = 0; i < 10; i++) recordChannelMessage("c", "b");
+		vi.advanceTimersByTime(RANDOM_REPLY_COOLDOWN_MS + 1);
+
+		const failed = beginRandom("c");
+		expect(failed.ok).toBe(true);
+		if (failed.ok) failed.finish(false);
+		expect(recordChannelMessage("c", "a").sinceLastReply).toBe(11);
+	});
+
+	it("forgets everything on reset, as a restart does", () => {
+		recordChannelMessage("c", "a");
+		const gate = beginRandom("c");
+		if (gate.ok) gate.finish(true);
+
+		replyGuardTestHooks.reset();
+
+		expect(recordChannelMessage("c", "a")).toEqual({
+			messages: 1,
+			members: 1,
+			sinceLastReply: RANDOM_REPLY_MIN_SPACING,
+		});
+	});
+
+	it("keeps memory bounded by age, per-channel entries, and channels", () => {
+		for (let i = 0; i < 500; i++) recordChannelMessage("busy", `u${i}`);
+		expect(replyGuardTestHooks.sizes().entries).toBeLessThanOrEqual(200);
+
+		vi.advanceTimersByTime(RANDOM_REPLY_ACTIVITY_WINDOW_MS + 1);
+		recordChannelMessage("busy", "u");
+		expect(replyGuardTestHooks.sizes().entries).toBe(1);
+
+		for (let i = 0; i < 100; i++) recordChannelMessage(`channel-${i}`, "u");
+		expect(replyGuardTestHooks.sizes().channels).toBeLessThanOrEqual(20);
 	});
 });

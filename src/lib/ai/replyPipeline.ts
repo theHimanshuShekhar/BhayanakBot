@@ -2,8 +2,8 @@ import { container } from "@sapphire/framework";
 import type { Message } from "discord.js";
 import { findMatchingResponse, type MatchResult } from "../../db/queries/autoResponses.js";
 import type { getOrCreateSettings } from "../../db/queries/guildSettings.js";
-import { decideReply, isBotMentioned, rollRandomReply } from "../autoresponder/decideReply.js";
-import { beginAutoresponse, beginMention, beginRandom } from "../autoresponder/replyGuard.js";
+import { decideReply, isBotMentioned, randomReplyChannelId, rollRandomReply } from "../autoresponder/decideReply.js";
+import { beginAutoresponse, beginMention, beginRandom, recordChannelMessage } from "../autoresponder/replyGuard.js";
 import { postReply, sendTyping, whileTyping } from "../autoresponder/sendReply.js";
 import type { BhayanakClient } from "../BhayanakClient.js";
 import { isHomeServer } from "../homeServer.js";
@@ -29,12 +29,24 @@ function substituteVariables(text: string, captured?: Record<string, string>): s
 export async function answerMessage(message: Message<true>, settings: Settings): Promise<void> {
 	const botMentioned = isBotMentioned(message);
 	const home = isHomeServer(message.guild.id);
+	// Every human message in the random-reply channel counts toward its activity, whoever answers it.
+	const activity =
+		home && message.channel.id === randomReplyChannelId(settings)
+			? recordChannelMessage(message.channel.id, message.author.id)
+			: null;
 	const match = await findMatchingResponse(message.guild.id, message.content, message.channel.id, botMentioned);
 	const decision = decideReply({
 		match,
 		isHomeServer: home,
 		botMentioned,
-		rollRandom: () => rollRandomReply(settings, message.channel.id),
+		rollRandom: () =>
+			activity !== null &&
+			rollRandomReply(settings, message.channel.id, activity, {
+				onSkip: (reason) =>
+					container.logger.debug(
+						`[random-reply] skip reason=${reason} channel=${message.channel.id} messages=${activity.messages} members=${activity.members} since=${activity.sinceLastReply}`,
+					),
+			}),
 	});
 	container.logger.debug(
 		`[reply] decision=${decision.kind} guild=${message.guild.id} channel=${message.channel.id} message=${message.id} botMentioned=${botMentioned} homeServer=${home}`,
