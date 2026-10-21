@@ -1,6 +1,7 @@
 import type { Message } from "discord.js";
 import type { MatchResult } from "../../db/queries/autoResponses.js";
 import { GUESS_WHO_CHANNEL_ID } from "../constants.js";
+import { type ChannelActivity, randomReplySkipReason } from "./replyGuard.js";
 
 export type ReplyDecision =
 	| { kind: "autoresponse"; match: MatchResult }
@@ -40,17 +41,32 @@ interface RandomReplySettings {
 	randomResponseChance: number;
 }
 
+/** The channel Random Replies run in: the configured `random-response-channel`, else the Guess Who Channel. */
+export function randomReplyChannelId(
+	settings: Pick<RandomReplySettings, "randomResponseChannelId">,
+	defaultChannelId: string = GUESS_WHO_CHANNEL_ID,
+): string {
+	return settings.randomResponseChannelId ?? defaultChannelId;
+}
+
 /**
- * Rolls the Random Reply chance once. Only the guild's `random-response-channel` and `random-response-chance`
- * decide it. A channel that is not configured falls back to the Guess Who Channel (#general); a chance of 0 or
- * less never fires.
+ * Rolls the Random Reply chance once, but only for the guild's random-reply channel and a chance above 0. Two
+ * gates come before the roll, and nothing is rolled when either fails: the channel must be active (see
+ * `randomReplySkipReason`) and enough human chat must have passed since the last sent Random Reply. `activity`
+ * is the channel's, the current message included; `onSkip` hears which gate stopped the roll.
  */
 export function rollRandomReply(
 	settings: RandomReplySettings,
 	channelId: string,
-	defaultChannelId: string = GUESS_WHO_CHANNEL_ID,
+	activity: ChannelActivity,
+	{ defaultChannelId, onSkip }: { defaultChannelId?: string; onSkip?: (reason: "quiet" | "spacing") => void } = {},
 ): boolean {
 	if (settings.randomResponseChance <= 0) return false;
-	if (channelId !== (settings.randomResponseChannelId ?? defaultChannelId)) return false;
+	if (channelId !== randomReplyChannelId(settings, defaultChannelId)) return false;
+	const skip = randomReplySkipReason(activity);
+	if (skip) {
+		onSkip?.(skip);
+		return false;
+	}
 	return Math.random() * 100 < settings.randomResponseChance;
 }

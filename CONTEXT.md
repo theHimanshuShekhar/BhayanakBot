@@ -222,7 +222,7 @@ An AI reply to a message that mentions the bot, in any channel of the Home Serve
 
 ## Random Reply
 
-An AI reply the bot posts without being asked, only in the Home Server, in its random-reply channel and at exactly its chance. Both are on by default: the channel is the Guess Who Channel (#general) and the chance is 3%. An administrator can pick another channel, and a chance of 0 turns Random Replies off. It speaks in the Bot Voice.
+An AI reply the bot posts without being asked, only in the Home Server, in its random-reply channel and at exactly its chance, and only when the channel is active (at least 5 human messages from at least 2 members in the last 10 minutes, the current one included) and at least 30 human messages have passed since the last Random Reply that was sent (a restart forgets it). Both channel and chance are on by default: the channel is the Guess Who Channel (#general) and the chance is 3%. An administrator can pick another channel, and a chance of 0 turns Random Replies off. It speaks in the Bot Voice.
 
 ## Bot Voice
 

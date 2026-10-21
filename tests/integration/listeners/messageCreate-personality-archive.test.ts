@@ -7,6 +7,7 @@ import {
 } from "../../../src/db/queries/archivedChannelMessages.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import { archivedChannelMessages, guildPersonalityProfiles, userPersonalityProfiles } from "../../../src/db/schema.js";
+import { recordChannelMessage } from "../../../src/lib/autoresponder/replyGuard.js";
 import { GUESS_WHO_CHANNEL_ID } from "../../../src/lib/constants.js";
 import { db } from "../../../src/lib/database.js";
 import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
@@ -313,6 +314,7 @@ describe("messageCreate personality archive flow", () => {
 				}) as never,
 		);
 		mockedCallBackgroundLlm.mockClear();
+		for (const userId of ["warm-a", "warm-b", "warm-a", "warm-b"]) recordChannelMessage(RANDOM_CHANNEL_ID, userId);
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
 
 		try {

@@ -5,7 +5,12 @@ import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getGuildPersonalityProfile } from "../../../src/db/queries/guildPersonality.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import { getPersonalityProfile } from "../../../src/db/queries/personality.js";
-import { AUTORESPONSE_USER_COOLDOWN_MS, replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
+import {
+	AUTORESPONSE_USER_COOLDOWN_MS,
+	RANDOM_REPLY_MIN_SPACING,
+	recordChannelMessage,
+	replyGuardTestHooks,
+} from "../../../src/lib/autoresponder/replyGuard.js";
 import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { createListenerContext } from "../../helpers/sapphireMocks.js";
@@ -181,6 +186,11 @@ async function withRoll<T>(roll: number, fn: () => Promise<T>): Promise<T> {
 	}
 }
 
+/** Fills a channel with recent chat from two members, so one more message makes it active (5 messages, 3 members). */
+function warmUp(channelId = "chat", count = 4) {
+	for (let i = 0; i < count; i++) recordChannelMessage(channelId, i % 2 === 0 ? "warm-a" : "warm-b");
+}
+
 function posted(message: TestMessage): string[] {
 	const calls = [...message.reply.mock.calls, ...message.channel.send.mock.calls] as unknown as string[][];
 	return calls.map(([text]) => String(text));
@@ -262,6 +272,7 @@ describe("One Reply Rule", () => {
 	});
 
 	it("posts a random reply when nothing else answers", async () => {
+		warmUp();
 		mockedGetOrCreateSettings.mockResolvedValue(
 			createSettings({ randomResponseChannelId: "chat", randomResponseChance: 100 }),
 		);
@@ -434,6 +445,7 @@ describe("Bot Voice and context at the provider boundary", () => {
 	});
 
 	it("uses the same Bot Voice for Mention Replies and Random Replies", async () => {
+		warmUp();
 		mockedGetOrCreateSettings.mockResolvedValue(
 			createSettings({ randomResponseChannelId: "chat", randomResponseChance: 100 }),
 		);
@@ -512,6 +524,7 @@ describe("Bot Voice and context at the provider boundary", () => {
 	});
 
 	it("gives a Random Reply the server profile only, through the background call", async () => {
+		warmUp();
 		mockedGetOrCreateSettings.mockResolvedValue(
 			createSettings({ randomResponseChannelId: "chat", randomResponseChance: 100 }),
 		);
@@ -533,6 +546,7 @@ describe("Bot Voice and context at the provider boundary", () => {
 
 describe("Random Reply", () => {
 	beforeEach(() => {
+		warmUp();
 		mockedGetOrCreateSettings.mockResolvedValue(
 			createSettings({ randomResponseChannelId: "chat", randomResponseChance: 50 }),
 		);
@@ -571,6 +585,7 @@ describe("Random Reply", () => {
 		mockedGetOrCreateSettings.mockResolvedValue(
 			createSettings({ randomResponseChannelId: null, randomResponseChance: 3 }),
 		);
+		warmUp("guess-who");
 		const hit = createMessage({ channelId: "guess-who" });
 		const miss = createMessage({ channelId: "guess-who" });
 
@@ -598,6 +613,7 @@ describe("Random Reply", () => {
 			const third = createMessage();
 
 			await withRoll(0, () => run(first));
+			warmUp("chat", RANDOM_REPLY_MIN_SPACING);
 			await withRoll(0, () => run(second));
 			vi.advanceTimersByTime(46_000);
 			await withRoll(0, () => run(third));
@@ -606,6 +622,98 @@ describe("Random Reply", () => {
 			expect(sentAnything(second)).toBe(false);
 			expect(third.channel.send).toHaveBeenCalledTimes(1);
 			expect(background).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("never rolls in a quiet channel: too few messages, or too few members", async () => {
+		replyGuardTestHooks.reset();
+		warmUp("chat", 3);
+		const fourth = createMessage({ authorId: "warm-a" });
+		await withRoll(0, () => run(fourth));
+
+		replyGuardTestHooks.reset();
+		for (let i = 0; i < 4; i++) recordChannelMessage("chat", "warm-a");
+		const oneVoice = createMessage({ authorId: "warm-a" });
+		await withRoll(0, () => run(oneVoice));
+
+		expect(background).not.toHaveBeenCalled();
+		expect(sentAnything(fourth)).toBe(false);
+		expect(sentAnything(oneVoice)).toBe(false);
+	});
+
+	it("rolls on the message that makes the channel active, counting itself", async () => {
+		replyGuardTestHooks.reset();
+		warmUp("chat", 4);
+		const fifth = createMessage({ authorId: "newcomer" });
+
+		await withRoll(0, () => run(fifth));
+
+		expect(fifth.channel.send).toHaveBeenCalledWith("random quip");
+	});
+
+	it("forgets messages older than 10 minutes", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		try {
+			vi.setSystemTime(new Date("2026-01-01T12:00:00.000Z"));
+			replyGuardTestHooks.reset();
+			warmUp();
+			vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+			const late = createMessage();
+
+			await withRoll(0, () => run(late));
+
+			expect(background).not.toHaveBeenCalled();
+			expect(sentAnything(late)).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("counts messages that a mention or an autoresponse answered", async () => {
+		replyGuardTestHooks.reset();
+		mockedGetOrCreateSettings.mockResolvedValue(
+			createSettings({ randomResponseChannelId: "chat", randomResponseChance: 100 }),
+		);
+		warmUp("chat", 2);
+		await withRoll(0, () => run(createMessage({ content: "<@bot-user> hi", botMentioned: true })));
+		mockedFindMatchingResponse.mockResolvedValueOnce(rule({ responseType: "static", response: "static hi" }) as never);
+		await withRoll(0, () => run(createMessage()));
+		expect(background).not.toHaveBeenCalled();
+
+		const fifth = createMessage();
+		await withRoll(0, () => run(fifth));
+
+		expect(fifth.channel.send).toHaveBeenCalledWith("random quip");
+	});
+
+	it("waits for 30 human messages after a sent reply, and only a sent reply restarts the wait", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		try {
+			const first = createMessage();
+			await withRoll(0, () => run(first));
+			expect(first.channel.send).toHaveBeenCalledTimes(1);
+
+			vi.advanceTimersByTime(60_000);
+			warmUp("chat", RANDOM_REPLY_MIN_SPACING - 2);
+			const early = createMessage();
+			await withRoll(0, () => run(early));
+			expect(sentAnything(early)).toBe(false);
+
+			background.mockResolvedValueOnce(null);
+			const empty = createMessage();
+			await withRoll(0, () => run(empty));
+			expect(background).toHaveBeenCalledTimes(2);
+
+			const next = createMessage();
+			await withRoll(0, () => run(next));
+			expect(next.channel.send).toHaveBeenCalledWith("random quip");
+
+			const right = createMessage();
+			vi.advanceTimersByTime(60_000);
+			await withRoll(0, () => run(right));
+			expect(sentAnything(right)).toBe(false);
 		} finally {
 			vi.useRealTimers();
 		}

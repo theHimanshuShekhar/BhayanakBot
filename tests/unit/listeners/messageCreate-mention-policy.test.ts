@@ -4,7 +4,7 @@ import { getAfk } from "../../../src/db/queries/afk.js";
 import { findMatchingResponse } from "../../../src/db/queries/autoResponses.js";
 import { getOrCreateSettings } from "../../../src/db/queries/guildSettings.js";
 import { addXp } from "../../../src/db/queries/users.js";
-import { replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
+import { recordChannelMessage, replyGuardTestHooks } from "../../../src/lib/autoresponder/replyGuard.js";
 import { callBackgroundLlm, callInteractiveLlm } from "../../../src/lib/llmProvider.js";
 import { MessageCreateListener } from "../../../src/listeners/messages/messageCreate.js";
 import { NOTIFIES_NOBODY, resolveAllowedMentions } from "../../helpers/allowedMentions.js";
@@ -191,6 +191,7 @@ describe("messageCreate Mention Policy", () => {
 		mockedGetOrCreateSettings.mockResolvedValue(
 			createSettings({ randomResponseChannelId: "target", randomResponseChance: 100 }),
 		);
+		for (const userId of ["warm-a", "warm-b", "warm-a", "warm-b"]) recordChannelMessage("target", userId);
 		const message = createMessage({ id: "random-1", channelId: "target" });
 		mockedBackground.mockResolvedValue(`<@${message.author.id}> lol @everyone`);
 		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
