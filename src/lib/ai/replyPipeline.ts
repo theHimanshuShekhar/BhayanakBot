@@ -9,7 +9,7 @@ import type { BhayanakClient } from "../BhayanakClient.js";
 import { isHomeServer } from "../homeServer.js";
 import { callBackgroundLlm, callInteractiveLlm } from "../llmProvider.js";
 import { getPersonalityContext } from "../personality/getPersonalityContext.js";
-import { displayNameOf, fetchConversation } from "./conversation.js";
+import { displayNameOf, fetchConversation, resolveMentions } from "./conversation.js";
 import { autoresponsePrompt, autoresponseSystem, botVoiceSystem, mentionPrompt, randomPrompt } from "./prompts.js";
 
 type Settings = Awaited<ReturnType<typeof getOrCreateSettings>>;
@@ -112,16 +112,17 @@ async function writeAiAutoresponse(message: Message<true>, match: MatchResult): 
 	const client = container.client as BhayanakClient;
 	const botName = message.client.user.username;
 	const reply = await whileTyping(message, async () => {
-		const [personality, conversation] = await Promise.all([
+		const [personality, { conversation, participants }] = await Promise.all([
 			getPersonalityContext(client, message.author.id, message.guild.id),
 			fetchConversation(message, botName),
 		]);
-		return callInteractiveLlm(
+		const text = await callInteractiveLlm(
 			autoresponseSystem({ adminPrompt: match.response.response, botName, personality }),
 			autoresponsePrompt({ conversation, author: displayNameOf(message) }),
 			"chat",
 			{ session: `autoresponse:${message.channel.id}`, label: "autoresponse" },
 		);
+		return text && resolveMentions(text, participants, message.guild);
 	});
 	return reply ? substituteVariables(reply, match.captured) : null;
 }
@@ -139,16 +140,17 @@ async function answerWithMention(message: Message<true>): Promise<void> {
 		const botName = message.client.user.username;
 		const bare = message.content.replace(new RegExp(`<@!?${message.client.user.id}>`, "g"), "").trim() === "";
 		const reply = await whileTyping(message, async () => {
-			const [personality, conversation] = await Promise.all([
+			const [personality, { conversation, participants }] = await Promise.all([
 				getPersonalityContext(client, message.author.id, message.guild.id),
 				fetchConversation(message, botName),
 			]);
-			return callInteractiveLlm(
+			const text = await callInteractiveLlm(
 				botVoiceSystem({ botName, guildName: message.guild.name, personality }),
 				mentionPrompt({ conversation, author: displayNameOf(message), bare }),
 				"chat",
 				{ session: `mention:${message.channel.id}`, label: "mention-reply" },
 			);
+			return text && resolveMentions(text, participants, message.guild);
 		});
 		if (!reply) return;
 		sent = await postReply(message, reply, true);
@@ -169,16 +171,17 @@ async function answerWithRandom(message: Message<true>): Promise<void> {
 		const client = container.client as BhayanakClient;
 		const botName = message.client.user.username;
 		// The server culture profile only: nobody asked, so the member's own profile stays out of it.
-		const [personality, conversation] = await Promise.all([
+		const [personality, { conversation, participants }] = await Promise.all([
 			getPersonalityContext(client, message.author.id, message.guild.id, { memberProfile: false }),
 			fetchConversation(message, botName),
 		]);
-		const reply = await callBackgroundLlm(
+		const text = await callBackgroundLlm(
 			botVoiceSystem({ botName, guildName: message.guild.name, personality }),
 			randomPrompt({ conversation }),
 			"chat",
 			{ session: `random:${message.channel.id}`, label: "random-reply" },
 		);
+		const reply = text && resolveMentions(text, participants, message.guild);
 		if (!reply) return;
 		// Typing starts only now that the text is ready.
 		await sendTyping(message);

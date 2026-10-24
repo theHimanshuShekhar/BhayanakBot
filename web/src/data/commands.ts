@@ -244,7 +244,7 @@ export const RAW_COMMANDS: Command[] = [
 		examples: ["/summarize", "/summarize count:100", "/summarize time:2h"],
 		category: "utility",
 		usageNotes:
-			"Only available in the Bhayanak server. Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes the newest 200 non-bot text messages at most (oldest dropped first if the conversation is too long for the model; the chat is sent as data, never as instructions), and the reply states how many messages and since when were covered. A summary that is produced applies a 10-minute cooldown to the member and the channel; a failed or empty one does not.",
+			"Only available in the Bhayanak server. Uses the configured AI provider. time choices are 15m, 30m, 1h, 2h, 6h, and 24h; time overrides count. Summarizes the newest 200 non-bot text messages at most (oldest dropped first if the conversation is too long for the model; the chat is sent as data, never as instructions), and the reply states how many messages and since when were covered. People are named with mentions that show their current nickname and notify nobody. A summary that is produced applies a 10-minute cooldown to the member and the channel; a failed or empty one does not.",
 	},
 	{
 		name: "/personality",

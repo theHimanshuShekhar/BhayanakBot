@@ -77,6 +77,7 @@ interface HistoryEntry {
 	name: string;
 	content: string;
 	bot?: boolean;
+	mentions?: { id: string; name: string; bot?: boolean }[];
 }
 
 function historyMessage(entry: HistoryEntry) {
@@ -86,6 +87,12 @@ function historyMessage(entry: HistoryEntry) {
 		createdTimestamp: nextTimestamp(),
 		author: { id: entry.authorId, bot: entry.bot ?? false, displayName: entry.name },
 		member: null,
+		mentions: {
+			users: new Map(
+				(entry.mentions ?? []).map((u) => [u.id, { id: u.id, bot: u.bot ?? false, displayName: u.name }] as const),
+			),
+			members: null,
+		},
 	};
 }
 
@@ -471,7 +478,7 @@ describe("Bot Voice and context at the provider boundary", () => {
 
 		const prompt = interactive.mock.calls[0]?.[1] ?? "";
 		const transcript = prompt
-			.slice(prompt.indexOf("<conversation>\n") + 15, prompt.indexOf("\n</conversation>"))
+			.slice(prompt.indexOf("Messages:\n") + 10, prompt.indexOf("\n</conversation>"))
 			.split("\n");
 		expect(message.channel.messages.fetch).toHaveBeenCalledWith({ limit: 20 });
 		// The newest 20 of 26 messages, oldest first, minus the other bot's: 17 members, the bot's own reply, and the trigger.
@@ -484,6 +491,58 @@ describe("Bot Voice and context at the provider boundary", () => {
 		expect(prompt).not.toContain("line 5");
 		expect(prompt.endsWith("Reply to them.")).toBe(true);
 		expect(interactive.mock.calls[0]?.[0]).toContain('Lines from "BhayanakBot (you)" are your own earlier messages.');
+	});
+
+	it("lists every participant with their tag: authors and the members they mention, never bots", async () => {
+		const history: HistoryEntry[] = [
+			{
+				authorId: "111",
+				name: "ThyBumbum",
+				content: "@BhayanakBot @Vivi english only",
+				mentions: [
+					{ id: BOT_ID, name: "BhayanakBot", bot: true },
+					{ id: "222", name: "Vivi" },
+				],
+			},
+			{
+				authorId: BOT_ID,
+				name: "BhayanakBot",
+				content: "noted, @Chetan",
+				bot: true,
+				mentions: [{ id: "333", name: "Chetan" }],
+			},
+		];
+		const message = createMessage({ botMentioned: true, authorId: "444", history });
+
+		await run(message);
+
+		const [system, prompt] = interactive.mock.calls[0] ?? [];
+		expect(prompt).toContain(
+			"<conversation>\nParticipants (name = tag):\nThyBumbum = <@111>\nVivi = <@222>\nChetan = <@333>\nAuthora = <@444>\n\nMessages:\nThyBumbum: ",
+		);
+		expect(prompt).not.toContain(`<@${BOT_ID}>`);
+		expect(system).toContain("write their tag exactly as listed");
+	});
+
+	it("keeps tags for participants and turns any other tag into a plain name, or drops it", async () => {
+		interactive.mockResolvedValue("<@111> and <@!222>, unlike <@555> or <@999>, are wrong.");
+		const history: HistoryEntry[] = [
+			{ authorId: "111", name: "ThyBumbum", content: "hey @Vivi", mentions: [{ id: "222", name: "Vivi" }] },
+		];
+		const message = createMessage({ botMentioned: true, history });
+		message.guild.members.cache.set("555", { id: "555", displayName: "Stranger" });
+
+		await run(message);
+
+		expect(message.reply).toHaveBeenCalledWith("<@111> and <@222>, unlike Stranger or, are wrong.");
+	});
+
+	it("tells AI autoresponses to name participants by tag too", async () => {
+		mockedFindMatchingResponse.mockResolvedValue(rule() as never);
+
+		await run(createMessage());
+
+		expect(interactive.mock.calls[0]?.[0]).toContain("write their tag exactly as listed");
 	});
 
 	it("wraps member text in <conversation> delimiters and calls it data, not instructions", async () => {

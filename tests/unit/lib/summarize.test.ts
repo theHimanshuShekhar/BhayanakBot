@@ -15,7 +15,8 @@ interface FakeMessage {
 	id: string;
 	createdTimestamp: number;
 	content: string;
-	author: { bot: boolean; displayName: string };
+	author: { id: string; bot: boolean; displayName: string };
+	mentions: { users: Map<string, unknown>; members: null };
 }
 
 // Message i is the i-th oldest: created i seconds after BASE, content "m<i>".
@@ -24,7 +25,8 @@ function fakeMessage(i: number, overrides: Partial<FakeMessage> = {}): FakeMessa
 		id: String(1000 + i),
 		createdTimestamp: BASE + i * 1000,
 		content: `m${i}`,
-		author: { bot: false, displayName: "ann" },
+		author: { id: "100", bot: false, displayName: "ann" },
+		mentions: { users: new Map(), members: null },
 		...overrides,
 	};
 }
@@ -103,7 +105,7 @@ describe("fetchRecentMessages", () => {
 	it("skips bot and empty messages without counting them toward the limit", async () => {
 		const history = Array.from({ length: 60 }, (_, i) =>
 			i % 3 === 0
-				? fakeMessage(i, { author: { bot: true, displayName: "bot" } })
+				? fakeMessage(i, { author: { id: "200", bot: true, displayName: "bot" } })
 				: i % 3 === 1
 					? fakeMessage(i, { content: "   " })
 					: fakeMessage(i),
@@ -123,7 +125,11 @@ describe("fetchRecentMessages", () => {
 });
 
 describe("trimToBudget", () => {
-	const msg = (line: string, i: number): SummaryMessage => ({ line, createdTimestamp: BASE + i });
+	const msg = (line: string, i: number): SummaryMessage => ({
+		line,
+		createdTimestamp: BASE + i,
+		participants: new Map(),
+	});
 
 	it("keeps everything that fits", () => {
 		const input = [msg("a: one", 0), msg("b: two", 1)];
