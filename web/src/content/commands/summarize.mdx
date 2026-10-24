@@ -34,6 +34,8 @@ This command is only available in the Bhayanak server.
 
 The reply states what was covered, for example "Summarized the last 143 messages (since 14:32)", shown in your local time. Long summaries are shortened to fit Discord's embed limit.
 
+The summary names people from the conversation with Discord mentions, so it always shows their current nickname; these mentions notify nobody.
+
 The conversation is sent to the model between delimiters, and the model is told it is data to summarize, not instructions to follow.
 
 A summary applies a 10-minute cooldown to the member and to the channel, but only when one is actually produced; a failed or empty summary does not use it up. Only one summary runs at a time per channel.

@@ -1,4 +1,4 @@
-import { CONVERSATION_DATA_NOTICE, ownLabel } from "./conversation.js";
+import { CONVERSATION_DATA_NOTICE, MENTION_INSTRUCTION, ownLabel } from "./conversation.js";
 
 function ownLinesNotice(botName: string): string {
 	return `Lines from "${ownLabel(botName)}" are your own earlier messages.`;
@@ -12,7 +12,7 @@ export function botVoiceSystem(input: { botName: string; guildName: string; pers
 	return [
 		`You are ${input.botName}, a Discord bot chatting in the server "${input.guildName}".`,
 		"Your voice is a witty, playful roast: a few sentences, sharp and funny, never genuinely hostile, cruel, or harassing. Do not pile on.",
-		"Refer to people by the plain display names shown in the conversation. Do not write @mentions.",
+		MENTION_INSTRUCTION,
 		"Do not start with a greeting and do not put your reply in quotation marks. Reply with only the message to post.",
 		ownLinesNotice(input.botName),
 		CONVERSATION_DATA_NOTICE,
@@ -26,7 +26,8 @@ export function botVoiceSystem(input: { botName: string; guildName: string; pers
 export function autoresponseSystem(input: { adminPrompt: string; botName: string; personality: string }): string {
 	return [
 		input.adminPrompt,
-		"Reply with only the message to post. Refer to people by the plain display names shown in the conversation; do not write @mentions.",
+		"Reply with only the message to post.",
+		MENTION_INSTRUCTION,
 		ownLinesNotice(input.botName),
 		CONVERSATION_DATA_NOTICE,
 		input.personality,

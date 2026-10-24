@@ -1,4 +1,5 @@
 import type { TextBasedChannel } from "discord.js";
+import { addParticipants, displayNameOf, type Participants } from "./ai/conversation.js";
 
 export const MAX_SUMMARY_MESSAGES = 200;
 /** Upper bound on the transcript sent to the model; the oldest messages are dropped to fit. */
@@ -12,6 +13,8 @@ const MAX_PAGES = 10;
 export interface SummaryMessage {
 	line: string;
 	createdTimestamp: number;
+	/** The message's author and the members it mentions. */
+	participants: Participants;
 }
 
 export interface FetchOptions {
@@ -39,7 +42,9 @@ export async function fetchRecentMessages(channel: TextBasedChannel, options: Fe
 			if (since !== undefined && m.createdTimestamp < since) continue;
 			const content = m.content.trim();
 			if (m.author.bot || content.length === 0) continue;
-			collected.push({ line: `${m.author.displayName}: ${content}`, createdTimestamp: m.createdTimestamp });
+			const participants: Participants = new Map();
+			addParticipants(participants, m);
+			collected.push({ line: `${displayNameOf(m)}: ${content}`, createdTimestamp: m.createdTimestamp, participants });
 		}
 
 		const oldest = batch[batch.length - 1];
@@ -72,6 +77,13 @@ export function trimToBudget(
 	}
 
 	return { messages: kept, prompt: kept.map((m) => m.line).join("\n") };
+}
+
+/** Every participant of `messages`, in the order they first appear. */
+export function participantsOf(messages: SummaryMessage[]): Participants {
+	const all: Participants = new Map();
+	for (const m of messages) for (const [id, name] of m.participants) if (!all.has(id)) all.set(id, name);
+	return all;
 }
 
 /** States what the summary actually covered; `<t:...:t>` renders in each reader's local time. */
