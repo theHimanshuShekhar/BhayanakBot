@@ -14,7 +14,7 @@ const {
 	description = "One Discord bot carrying moderation, music, leveling, giveaways, games, Minecraft status, and context-aware AI replies.",
 	active = "home",
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://bhayanakbot.gg").toString();
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://bot.bhayanak.net").toString();
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "SoftwareApplication",
@@ -22,7 +22,7 @@ const jsonLd = {
 	applicationCategory: "CommunicationApplication",
 	operatingSystem: "Discord",
 	description,
-	url: Astro.site?.toString() ?? "https://bhayanakbot.gg",
+	url: Astro.site?.toString() ?? "https://bot.bhayanak.net",
 	offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
 };
 ---

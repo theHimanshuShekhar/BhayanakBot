@@ -1,159 +1,74 @@
 # BhayanakBot
 
-A fully custom Discord bot built for the Bhayanak server. Features a moderation suite, music playback, leveling system, archive-backed games and personality, giveaways, polls, and more.
+**Your server's worst behavior, automated.**
 
-## Features
+BhayanakBot is the one bot the Bhayanak server runs on. It keeps order, plays the music, counts everyone's XP, runs the giveaways, and talks back when you mention it, in a voice that's somewhere between a friend and a roast.
 
-| Category | Commands |
-|---|---|
-| **Moderation** | `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/unban`, `/purge`, `/case`, `/history` |
-| **Music** | `/play`, `/music`, `/queue`, `/nowplaying`, `/volume`, `/shuffle`, `/loop` |
-| **Leveling** | `/rank`, `/leaderboard`, `/rewards`, `/level-reset` |
-| **Utility** | `/ping`, `/serverinfo`, `/userinfo`, `/avatar`, `/snipe`, `/editsnipe`, `/afk`, `/remind`, `/help`, `/summarize`, `/personality` |
-| **Fun** | `/8ball`, `/coinflip`, `/choose`, `/meme`, `/poll` |
-| **Games** | `/guess_who` |
-| **Giveaways** | `/giveaway` |
-| **Auto-respond** | `/autorespond` |
-| **Config** | `/config` |
-| **Minecraft** | `/minecraft` |
+No pile of single-purpose bots. No dashboard to log into. Set it up with one command and get on with your day.
 
-`/summarize`, `/personality`, `/guess_who`, and the AI replies below are Home-Server Features: they run only in the guild named by `TARGET_GUILD_ID` (the Bhayanak server). The three commands are registered as guild commands there and are invisible elsewhere, and mentioning the bot in any other guild sends nothing to Zen and gets no AI reply. Everything else works in every guild.
+👉 **[See every command at bot.bhayanak.net](https://bot.bhayanak.net)**
 
-### AI Personality System
+---
 
-The bot builds personality profiles from archived server conversation to generate contextual responses.
+## Why BhayanakBot?
 
-- **User Profiles**: Per-member profiles written from eligible archived messages (100 to start, then 20 new messages per refresh). A member views their own with `/personality view user`; administrators can view anyone's
-- **Guild Profiles**: Server culture profiles written from eligible archived messages (200 to start, then 40 per refresh). Anyone views it with `/personality view guild`
-- **Scheduled, fixed-size**: a task builds and refreshes due profiles at startup and every 6 hours, never inline on a message. Each refresh rewrites the profile in place to stay within about 1,500 characters, and replies use the whole profile. Administrators can force a refresh with `/personality refresh user|guild`
-- **Mention Replies**: When @mentioned in any Home Server channel, the bot answers in its Bot Voice (a witty, playful roast, never genuinely hostile) using the server and member profiles and the channel's last 20 messages, fetched live from Discord (the bot's own earlier replies included). A bare `@bot` replies to the recent conversation. 10-second cooldown per member, started only after a reply is sent. Works whether or not the personality toggle is on; the toggle only controls whether profiles are used
-- **Random Replies**: A chance-based reply in the Bot Voice, using the server profile only, on by default in the Guess Who channel (#general) at a 3% chance, decided solely by `/config` `random-response-channel` and `random-response-chance` (one roll at exactly that chance; a chance of 0 turns them off), rolled only while the channel is active (5 human messages from 2 members in the last 10 minutes) and 30 human messages after the last sent random reply, with a 45-second per-channel cooldown started only after a reply is sent
-- **AI autoresponses**: `/autorespond add use-llm` rules fire in any Home Server channel their own channel filter allows, following the administrator's prompt plus the server and member profiles
-- **Members by tag**: AI replies and `/summarize` name the people in the conversation with Discord mentions, so the name shown is always their current nickname. These mentions notify nobody, and nobody outside the conversation is tagged
-- **One reply per message**: a matching autoresponse (static or AI) answers first, otherwise a mention reply, otherwise a random reply. Auto-moderated messages get none. If the model returns nothing, nothing is posted and the trigger is kept
-- **Operational Toggle**: Server admins can enable or disable personality behavior with `/config`; this is not consent or opt-in/opt-out language
+### 🛡️ Moderation that keeps receipts
+Ban, kick, mute, warn, and purge, and every action gets a numbered case you can look up later with `/case` and `/history`. Temporary mutes and bans lift themselves on time. Auto-mod catches spam, bad links, and mass mentions, and anti-raid notices when too many accounts join at once.
 
-### Guess Who Game
+### 🎵 Music for the voice channel
+Search for a song or paste a link, then queue, skip, shuffle, loop, and turn it up. Buttons on the now-playing card do the same. Only people in the bot's voice channel can change what's playing, so nobody skips your song from across the server.
 
-`/guess_who` is a channel-based guessing game backed by a durable Postgres message archive:
+### ⭐ Levels worth chasing
+Chatting earns XP. Check where you stand with `/rank`, see who's on top with `/leaderboard`, and let roles hand themselves out when someone reaches a level.
 
-- **Archive source**: non-bot messages from `GUESS_WHO_CHANNEL_ID` are archived with the Discord message ID, content, timestamps, user ID, global username, and server display name
-- **Backfill**: on startup, the bot imports up to `GUESS_WHO_BACKFILL_LIMIT` accessible recent messages so the game has data immediately after deployment
-- **Live messages only**: before a round shows a message the bot confirms it still exists on Discord; deleted messages (including bulk deletes such as `/purge`) are marked deleted in the archive and never used
-- **Game flow**: the bot posts a polished quote embed, players guess by typing a mention of the author (a reply ping alone does not count), and the same embed updates the remaining guess count
-- **Reveal**: after a correct guess, 3 wrong guesses, or a 10-minute timeout, the same embed reveals the author, relative message age, original message ID, and jump link
-- **Archive retention**: archived messages are kept indefinitely for DBA-side history/log retrieval; there is no Discord-facing archive search command
+### 🤖 A bot that talks back
+Mention it and it answers, using what's been said in the channel and what it knows about the people in it. Every so often, when #general is busy, it joins in on its own. It's playful, never actually mean, and it stays quiet rather than posting something broken.
 
-## Stack
+### 🧠 It knows the regulars
+Over time the bot builds a short profile of the server and of each regular from the conversation in #general, and uses it to sound like it's been around. See yours with `/personality view user`, or the whole server's with `/personality view guild`.
 
-- **Runtime**: Node.js with TypeScript (ESM)
-- **Bot framework**: [Sapphire Framework](https://www.sapphirejs.org/) v5 on Discord.js v14
-- **Database**: PostgreSQL via Drizzle ORM
-- **Background tasks**: in-process timers (no queue or cache service)
-- **Music**: discord-player v7
-- **AI**: opencode Zen is the only LLM provider, used for responders and summaries only when configured and explicitly allowed for Discord content; otherwise AI features stay silent
+### 📝 Catch up in seconds
+Missed the last two hours? `/summarize` reads the channel and tells you what happened, naming who said what.
 
-## Setup
+### 🕵️ Guess Who
+The bot pulls a real message out of the server's history. Name who wrote it before you run out of guesses.
 
-### Prerequisites
+### 🎉 Giveaways and polls
+Start a timed giveaway or a button poll in one command. Winners are drawn from people who are still in the server, and a reroll never picks the same person twice.
 
-- Node.js 22+
-- pnpm
-- PostgreSQL
+### 💬 Autoresponders
+Have the bot answer a word, a phrase, or a pattern. Pull parts of the message into the reply, limit it to certain channels, or let the AI write the answer.
 
-### Install
+### ⛏️ Game servers at a glance
+`/minecraft` shows who's on mc.bhayanak.net, the modpack version, the live map, and the mods you need. The Minecraft and Palworld player lists show up as channels in the sidebar, so you can see who's online without asking.
 
-```bash
-git clone https://github.com/theHimanshuShekhar/BhayanakBot
-cd BhayanakBot
-pnpm install
-```
+### 🔕 Pings only when they're for you
+The bot doesn't ping anyone, except the person a reminder is for, someone who just levelled up, or a giveaway winner.
 
-### Configure
+### 🧰 The little things
+Reminders, AFK notes, `/snipe` for the message someone just deleted, welcome and goodbye messages, a starboard, and `/help` for everything else.
 
-Copy `.env.example` to `.env` and fill in:
+---
 
-```env
-DISCORD_TOKEN=your_bot_token
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot
-TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bhayanakbot_test
-POSTGRES_PASSWORD=postgres
-# WEB_DATABASE_URL=postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot   # optional read-only web login; see Docker below
-ZEN_API_KEY=your_opencode_zen_key   # required for AI responders and summaries (and personality profile builds)
-ZEN_ALLOW_DISCORD_CONTENT=false      # must be true before Discord content is sent to Zen, the only provider
-ZEN_BASE_URL=https://opencode.ai/inference/go/openai/v1
-ZEN_MODEL=deepseek-v4.1-flash
-ZEN_BACKUP_MODEL=glm-5.3-flash
-ZEN_TIMEOUT_MS=30000
-WEB_PORT=3000
-PUBLIC_BOT_INVITE_URL=https://discord.com/oauth2/authorize
-PUBLIC_STATS_INTERVAL_MS=300000
-DASHBOARD_PRESENCE_INTERVAL_MS=60000
-DASHBOARD_API_TOKEN=                  # bearer token for /api/dashboard-presence; blank leaves it open (local dev only)
-NODE_ENV=development
-TARGET_GUILD_ID=199168135935295488
-GUESS_WHO_CHANNEL_ID=199168135935295488
-GUESS_WHO_BACKFILL_LIMIT=1000
-BOT_OWNER_ID=                         # optional privileged Discord user ID; blank disables owner bypasses
-PALWORLD_API_URL=                     # optional; defaults to http://127.0.0.1:8212. Required under Docker
-PALWORLD_ADMIN_KEY=                   # optional; Palworld AdminPassword — tracker runs once this is set
-MINECRAFT_RCON_HOST=                  # optional; defaults to 127.0.0.1. Set when Minecraft is outside the bot container
-MINECRAFT_RCON_PORT=                  # optional; defaults to 25575
-MINECRAFT_RCON_PASSWORD=              # optional; enables the local Minecraft RCON tracker
-YOUTUBE_COOKIE=
-```
-Minecraft tracking uses Java RCON. Enable `enable-rcon=true` and set `rcon.port=25575` and `rcon.password=...` in `server.properties`; set the same password in the bot's `MINECRAFT_RCON_PASSWORD` environment variable. If the bot runs in Docker while Minecraft runs on the LXC host, set `MINECRAFT_RCON_HOST` to an address reachable from the bot container.
+## Where it works
 
-Both game-server trackers (Palworld through its REST API once `PALWORLD_ADMIN_KEY` is set, Minecraft through RCON) sweep every 10 minutes in the Home Server. Each keeps a `Palworld — N online` or `Minecraft — N online` category whose text channels list the connected players, and removes the category when nobody is online or the server is unreachable.
+Most of BhayanakBot works in any server it's added to. The AI replies (AI autoresponders included), `/summarize`, `/personality`, and `/guess_who` are only for the Bhayanak server.
 
-### Database
+---
 
-```bash
-pnpm db:migrate   # run migrations
-pnpm db:studio    # optional: open Drizzle UI
-```
+## How it works
 
-### Run
+1. **Add BhayanakBot** to your server from [bot.bhayanak.net](https://bot.bhayanak.net).
+2. **Set it up** with `/config`: a log channel, a muted role, welcome messages, whatever you need.
+3. **Type `/help`** and start using it.
 
-```bash
-pnpm dev    # development (hot reload)
-pnpm build && pnpm start  # production
-```
+That's all there is to it.
 
-## Docker
+---
 
-The included `docker-compose.yml` runs everything (Postgres, bot, and web). Each service builds its own `Dockerfile` target (`bot`, `web`), so the images hold production dependencies only. The bot container applies migrations before startup (`node dist/db/migrate.js`); the web container serves the site built at image build time and never rebuilds it on start:
+<p align="center">
+  <b>Want the full command list?</b><br>
+  <a href="https://bot.bhayanak.net">bot.bhayanak.net</a>
+</p>
 
-```bash
-cp .env.example .env
-# Set DISCORD_TOKEN in .env
-docker compose up -d
-```
-
-The service hostname (`postgres`) is injected automatically — `.env` values are only used for local development.
-
-By default the web service uses the same database login as the bot (`postgres`). Migration `0024` also creates `bhayanak_web`, a role that can only `SELECT` the two snapshot tables the site reads (`public_bot_stats_snapshots`, `dashboard_presence_snapshots`). It is created without a password, so switching the website to it is an opt-in, ordered step:
-
-1. Deploy, so the bot container runs the migration.
-2. Set a password: `docker compose exec postgres psql -U postgres -d bhayanakbot -c "ALTER ROLE bhayanak_web PASSWORD '<password>'"`.
-3. Set `WEB_DATABASE_URL=postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot` in the deployment's `.env` (use only letters, digits, and `- _ . ~` in the password, since it sits in a URL).
-4. Redeploy the web service.
-
-Until `WEB_DATABASE_URL` is set the web service keeps the default login. Postgres and the bot's connections run in UTC (`TZ`/`PGTZ` on the Postgres service, `TimeZone=UTC` on the pool).
-
-The web service serves the public site, so set `DASHBOARD_API_TOKEN` in the deployment's `.env`: `GET /api/dashboard-presence` (member IDs and voice state) then requires `Authorization: Bearer <DASHBOARD_API_TOKEN>` and answers 404 without it. When updating a deployment, also update the homelab Glance dashboard widget to send that header, or it will start getting 404s. Left unset, the endpoint is open and the web service logs a warning.
-
-## Development
-
-```bash
-pnpm check      # lint + format (Biome, auto-fix)
-pnpm typecheck  # TypeScript over src and tests
-pnpm test       # Vitest (needs the test Postgres database)
-pnpm db:push    # push schema changes without a migration (dev only)
-```
-
-Biome enforces: tabs, double quotes, trailing commas, 120-char line width.
-
-`pnpm install` points the repository at the committed `.githooks/` directory, whose pre-commit hook runs Biome on staged files only. On a failure run `pnpm check`, re-stage, and commit again. The hook does not run the type check or the tests, so run `pnpm typecheck`, `pnpm test`, and (after changing `web/`) `pnpm web:build` before pushing. CI (`.github/workflows/ci.yml`) runs the dependency audit, Biome, the type check, the full test suite against a Postgres service, and the web build on every pull request and push to `main`; it publishes no image. Dockhand builds the Docker images from the repository.
-
-When adding new Drizzle `pgEnum` values, always generate and run a migration — `db:push` skips enum changes.
+<p align="center"><sub>Running your own copy or contributing? See <a href="docs/development.md">docs/development.md</a>.</sub></p>

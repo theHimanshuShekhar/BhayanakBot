@@ -102,13 +102,13 @@ The web app is not included in the bot TypeScript build because root `tsconfig.j
 
 ## Environment Variables
 
-Keep `.env.example`, `README.md`, Docker Compose (the bot service's explicit `environment:` list), and this table in sync when environment variables change. `tests/unit/config/envContract.test.ts` fails when a variable the bot reads is missing from any of them, or when this table documents a variable nothing reads. A blank value counts as unset and falls back to the default (`src/lib/env.ts`).
+Keep `.env.example`, `docs/development.md`, Docker Compose (the bot service's explicit `environment:` list), and this table in sync when environment variables change. `tests/unit/config/envContract.test.ts` fails when a variable the bot reads is missing from any of them, or when this table documents a variable nothing reads. A blank value counts as unset and falls back to the default (`src/lib/env.ts`).
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `DISCORD_TOKEN` | required | Bot token |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot` | Postgres connection |
-| `WEB_DATABASE_URL` | the bot's default `DATABASE_URL` | Compose only: the web service's Postgres URL. Set it to `postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot` to use the SELECT-only role on the two snapshot tables. Migration 0024 creates that role without a password; set one with `ALTER ROLE bhayanak_web PASSWORD '...'` first (README, Docker). The web service ignores `DATABASE_URL` |
+| `WEB_DATABASE_URL` | the bot's default `DATABASE_URL` | Compose only: the web service's Postgres URL. Set it to `postgresql://bhayanak_web:<password>@postgres:5432/bhayanakbot` to use the SELECT-only role on the two snapshot tables. Migration 0024 creates that role without a password; set one with `ALTER ROLE bhayanak_web PASSWORD '...'` first (`docs/development.md`, Docker). The web service ignores `DATABASE_URL` |
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/bhayanakbot_test` | Vitest integration DB |
 | `POSTGRES_PASSWORD` | `postgres` | Docker Postgres password; also the password in Compose's default `DATABASE_URL` for the bot and web services |
 | `ZEN_API_KEY` | unset | opencode Zen API key; every AI call (responders, summaries, personality builds) requires it plus `ZEN_ALLOW_DISCORD_CONTENT=true`, and none are made without both. Personality profiles are built by the scheduled task only, so they need both too |
@@ -237,7 +237,7 @@ The `Dockerfile` builds two runtime targets, `bot` and `web` (`docker build --ta
 
 Base images and the ffmpeg image are pinned by version and digest (Renovate bumps both). `pnpm-workspace.yaml` is copied wherever `pnpm install --frozen-lockfile` runs. `.dockerignore` excludes `**/node_modules`, `**/dist` and `**/.env*`, so host dependencies, builds and secrets never enter the context. `@types/node` stays on the Node 22 major to match the images.
 
-Compose injects the service hostname for the bot's `DATABASE_URL`, so local `.env` values are mainly for non-Docker development. The web service can connect as the read-only `bhayanak_web` role through `WEB_DATABASE_URL` (opt-in; README, Docker). Any new table or column the web reads needs a `GRANT SELECT` to that role in a migration; the role gets nothing by default.
+Compose injects the service hostname for the bot's `DATABASE_URL`, so local `.env` values are mainly for non-Docker development. The web service can connect as the read-only `bhayanak_web` role through `WEB_DATABASE_URL` (opt-in; `docs/development.md`, Docker). Any new table or column the web reads needs a `GRANT SELECT` to that role in a migration; the role gets nothing by default.
 
 All timestamps are `timestamp without time zone`, read and written as UTC: the pool sets `TimeZone=UTC` on every connection (`buildPoolConfig`) and the Postgres Compose service sets `TZ`/`PGTZ`.
 
